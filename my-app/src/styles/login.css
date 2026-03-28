@@ -1,0 +1,50 @@
+/* تنسيقات عامة للصفحة لضمان شكل الخلفية */
+.login-page-wrapper {
+  background-color: #050510;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  overflow: hidden;
+  position: relative;
+}
+
+/* تأثيرات الإضاءة في الخلفية */
+.bg-glow-top {
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 50%;
+  height: 50%;
+  background-color: rgba(37, 99, 235, 0.2); /* blue-600/20 */
+  border-radius: 9999px;
+  filter: blur(120px);
+}
+
+.bg-glow-bottom {
+  position: absolute;
+  bottom: -10%;
+  right: -10%;
+  width: 50%;
+  height: 50%;
+  background-color: rgba(147, 51, 234, 0.2); /* purple-600/20 */
+  border-radius: 9999px;
+  filter: blur(120px);
+}
+
+/* الأنميشن اللي كان موجود في الكود بتاعك */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+.glow-effect {
+  animation: pulse-glow 8s infinite ease-in-out;
+}
