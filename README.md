@@ -1,55 +1,70 @@
-# uniconnect-project
-ده النظام اللي هنمشي عليه في الشغل على GitHub
-أول حاجة: تقسيم الملفات
-كل واحد هيشتغل في الملف الخاص بالمهمة بتاعته بس.
-يعني مثلاً:
+# Getting Started with Create React App
 
-اللي شغال على Login يشتغل في Login.jsx
+This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-اللي شغال على Register يشتغل في Register.jsx
+## Available Scripts
 
-اللي شغال على Navbar يشتغل في Navbar.jsx
+In the project directory, you can run:
 
-محدش يعدل في ملفات شخص تاني (إلا لو متفقين مع بعض)
+### `npm start`
 
-الملف الوحيد اللي هيعدله شخص واحد بس هو App.jsx لأنه فيه الربط بين الصفحات
+Runs the app in the development mode.\
+Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
 
+The page will reload when you make changes.\
+You may also see any lint errors in the console.
 
-ثاني حاجة: نظام الشغل على GitHub
+### `npm test`
 
-محدش يشتغل مباشرة على main branch
+Launches the test runner in the interactive watch mode.\
+See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
 
-كل واحد هيعمل branch خاص باسمه
+### `npm run build`
 
-مثال:
-kareem mohamed
-mohamed ahmeed
-a`laa mohamed
+Builds the app for production to the `build` folder.\
+It correctly bundles React in production mode and optimizes the build for the best performance.
 
-كل شخص يشتغل في الـ branch بتاعه ويرفع الكود عليه.
+The build is minified and the filenames include the hashes.\
+Your app is ready to be deployed!
 
-بعد ما يخلص يعمل Pull Request عشان الكود يتراجع ويتدمج في المشروع.
+See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
+### `npm run eject`
 
+**Note: this is a one-way operation. Once you `eject`, you can't go back!**
 
+If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
 
-ثالث حاجة: خطوات الشغل كل مرة
+Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-قبل ما تبدأ تشتغل لازم تعمل:
+You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
 
-git pull
+## Learn More
 
-عشان تاخد آخر نسخة من المشروع.
+You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
 
-بعد ما تخلص شغلك تعمل:
+To learn React, check out the [React documentation](https://reactjs.org/).
 
-git add .
-git commit -m "تكتب هنا اختصار بسيط للي عملته (ويفضل بالانجليزي)"
-git push
+### Code Splitting
 
-وبعدين تعمل Pull Request.
+This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
+### Analyzing the Bundle Size
 
-لو حد عنده أي مشكلة أو مش فاهم حاجة يقول فوراً عشان نحلها مع بعض
+This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
 
---شكرا TOLIX TM--
+### Making a Progressive Web App
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+
+### Advanced Configuration
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+
+### Deployment
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+
+### `npm run build` fails to minify
+
+This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
