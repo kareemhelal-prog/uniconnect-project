@@ -2,20 +2,23 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 
-const userRoutes = require("./routes/userRoutes");
+const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
+// Test Route
 app.get("/", (req, res) => {
-  res.send("Server is running");
+  res.send("Server is running ✅");
 });
 
-// 🔥 ربط الـ API
-app.use("/api/users", userRoutes);
+// 🔥 ربط الـ Auth API
+app.use("/api/auth", authRoutes);
 
+// تشغيل السيرفر
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
