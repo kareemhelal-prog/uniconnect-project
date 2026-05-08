@@ -8,7 +8,7 @@ body{
 }
 .page-bg{
   position:fixed;inset:0;
-  background:url('../images/bg.png') center/cover;
+  background:url('../assets/bg.png') center/cover;
   animation:bgBreath 8s ease-in-out infinite;
   z-index:0
 }

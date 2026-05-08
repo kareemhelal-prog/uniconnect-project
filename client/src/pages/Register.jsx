@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import './Register.css';
-import profileImg from '../images/image.register.jpeg';
+import '../styles/Register.css';
+import profileImg from '../assets/image.register.jpeg';
 import { useNavigate } from 'react-router-dom'
 import api from '../api/axios'
 
