@@ -1,0 +1,213 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #050510;
+  color: #fff;
+}
+
+/* ===== Layout ===== */
+.dashboard-container {
+  background-color: #050510;
+  color: #fff;
+  padding: 20px;
+  min-height: 100vh;
+  font-family: "Segoe UI", Tahoma, sans-serif;
+}
+
+.main-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1.5fr 1fr;
+  gap: 20px;
+}
+
+/* ===== Header ===== */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  position: relative;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: bold;
+  background: linear-gradient(to right, #00d2ff, #9d50bb, #ff00c1, #00d2ff);
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: flow 2s linear infinite;
+  background-size: 200%;
+}
+
+.admin-title {
+  font-size: 28px;
+  font-weight: bold;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(to right, #00d2ff, #9d50bb, #ff00c1, #00d2ff);
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: flow 2s linear infinite;
+  background-size: 200%;
+  white-space: nowrap;
+}
+
+@keyframes flow {
+  to {
+    background-position: 200%;
+  }
+}
+
+.create-btn {
+  background: transparent;
+  border: 2px solid #00e5ff;
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4);
+  transition: box-shadow 0.2s ease;
+}
+
+.create-btn:hover {
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.7);
+}
+
+/* ===== Cards ===== */
+.card {
+  background-color: #0d0d21;
+  border-radius: 15px;
+  padding: 20px;
+  border: 1px solid #1a1a3a;
+}
+
+.card.neon-blue {
+  border: 1px solid #00e5ff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+.card.neon-pink {
+  border: 1px solid #ff33cc;
+  box-shadow: 0 0 10px rgba(255, 51, 204, 0.1);
+}
+
+.card.mb {
+  margin-bottom: 20px;
+}
+
+.card.mt {
+  margin-top: 20px;
+}
+
+/* ===== Column 2 offset ===== */
+.col-offset {
+  margin-top: 40px;
+}
+
+/* ===== Stats Numbers ===== */
+.stat-label {
+  color: #888;
+}
+
+.big-number {
+  font-size: 32px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.new-users-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.new-users-text .stat-label {
+  color: #888;
+}
+
+.new-users-text .new-users-count {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.doughnut-wrapper {
+  width: 70px;
+  height: 70px;
+}
+
+/* ===== Charts ===== */
+.chart-card {
+  height: 220px;
+}
+
+.chart-wrapper {
+  height: 160px;
+}
+
+/* ===== Moderation ===== */
+.mod-item {
+  background-color: #161633;
+  padding: 12px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.resolve-btn {
+  background: #00e5ff;
+  border: none;
+  border-radius: 10px;
+  padding: 2px 8px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #050510;
+}
+
+/* ===== Table ===== */
+.reports-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  font-size: 13px;
+}
+
+.tooltip-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.reports-table th {
+  color: #888;
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #222;
+}
+
+.reports-table td {
+  padding: 12px;
+  border-bottom: 1px solid #1a1a3a;
+}
+
+.status-active {
+  color: #00e5ff;
+}
+
+.status-inactive {
+  color: #888;
+}
+
+/* ===== Section Titles ===== */
+.section-title {
+  margin-bottom: 10px;
+}

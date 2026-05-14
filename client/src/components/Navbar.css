@@ -1,0 +1,135 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 32px;
+  background: rgba(8, 8, 28, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(120, 80, 255, 0.2);
+  box-shadow: 0 2px 30px rgba(0, 0, 0, 0.4);
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-icon {
+  font-size: 24px;
+}
+
+.logo-text {
+  font-size: 22px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #a78bfa 0%, #60a5fa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.5px;
+}
+
+.navbar-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.navbar-search input {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+  padding: 9px 20px 9px 38px;
+  color: white;
+  width: 300px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.navbar-search input:focus {
+  border-color: rgba(167, 139, 250, 0.5);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.navbar-search input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.navbar-icons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.icon-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+  font-size: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+  position: relative;
+}
+
+.icon-btn:hover {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: #f43f5e;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #080818;
+}
+
+.nav-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #a78bfa, #60a5fa);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  border: 2px solid rgba(167, 139, 250, 0.4);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.nav-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 16px rgba(167, 139, 250, 0.5);
+}

@@ -110,7 +110,8 @@ exports.login = async (req, res) => {
         id: user.id,
         name: user.name,
         email: user.email,
-        username: user.username
+        username: user.username,
+        role: user.role,
       }
     });
 

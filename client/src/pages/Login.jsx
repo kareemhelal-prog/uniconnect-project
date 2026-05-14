@@ -21,27 +21,23 @@ const handleLogin = async (e) => {
   e.preventDefault();
 
   if (!email.trim() || !password) {
-    showMsg("من فضلك ادخل الإيميل وكلمة المرور", "error");
+    showMsg(" please enter your email and password", "error");
     return;
   }
   if (!email.includes("@")) {
-    showMsg("إيميل الجامعة غير صحيح", "error");
+    showMsg("invalid university email", "error");
     return;
   }
 
   setLoading(true);
 
-  try {
-    const res = await api.post('/auth/login', { email, password });
-    localStorage.setItem('token', res.data.token);
-    showMsg("تم تسجيل الدخول بنجاح ✓", "success");
+  // ⚡ مؤقت للـ frontend - bypass الـ server
+  setTimeout(() => {
+    localStorage.setItem('token', 'test-token');
+    showMsg("login successful ✓", "success");
     setTimeout(() => navigate('/dashboard'), 1000);
-  } catch (err) {
-    const message = err.response?.data?.message || "السيرفر مش بيستجيب، اتأكد إنك مشغله";
-    showMsg(message, "error");
-  } finally {
     setLoading(false);
-  }
+  }, 800);
 };
 
 const handleRegister = () => {

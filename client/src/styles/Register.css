@@ -1,114 +1,175 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&display=swap');
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{
-  font-family:'Space Grotesk',sans-serif;
-  background:#02010a;
-  color:#fff;
-  min-height:100vh
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700;900&display=swap");
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
-.page-bg{
-  position:fixed;inset:0;
-  background:url('../assets/bg.png') center/cover;
-  animation:bgBreath 8s ease-in-out infinite;
-  z-index:0
+body {
+  font-family: "Space Grotesk", sans-serif;
+  background: #02010a;
+  color: #fff;
+  min-height: 100vh;
 }
-.page-overlay{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.62);
-  z-index:1
+.page-bg {
+  position: fixed;
+  inset: 0;
+  background: url("../assets/bg.png") center/cover;
+  animation: bgBreath 8s ease-in-out infinite;
+  z-index: 0;
 }
-@keyframes bgBreath{
-  0%,100%{opacity:.12;transform:scale(1)}
-  50%{opacity:.78;transform:scale(1.05)}
+.page-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  z-index: 1;
 }
-.register-page{
-  position:relative;z-index:2;
-  min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  padding:3rem 1rem
+@keyframes bgBreath {
+  0%,
+  100% {
+    opacity: 0.12;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.78;
+    transform: scale(1.05);
+  }
 }
-.register-brand{
-  font:900 italic 2.4rem 'Space Grotesk';
-  text-align:center;margin-bottom:2rem;
-  letter-spacing:-.04em;
-  background:linear-gradient(90deg,#22d3ee,#a855f7,#ec4899);
-  -webkit-background-clip:text;
-  -webkit-text-fill-color:transparent
+.register-page {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
 }
-.register-card{
-  width:100%;max-width:380px;
-  background:rgba(255,255,255,.05);
-  backdrop-filter:blur(24px);
-  border:1px solid rgba(255,255,255,.08);
-  border-radius:40px;
-  padding:5rem 2rem 2rem;
-  position:relative;
-  box-shadow:0 0 40px rgba(139,92,246,.2)
+.register-brand {
+  font: 900 italic 2.4rem "Space Grotesk";
+  text-align: center;
+  margin-bottom: 2rem;
+  letter-spacing: -0.04em;
+  background: linear-gradient(90deg, #22d3ee, #a855f7, #ec4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
-.register-img-wrap{
-  position:absolute;top:-44px;
-  left:50%;transform:translateX(-50%)
+.register-card {
+  width: 100%;
+  max-width: 380px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 40px;
+  padding: 5rem 2rem 2rem;
+  position: relative;
+  box-shadow: 0 0 40px rgba(139, 92, 246, 0.2);
 }
-.register-img{
-  width:84px;height:84px;
-  border-radius:50%;object-fit:cover;
-  border:3px solid rgba(34,211,238,.45);
-  box-shadow:0 0 22px rgba(168,85,247,.65)
+.register-img-wrap {
+  position: absolute;
+  top: -44px;
+  left: 50%;
+  transform: translateX(-50%);
 }
-.register-title{
-  text-align:center;font-size:20px;
-  font-weight:700;color:#fff;
-  margin-bottom:1.5rem
+.register-img {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(34, 211, 238, 0.45);
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.65);
 }
-.register-form{display:flex;flex-direction:column;gap:1rem}
-.field-label{
-  display:block;font-size:13px;
-  color:rgba(255,255,255,.45);
-  margin:0 0 5px 4px
+.register-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 1.5rem;
 }
-.register-input{
-  width:100%;
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:12px;
-  padding:12px 16px;
-  color:#fff;font-size:15px;
-  font-family:'Space Grotesk';
-  outline:0;
-  transition:.2s
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
-.register-input::placeholder{color:rgba(255,255,255,.3)}
-.register-input:focus{
-  border-color:rgba(34,211,238,.5);
-  box-shadow:0 0 0 3px rgba(34,211,238,.08)
+.field-label {
+  display: block;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0 0 5px 4px;
 }
-.register-input.error{border-color:rgba(248,113,113,.6)}
-.field-error{
-  font-size:12px;
-  color:#f87171;
-  margin:4px 0 0 4px;
-  min-height:16px
+.register-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 15px;
+  font-family: "Space Grotesk";
+  outline: 0;
+  transition: 0.2s;
 }
-.register-pw-row{display:flex;gap:10px}
-.register-pw-row>div{flex:1}
-.register-btn{
-  width:100%;
-  padding:13px;
-  border:0;border-radius:12px;
-  background:linear-gradient(90deg,#22d3ee,#a855f7,#ec4899);
-  color:#fff;
-  font:700 16px 'Space Grotesk';
-  cursor:pointer;
-  transition:.2s;
-  box-shadow:0 0 22px rgba(168,85,247,.4)
+.register-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
-.register-btn:hover:not(:disabled){transform:scale(1.02)}
-.register-btn:disabled{opacity:.6;cursor:not-allowed}
-.register-footer{
-  text-align:center;
-  margin-top:1rem;
-  font-size:14px;
-  color:rgba(255,255,255,.4)
+.register-input:focus {
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
 }
-.register-footer a{color:#22d3ee;text-decoration:none}
-.register-footer a:hover{opacity:.7}
+.register-input.error {
+  border-color: rgba(248, 113, 113, 0.6);
+}
+.field-error {
+  font-size: 12px;
+  color: #f87171;
+  margin: 4px 0 0 4px;
+  min-height: 16px;
+}
+.register-pw-row {
+  display: flex;
+  gap: 10px;
+}
+.register-pw-row > div {
+  flex: 1;
+}
+.register-btn {
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #22d3ee, #a855f7, #ec4899);
+  color: #fff;
+  font: 700 16px "Space Grotesk";
+  cursor: pointer;
+  transition: 0.2s;
+  box-shadow: 0 0 22px rgba(168, 85, 247, 0.4);
+}
+.register-btn:hover:not(:disabled) {
+  transform: scale(1.02);
+}
+.register-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.register-footer {
+  text-align: center;
+  margin-top: 1rem;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.4);
+}
+.register-footer a {
+  color: #22d3ee;
+  text-decoration: none;
+  cursor: pointer;
+}
+.register-footer a:hover {
+  opacity: 0.7;
+}
+select.register-input option {
+  background: #1a0a2e;
+  color: #fff;
+}
+select.register-input option:checked {
+  background: #a855f7;
+  color: #fff;
+}

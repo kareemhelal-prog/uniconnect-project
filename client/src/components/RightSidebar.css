@@ -1,0 +1,124 @@
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 88px;
+  height: fit-content;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 12px;
+}
+
+/* ─── Subjects ──────────────────────────── */
+.subjects-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.subject-card {
+  border-radius: 14px;
+  padding: 18px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.subject-card:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
+
+.subject-icon { font-size: 26px; }
+
+.subject-name {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: rgba(255,255,255,0.9);
+  line-height: 1.4;
+}
+
+/* ─── Calendar ──────────────────────────── */
+.calendar-section {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(100,80,200,0.2);
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.cal-arrow {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.45);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.cal-arrow:hover { color: #a78bfa; }
+
+.cal-day-names {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+
+.cal-dname {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.35);
+  padding: 2px 0;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.75);
+  padding: 7px 4px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cal-day:hover {
+  background: rgba(167,139,250,0.18);
+  color: #c4b5fd;
+}
+
+.cal-day.today {
+  background: linear-gradient(135deg, #a78bfa, #60a5fa);
+  color: white;
+  font-weight: 700;
+  border-radius: 50%;
+  box-shadow: 0 0 12px rgba(167,139,250,0.5);
+}
+
+.cal-day.muted {
+  color: rgba(255,255,255,0.2);
+  cursor: default;
+}

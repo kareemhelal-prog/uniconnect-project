@@ -1,0 +1,39 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #080818;
+  color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.home-page {
+  min-height: 100vh;
+  background: radial-gradient(ellipse at top left, #1a0533 0%, #080818 40%, #00101a 100%);
+}
+
+.home-layout {
+  display: grid;
+  grid-template-columns: 230px 1fr 290px;
+  gap: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 88px 20px 30px;
+}
+
+.feed-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feed-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
