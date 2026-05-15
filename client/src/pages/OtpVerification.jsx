@@ -1,16 +1,21 @@
 import "../styles/OtpVerification.css";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 function OtpVerification() {
   const navigate = useNavigate();
 
+  useEffect(() => {
+    document.title = "OTP Verification";
+  }, []);
+
   const handleVerify = () => {
-    navigate("/reset");
+    navigate("/reset-password");
   };
 
   return (
-    <div className="container">
-
+    <div className="otp-page">
+      <div className="otp-content">
       <div className="logo-container">
         <img src="/logo.png" className="logo" />
         <h1 className="brand-name">UniConnect</h1>
@@ -34,7 +39,7 @@ function OtpVerification() {
           Verify
         </button>
       </div>
-
+      </div>
     </div>
   );
 }

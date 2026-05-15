@@ -1,5 +1,6 @@
 import { useState } from "react";
 import "../styles/Notifications.css";
+import { useEffect } from "react";
 
 const notificationsData = [
   {
@@ -71,6 +72,9 @@ const iconMap = {
 };
 
 export default function Notifications() {
+  useEffect(() => {
+    document.title = "Notifications | UniConnect";
+}, []);
   const [notifications, setNotifications] = useState(notificationsData);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");

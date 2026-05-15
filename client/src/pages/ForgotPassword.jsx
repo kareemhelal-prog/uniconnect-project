@@ -1,19 +1,24 @@
 import "../styles/ForgotPassword.css";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 function ForgotPassword() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Forgot Password";
+  }, []);
   const [email, setEmail] = useState("");
 
   const handleSend = () => {
     if (email.trim() === "") return;
-    navigate("/otp");
+    navigate("/otp-verification");
   };
 
   return (
-    <div className="container">
-
+    <div className="forgot-page">
+      <div className="forgot-content">
       <div className="logo-container">
         <img src="/logo.png" className="logo" />
         <h1 className="brand-name">UniConnect</h1>
@@ -36,7 +41,7 @@ function ForgotPassword() {
           Send OTP
         </button>
       </div>
-
+      </div>
     </div>
   );
 }

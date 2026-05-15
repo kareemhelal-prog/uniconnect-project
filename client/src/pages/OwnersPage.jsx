@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+
 import "../styles/OwnersPage.css";
 
 const API_URL = "https://your-api.com/api/owners";
@@ -16,6 +17,7 @@ const TEST_DATA = [
 ];
 
 const IconUsers = () => (
+  
   <svg
     width="24"
     height="24"
@@ -96,6 +98,9 @@ const IconTrash = () => (
 );
 
 export default function OwnersPage() {
+  useEffect(() => {
+    document.title = "Users | UniConnect";
+}, []);
   const [owners, setOwners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");

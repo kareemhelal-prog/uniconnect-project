@@ -1,9 +1,15 @@
 import "../styles/ResetPassword.css";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 
 function ResetPassword() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Reset Password";
+  }, []);
+
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
 
@@ -18,8 +24,8 @@ function ResetPassword() {
   };
 
   return (
-    <div className="container">
-
+    <div className="reset-page">
+      <div className="reset-content">
       <div className="logo-container">
         <img src="/logo.png" className="logo" />
         <h1 className="brand-name">UniConnect</h1>
@@ -54,7 +60,7 @@ function ResetPassword() {
         </button>
 
       </div>
-
+      </div>
     </div>
   );
 }

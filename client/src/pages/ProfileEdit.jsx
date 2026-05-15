@@ -1,8 +1,13 @@
 import { useState, useRef } from "react";
+import { useEffect } from "react";
+
 import "../styles/ProfileEdit.css";
 const DEFAULT_SKILLS = ["Python", "Web Development", "Machine Learning", "React", "Data Structures", "Git", "SQL", "UI/UX Design"];
 
 export default function ProfileEdit() {
+  useEffect(() => {
+    document.title = "Edit Profile | UniConnect";
+}, []);
   const [avatar, setAvatar] = useState("/ahmed.png");
   const [name, setName] = useState("Ahmed Ayman");
   const [bio, setBio] = useState("Computer Science student passionate about AI, web development, and open source. Always learning and building.");

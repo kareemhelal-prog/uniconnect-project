@@ -1,0 +1,106 @@
+/* الحاوية الكلية وتأثير الغبش */
+.uniconnect-loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: radial-gradient(circle, #0f051a 0%, #05010d 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+    backdrop-filter: blur(10px);
+}
+
+.loader-central-unit {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* تنسيق الدوائر النيون */
+.neon-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 3px solid transparent;
+}
+
+.ring-cyan {
+    width: 180px;
+    height: 180px;
+    border-top: 3px solid #06b6d4;
+    filter: drop-shadow(0 0 10px #06b6d4);
+    animation: spin-clockwise 2s linear infinite;
+}
+
+.ring-purple {
+    width: 150px;
+    height: 150px;
+    border-right: 3px solid #a855f7;
+    filter: drop-shadow(0 0 10px #a855f7);
+    animation: spin-counter-clockwise 1.5s linear infinite;
+}
+
+.ring-blue {
+    width: 120px;
+    height: 120px;
+    border-bottom: 3px solid #3b82f6;
+    filter: drop-shadow(0 0 10px #3b82f6);
+    animation: spin-clockwise 1s linear infinite;
+}
+
+/* تنسيق النصوص */
+.loader-status-container {
+    margin-top: 240px; /* لضمان ظهور النص تحت الدوائر بوضوح */
+    text-align: center;
+}
+
+.loading-text-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.main-loading-text {
+    color: #f1f5f9;
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+/* أنميشن النقط النطاطة */
+.jumping-dots {
+    display: flex;
+    gap: 5px;
+}
+
+.dot {
+    width: 6px;
+    height: 6px;
+    background-color: #a855f7;
+    border-radius: 50%;
+    animation: dot-jump 1.4s infinite ease-in-out;
+}
+
+.dot:nth-child(2) { animation-delay: 0.2s; }
+.dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* الحركات */
+@keyframes spin-clockwise {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes spin-counter-clockwise {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+}
+
+@keyframes dot-jump {
+    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+    40% { transform: translateY(-10px); opacity: 1; }
+}

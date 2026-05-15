@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import logo from '../assets/logo.png';
 import "../styles/Login.css";
 import api from '../api/axios'
@@ -17,68 +18,74 @@ export default function Login() {
     setTimeout(() => setMsg(null), 3000);
   };
 
-const handleLogin = async (e) => {
-  e.preventDefault();
+  useEffect(() => {
+    document.title = "Login | UniConnect";
+  }, []);
 
-  if (!email.trim() || !password) {
-    showMsg(" please enter your email and password", "error");
-    return;
-  }
-  if (!email.includes("@")) {
-    showMsg("invalid university email", "error");
-    return;
-  }
+  const handleLogin = async (e) => {
+    e.preventDefault();
 
-  setLoading(true);
+    if (!email.trim() || !password) {
+      showMsg("Please enter your email and password", "error");
+      return;
+    }
+    if (!email.includes("@")) {
+      showMsg("Invalid university email", "error");
+      return;
+    }
 
-  // ⚡ مؤقت للـ frontend - bypass الـ server
-  setTimeout(() => {
-    localStorage.setItem('token', 'test-token');
-    showMsg("login successful ✓", "success");
-    setTimeout(() => navigate('/dashboard'), 1000);
-    setLoading(false);
-  }, 800);
-};
+    setLoading(true);
 
-const handleRegister = () => {
-  navigate('/register')
-}
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const { token, user } = response.data;
 
-const handleForgot = (e) => {
-  e.preventDefault();
-  navigate('/forgot-password')
-}
+      localStorage.setItem('token', token);
+      localStorage.setItem('role', user.role);
+
+      showMsg("Login successful ✓", "success");
+
+      setTimeout(() => {
+        if (user.role === 'admin')    navigate('/Dashboard');
+        if (user.role === 'student')  navigate('/Home');
+        if (user.role === 'doctor')   navigate('/HomeDoctor');
+        if (user.role === 'investor') navigate('/HomeInvestor');
+      }, 800);
+
+    } catch (error) {
+      const msg = error.response?.data?.message || "Something went wrong";
+      if (msg === "User not found")   showMsg("Email not found", "error");
+      else if (msg === "Wrong password") showMsg("Wrong password", "error");
+      else showMsg(msg, "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = () => navigate('/register');
+
+  const handleForgot = (e) => {
+    e.preventDefault();
+    navigate('/forgot-password');
+  };
 
   return (
     <div className="uc-page">
-      {/* Background blobs */}
       <div className="blob blob-blue" />
       <div className="blob blob-purple" />
 
       <div className="uc-wrapper">
-
-        {/* ── Logo ── */}
         <div className="uc-logo-area">
-          <img
-            src={logo}
-            alt="UniConnect Logo"
-            className="uc-logo-img"
-          />
+          <img src={logo} alt="UniConnect Logo" className="uc-logo-img" />
           <h1 className="uc-brand">UniConnect</h1>
         </div>
 
-        {/* ── Cards grid ── */}
         <div className="uc-grid">
-
-          {/* Login card */}
           <div className="uc-card uc-card-main">
-            {/* inner border glow */}
             <div className="uc-card-glow" />
-
             <h2 className="uc-card-title">Log In or Register</h2>
 
             <form className="uc-form" onSubmit={handleLogin} noValidate>
-
               <input
                 type="email"
                 placeholder="University Email"
@@ -95,7 +102,6 @@ const handleForgot = (e) => {
                   onChange={(e) => setPassword(e.target.value)}
                   className="uc-input uc-input-flex"
                 />
-
                 <div className="uc-remember">
                   <span className="uc-remember-label">Remember Me</span>
                   <label className="uc-toggle">
@@ -119,7 +125,6 @@ const handleForgot = (e) => {
               >
                 {loading ? <span className="uc-spinner" /> : "LOG IN"}
               </button>
-
             </form>
 
             <div className="uc-forgot-wrap">
@@ -135,7 +140,6 @@ const handleForgot = (e) => {
             )}
           </div>
 
-          {/* Register side card */}
           <div className="uc-card uc-card-side">
             <h3 className="uc-side-new">New to</h3>
             <span className="uc-side-brand">UniConnect?</span>
@@ -143,7 +147,6 @@ const handleForgot = (e) => {
               REGISTER
             </button>
           </div>
-
         </div>
       </div>
     </div>

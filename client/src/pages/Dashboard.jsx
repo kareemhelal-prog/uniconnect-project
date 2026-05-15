@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useEffect } from "react";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -14,6 +15,7 @@ import { Line, Bar, Doughnut } from "react-chartjs-2";
 import "../styles/Dashboard.css";
 import Navbar from "./NavbarDashboard.jsx";
 import OwnersPage from "./OwnersPage.jsx";
+
 
 ChartJS.register(
   CategoryScale,
@@ -107,6 +109,7 @@ function UserStatisticsColumn() {
   );
 }
 
+
 function NewUsersColumn() {
   return (
     <div className="col-offset">
@@ -197,6 +200,10 @@ function ReportsTable() {
 }
 
 function Dashboard() {
+
+  useEffect(() => {
+    document.title = "Dashboard - UniConnect Admin";
+  }, []);
   return (
     <div className="dashboard-container">
       <DashboardHeader />
@@ -208,6 +215,7 @@ function Dashboard() {
       <ReportsTable />
     </div>
   );
+  
 }
 
 function App() {

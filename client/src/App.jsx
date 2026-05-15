@@ -1,20 +1,38 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import UniConnectLoader from './pages/LoadingPage'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import OtpVerification from './pages/OtpVerification'
 import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
-import ProfilePage from './pages/ProfilePage' // ده هيفضل زي ما هو للعرض
-import ProfileEdit from './pages/ProfileEdit' // ده الملف الجديد اللي انت عملته للتعديل
+import ProfilePage from './pages/ProfilePage'
+import ProfileEdit from './pages/ProfileEdit'
 import Dashboard from './pages/Dashboard'
-import Notifications from "./pages/Notifications";
+import Notifications from './pages/Notifications'
+import NotFound from './pages/NotFound'
+
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
   return token ? children : <Navigate to="/login" />
 }
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <UniConnectLoader />;
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -29,6 +47,7 @@ function App() {
         <Route path="/profile/edit" element={<ProfileEdit />} />
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

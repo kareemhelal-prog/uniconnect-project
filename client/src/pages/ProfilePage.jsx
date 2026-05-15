@@ -1,7 +1,10 @@
 import React from "react";
+import { useEffect } from "react";
+
 import "../styles/ProfilePage.css";
 
 const skills = [
+  
   { label: "Machine Learning", icon: "🤖" },
   { label: "Data Science",     icon: "📊" },
   { label: "Full-Stack Dev",   icon: "💻" },
@@ -16,7 +19,11 @@ const materials = [
 ];
 
 export default function ProfilePage() {
+  useEffect(() => {
+    document.title = "Profile | UniConnect";
+}, []);
   return (
+    
     <div className="profile-page">
       <div className="profile-grid">
 

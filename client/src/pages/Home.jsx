@@ -1,4 +1,5 @@
 import React from "react";
+import { useEffect } from "react";
 import Navbar from "../components/Navbar";
 import LeftSidebar from "../components/LeftSidebar";
 import PostCard from "../components/PostCard";
@@ -42,6 +43,9 @@ const posts = [
 ];
 
 const Home = () => {
+  useEffect(() => {
+    document.title = "Home| UniConnect";
+}, []);
   return (
     <div className="home-page">
       <Navbar />

@@ -18,7 +18,7 @@ CREATE TABLE Users (
     phone_number VARCHAR(20),
     profile_picture VARCHAR(255),
     bio TEXT,
-    ui_theme ENUM('light','dark') DEFAULT 'light',
+    ui_theme ENUM('light','dark') DEFAULT 'dark',
     is_active BOOLEAN DEFAULT TRUE,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

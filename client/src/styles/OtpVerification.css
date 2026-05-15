@@ -1,87 +1,71 @@
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, Helvetica, sans-serif;
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
-/* الخلفية */
-body{
+.otp-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    animation: fadeIn 0.6s ease forwards;
+}
+
+.otp-page {
     height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     background: linear-gradient(to right, #050816, #12001f);
     overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
 }
 
-/* الحاوية */
-.container{
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-/* اللوجو */
-.logo-container{
+.otp-page .logo-container {
     text-align: center;
 }
 
-/* صورة اللوجو */
-.logo{
+.otp-page .logo {
     width: 110px;
     height: auto;
     margin-bottom: 10px;
     filter: drop-shadow(0 0 15px rgba(188, 58, 255, 0.6));
 }
 
-/* اسم البراند */
-.brand-name{
+.otp-page .brand-name {
     font-size: 28px;
     font-weight: bold;
     margin-top: 5px;
-
     background: linear-gradient(to right, #00c6ff, #ff4ecd);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-
-    text-shadow:
-        0 0 10px rgba(0,198,255,0.4),
-        0 0 20px rgba(255,78,205,0.3);
 }
 
-/* الكارد */
-.card{
+.otp-page .card {
     width: 400px;
     padding: 40px;
     border-radius: 25px;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
     backdrop-filter: blur(10px);
-    box-shadow:
-        0 0 20px rgba(0,198,255,0.2),
-        0 0 40px rgba(123,47,247,0.2);
+    box-shadow: 0 0 20px rgba(0,198,255,0.2), 0 0 40px rgba(123,47,247,0.2);
     text-align: center;
     margin-top: 15px;
 }
 
-/* العنوان */
-h2{
+.otp-page h2 {
     color: white;
     margin-bottom: 10px;
 }
 
-/* الوصف */
-.subtitle{
+.otp-page .subtitle {
     color: #b8b8b8;
     font-size: 14px;
     margin-bottom: 30px;
 }
 
-/* input */
-input{
+.otp-page input {
     width: 100%;
     padding: 14px;
     margin-bottom: 20px;
@@ -92,12 +76,11 @@ input{
     color: white;
 }
 
-input::placeholder{
+.otp-page input::placeholder {
     color: #aaa;
 }
 
-/* button */
-button{
+.otp-page button {
     width: 100%;
     padding: 14px;
     border: none;
@@ -109,15 +92,12 @@ button{
     transition: 0.3s;
 }
 
-button:hover{
+.otp-page button:hover {
     transform: scale(1.03);
-    box-shadow:
-        0 0 15px #00c6ff,
-        0 0 25px #ff4ecd;
+    box-shadow: 0 0 15px #00c6ff, 0 0 25px #ff4ecd;
 }
 
-/* link */
-a{
+.otp-page a {
     display: block;
     margin-top: 20px;
     color: #ccc;
@@ -125,17 +105,18 @@ a{
     font-size: 14px;
 }
 
-a:hover{
+.otp-page a:hover {
     color: white;
 }
-.otp-boxes{
+
+.otp-page .otp-boxes {
     display: flex;
     justify-content: center;
     gap: 10px;
     margin-bottom: 20px;
 }
 
-.otp-boxes input{
+.otp-page .otp-boxes input {
     width: 50px;
     height: 50px;
     text-align: center;
