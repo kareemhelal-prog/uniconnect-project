@@ -8,6 +8,7 @@ import OtpVerification from './pages/OtpVerification'
 import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
 import AcademicReviewsPage from './pages/AcademicReviewsPage'
+import PostDetails from './pages/PostDetails'
 import ProfilePage from './pages/ProfilePage'
 import GroupDetails from './pages/GroupDetails'
 import ProfileEdit from './pages/ProfileEdit'
@@ -47,9 +48,10 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/Home" element={<Home />} />
         <Route path="/AcademicReviews" element={<AcademicReviewsPage />} />
+        <Route path="/PostDetails" element={<PostDetails />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEdit />} />
-        <Route path="/group/:id" element={<GroupDetails />} />
+        <Route path="/group/details" element={<GroupDetails />} />
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/files" element={<Files />} />
