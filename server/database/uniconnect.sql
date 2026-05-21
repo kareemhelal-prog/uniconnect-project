@@ -279,3 +279,69 @@ CREATE TABLE Reports (
 
     FOREIGN KEY (reporter_id) REFERENCES Users(id) ON DELETE CASCADE
 );
+
+-- ===============================
+-- 14. reset password
+-- ===============================
+CREATE TABLE password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    otp VARCHAR(6) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    is_used BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (email) REFERENCES Users(email) ON DELETE CASCADE
+);-- ===============================
+-- تعديل جدول Files (اضافة كولمنز جديدة)
+-- ===============================
+ALTER TABLE Files
+  ADD COLUMN subject       VARCHAR(100) DEFAULT NULL,
+  ADD COLUMN academic_year VARCHAR(10)  DEFAULT NULL,
+  ADD COLUMN description   TEXT         DEFAULT NULL;
+
+-- ===============================
+-- جدول Likes على الملفات
+-- ===============================
+CREATE TABLE IF NOT EXISTS File_Likes (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    file_id    INT NOT NULL,
+    user_id    INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_file_like (file_id, user_id),
+
+    FOREIGN KEY (file_id) REFERENCES Files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+-- ===============================
+-- جدول Comments على الملفات
+-- ===============================
+CREATE TABLE IF NOT EXISTS File_Comments (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    file_id    INT NOT NULL,
+    user_id    INT NOT NULL,
+    content    TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (file_id) REFERENCES Files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
+
+    INDEX (file_id)
+);
+
+-- ===============================
+-- جدول Ratings على الملفات
+-- ===============================
+CREATE TABLE IF NOT EXISTS File_Ratings (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    file_id    INT NOT NULL,
+    user_id    INT NOT NULL,
+    rating     TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE KEY unique_file_rating (file_id, user_id),
+
+    FOREIGN KEY (file_id) REFERENCES Files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+);

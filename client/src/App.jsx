@@ -7,11 +7,14 @@ import ForgotPassword from './pages/ForgotPassword'
 import OtpVerification from './pages/OtpVerification'
 import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
+import AcademicReviewsPage from './pages/AcademicReviewsPage'
 import ProfilePage from './pages/ProfilePage'
+import GroupDetails from './pages/GroupDetails'
 import ProfileEdit from './pages/ProfileEdit'
 import Dashboard from './pages/Dashboard'
 import Notifications from './pages/Notifications'
 import NotFound from './pages/NotFound'
+import Files from './pages/Files'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -43,10 +46,13 @@ function App() {
         <Route path="/otp-verification" element={<OtpVerification />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/Home" element={<Home />} />
+        <Route path="/AcademicReviews" element={<AcademicReviewsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEdit />} />
+        <Route path="/group/:id" element={<GroupDetails />} />
         <Route path="/Dashboard" element={<Dashboard />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/files" element={<Files />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

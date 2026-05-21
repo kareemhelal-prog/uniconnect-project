@@ -1,20 +1,19 @@
 import React, { useState } from "react";
 import "./PostCard.css";
 
+
 const PostCard = ({ post }) => {
   const [liked, setLiked] = useState(false);
 
   return (
-    <div className="post-card">
+    <div className="post-card" data-post-id={post.id}>
       <div className="post-header">
-        <div
-          className="post-avatar"
-          style={{ background: post.avatarColor }}
-        >
+        <div className="post-avatar" style={{ background: post.avatarColor }}>
           {post.avatar}
         </div>
         <div className="post-meta">
           <h4>{post.author}</h4>
+          <span>{post.role}</span>
           <span>{post.time}</span>
         </div>
         <button className="more-btn">•••</button>

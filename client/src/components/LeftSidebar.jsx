@@ -1,39 +1,68 @@
-import React from "react";
+import React, { useState } from "react";
 import "./LeftSidebar.css";
+import { MdBook, MdPeople, MdNotifications } from "react-icons/md";
 
-const LeftSidebar = () => {
+const NAV = [
+  { key: "courses", icon: <MdBook size={16} />, label: "My Courses" },
+  { key: "friends", icon: <MdPeople size={16} />, label: "Friends" },
+  {
+    key: "notifs",
+    icon: <MdNotifications size={16} />,
+    label: "Notifications",
+  },
+];
+
+export default function LeftSidebar({ user = {} }) {
+  const [activeTab, setActiveTab] = useState(null); // ← null = مفيش حاجة متحددة
+
+  const initials = user.initials || "?";
+  const status = user.status || "offline";
+
   return (
-    <aside className="left-sidebar">
-      <div className="profile-card">
-        <div className="profile-avatar-wrap">
-          <div className="profile-avatar">K</div>
-          <div className="avatar-glow"></div>
-        </div>
-        <h3 className="profile-name">Kareem Mohamed</h3>
-        <p className="profile-role">Frontend Designer</p>
-        <div className="status-badge">
-          <span className="status-dot"></span>
-          <span>Status</span>
+    <aside className="hp-card">
+      <div className="hp-avatar-wrap">
+        <div className="hp-avatar">
+          <span>{initials}</span>
+          <span className="hp-avatar-ring" />
+          <span className={`hp-dot ${status}`} />
         </div>
       </div>
 
-      <nav className="sidebar-nav">
-        <div className="nav-item active">
-          <span className="nav-icon">📚</span>
-          <span>My Courses</span>
+      <h2 className="hp-name">{user.name || "—"}</h2>
+      <p className="hp-role">{user.role || "—"}</p>
+
+      <div className="hp-id-badge">
+        <span className="hp-id-label">USER ID</span>
+        <span className="hp-id-value">#{user.id || "—"}</span>
+      </div>
+
+      <div className="hp-online">
+        <span className="hp-online-led" />
+        {status === "online" ? "Online" : "Offline"}
+      </div>
+
+      {user.stats && user.stats.length > 0 && (
+        <div className="hp-stats">
+          {user.stats.map((s) => (
+            <div key={s.label} className="hp-stat">
+              <span className="hp-stat-val">{s.value}</span>
+              <span className="hp-stat-lbl">{s.label}</span>
+            </div>
+          ))}
         </div>
-        <div className="nav-item">
-          <span className="nav-icon">💬</span>
-          <span>Messages</span>
-          <span className="nav-badge">5</span>
-        </div>
-        <div className="nav-item">
-          <span className="nav-icon">👥</span>
-          <span>Friends</span>
-        </div>
+      )}
+
+      <nav className="hp-nav">
+        {NAV.map((n) => (
+          <button
+            key={n.key}
+            className={`hp-nav-item ${activeTab === n.key ? "active" : ""}`}
+            onClick={() => setActiveTab(n.key)}
+          >
+            {n.icon} {n.label}
+          </button>
+        ))}
       </nav>
     </aside>
   );
-};
-
-export default LeftSidebar;
+}

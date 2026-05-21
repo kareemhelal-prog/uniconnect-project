@@ -11,10 +11,27 @@ function ForgotPassword() {
   }, []);
   const [email, setEmail] = useState("");
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (email.trim() === "") return;
-    navigate("/otp-verification");
-  };
+    
+    try {
+        const response = await fetch("http://localhost:5000/api/auth/forgot-password", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            navigate("/otp-verification", { state: { email } });
+        } else {
+            alert(data.message);
+        }
+    } catch (error) {
+        alert("Something went wrong. Please try again later.");
+    }
+};
 
   return (
     <div className="forgot-page">
