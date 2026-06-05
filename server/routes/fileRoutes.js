@@ -39,14 +39,14 @@ const upload = multer({
 // كل الـ routes محتاجة login
 router.use(auth);
 
+// POST /api/files/upload      — ارفع ملف جديد
+router.post("/upload", upload.single("file"), uploadFile);
+
 // GET  /api/files             — جيب كل الملفات مع فلاتر
 router.get("/", getFiles);
 
 // GET  /api/files/:id         — جيب تفاصيل ملف
 router.get("/:id", getFileById);
-
-// POST /api/files/upload      — ارفع ملف جديد
-router.post("/upload", upload.single("file"), uploadFile);
 
 // DELETE /api/files/:id       — احذف ملف (صاحبه بس)
 router.delete("/:id", deleteFile);

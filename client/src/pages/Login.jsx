@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import logo from '../assets/logo.png';
 import "../styles/Login.css";
-import api from '../api/axios'
-import { useNavigate } from 'react-router-dom'
+import api from '../api/axios';
+import { useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
+  const [userType, setUserType] = useState("university");
   const [loading, setLoading]   = useState(false);
   const [msg, setMsg]           = useState(null);
 
@@ -29,8 +29,9 @@ export default function Login() {
       showMsg("Please enter your email and password", "error");
       return;
     }
+
     if (!email.includes("@")) {
-      showMsg("Invalid university email", "error");
+      showMsg("Invalid email", "error");
       return;
     }
 
@@ -39,6 +40,20 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', { email, password });
       const { token, user } = response.data;
+
+      // لو اختار University Member بس الـ role رجع investor
+      if (userType === "university" && user.role === "investor") {
+        showMsg("Please select 'Investor' to login with this account", "error");
+        setLoading(false);
+        return;
+      }
+
+      // لو اختار Investor بس الـ role رجع student أو doctor
+      if (userType === "investor" && (user.role === "student" || user.role === "doctor")) {
+        showMsg("Please select 'University Member' to login with this account", "error");
+        setLoading(false);
+        return;
+      }
 
       localStorage.setItem('token', token);
       localStorage.setItem('role', user.role);
@@ -54,7 +69,7 @@ export default function Login() {
 
     } catch (error) {
       const msg = error.response?.data?.message || "Something went wrong";
-      if (msg === "User not found")   showMsg("Email not found", "error");
+      if (msg === "User not found")      showMsg("Email not found", "error");
       else if (msg === "Wrong password") showMsg("Wrong password", "error");
       else showMsg(msg, "error");
     } finally {
@@ -93,6 +108,23 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="uc-input"
               />
+
+              <div className="uc-role-selector">
+                <button
+                  type="button"
+                  className={`uc-role-btn ${userType === "university" ? "active" : ""}`}
+                  onClick={() => setUserType("university")}
+                >
+                  🎓 University Member
+                </button>
+                <button
+                  type="button"
+                  className={`uc-role-btn ${userType === "investor" ? "active" : ""}`}
+                  onClick={() => setUserType("investor")}
+                >
+                  💼 Investor
+                </button>
+              </div>
 
               <div className="uc-pass-row">
                 <input

@@ -1,0 +1,125 @@
+.ar-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", sans-serif;
+  padding: 88px 32px 40px;
+  max-width: 1280px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.ar-toast {
+  position: fixed; top:100px; right:28px; z-index:9999;
+  color:#fff; font-weight:700; font-size:13px;
+  padding:10px 20px; border-radius:10px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  animation:arToastIn 0.25s ease; font-family:"Segoe UI",sans-serif;
+}
+@keyframes arToastIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+
+.ar-title { font-size:28px; font-weight:700; margin-bottom:28px; color:var(--text); }
+
+.ar-layout { display:grid; grid-template-columns:240px 1fr; gap:24px; align-items:start; }
+
+/* Subjects sidebar */
+.ar-subjects { display:flex; flex-direction:column; gap:6px; }
+
+.ar-subj-btn {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 14px; border-radius:10px;
+  border:1px solid var(--border); background:var(--bg2);
+  cursor:pointer; transition:all 0.2s; text-align:left;
+  font-family:"Segoe UI",sans-serif;
+}
+.ar-subj-btn:hover { border-color:var(--sc,#a855f7); box-shadow:0 0 10px rgba(0,0,0,0.15); }
+.ar-subj-active { border-color:var(--sc,#a855f7) !important; background:rgba(168,85,247,0.08) !important; }
+
+.ar-subj-icon { font-size:20px; flex-shrink:0; }
+.ar-subj-name { font-size:13px; font-weight:600; color:var(--text); flex:1; }
+.ar-subj-code { font-size:10px; color:var(--muted); }
+
+/* Main panel */
+.ar-main { display:flex; flex-direction:column; gap:18px; }
+
+.ar-main-header { display:flex; align-items:flex-start; justify-content:space-between; }
+.ar-subj-title { font-size:20px; font-weight:700; }
+.ar-avg { font-size:13px; color:var(--sub); margin-top:4px; display:block; }
+
+/* Add review */
+.ar-add-review {
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:16px;
+  display:flex; flex-direction:column; gap:10px;
+}
+
+.ar-stars { display:flex; gap:3px; }
+.ar-star {
+  background:none; border:none; font-size:22px; cursor:pointer;
+  color:var(--border); transition:color 0.15s;
+  padding:0; line-height:1;
+}
+.ar-star.filled { color:#fbbf24; }
+.ar-star:hover  { color:#fbbf24; }
+
+.ar-textarea {
+  background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+  color:var(--text); font-size:13px; padding:10px 12px; outline:none;
+  resize:vertical; font-family:"Segoe UI",sans-serif; transition:border-color 0.2s;
+  width:100%;
+}
+.ar-textarea:focus { border-color:var(--cyan); }
+.ar-textarea::placeholder { color:var(--muted); }
+
+.ar-submit-btn {
+  align-self:flex-end; background:var(--purple); border:none; border-radius:8px;
+  color:#fff; font-size:13px; font-weight:700; padding:9px 22px;
+  cursor:pointer; font-family:"Segoe UI",sans-serif; transition:all 0.2s;
+  box-shadow:0 0 14px rgba(168,85,247,0.3);
+}
+.ar-submit-btn:hover { background:#9333ea; box-shadow:0 0 20px rgba(168,85,247,0.5); }
+
+/* Reviews list */
+.ar-reviews-list { display:flex; flex-direction:column; gap:12px; }
+.ar-empty { text-align:center; color:var(--muted); font-size:13px; padding:28px 0; }
+
+.ar-review-card {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; padding:16px; transition:border-color 0.2s;
+}
+.ar-review-card:hover { border-color:rgba(168,85,247,0.25); }
+
+.ar-review-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.ar-review-avatar {
+  width:36px; height:36px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#fff; flex-shrink:0;
+}
+.ar-review-meta { flex:1; display:flex; flex-direction:column; gap:1px; }
+.ar-review-author { font-size:13px; font-weight:700; color:var(--text); }
+.ar-review-date   { font-size:11px; color:var(--muted); }
+.ar-review-text   { font-size:13px; color:var(--sub); line-height:1.6; }
+
+.ar-review-actions { display:flex; gap:5px; }
+.ar-action-btn {
+  width:28px; height:28px; border-radius:7px;
+  border:1px solid var(--border); background:var(--bg3);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:13px;
+  transition:all 0.2s;
+}
+.ar-action-btn:hover { background:rgba(0,229,255,0.1); border-color:rgba(0,229,255,0.3); }
+.ar-action-btn.del:hover { background:rgba(248,113,113,0.1); border-color:rgba(248,113,113,0.3); }
+
+.ar-edit-form { display:flex; flex-direction:column; gap:8px; }
+.ar-edit-btns { display:flex; gap:8px; justify-content:flex-end; }
+.ar-cancel-btn {
+  background:transparent; border:1px solid var(--border); border-radius:8px;
+  color:var(--muted); font-size:13px; font-weight:600; padding:7px 16px;
+  cursor:pointer; font-family:"Segoe UI",sans-serif; transition:all 0.2s;
+}
+.ar-cancel-btn:hover { border-color:var(--muted); color:var(--text); }
+
+@media (max-width: 768px) {
+  .ar-layout { grid-template-columns:1fr; }
+  .ar-subjects { flex-direction:row; overflow-x:auto; flex-wrap:nowrap; }
+  .ar-subj-btn { min-width:160px; }
+}

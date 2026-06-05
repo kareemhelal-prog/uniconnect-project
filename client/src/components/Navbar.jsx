@@ -10,6 +10,9 @@ import {
   FiUsers,
   FiStar,
   FiHome,
+  FiSettings,
+  FiRepeat,
+  FiLogOut,
 } from "react-icons/fi";
 import { HiOutlineLink } from "react-icons/hi";
 
@@ -27,6 +30,17 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
   const [readNotifs, setReadNotifs] = useState([]);
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [launcherClicked, setLauncherClicked] = useState(false);
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+
+  React.useEffect(() => {
+    const handleClick = (e) => {
+      if (!e.target.closest(".tooltip-wrap")) {
+        setAvatarMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const unreadCount = notifications.filter(
     (n) => !readNotifs.includes(n.id)
@@ -56,6 +70,7 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
     onNavigate(id);
     setLauncherOpen(false);
     setNotifOpen(false);
+    setAvatarMenuOpen(false);
   };
 
   return (
@@ -114,9 +129,12 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
         )}
       </div>
 
+      {/* Notifications Bell */}
       <div className="notif-wrap">
         <div
-          className={`nav-bell ${bellRing ? "ring" : ""}`}
+          className={`nav-bell ${bellRing ? "ring" : ""} ${
+            activePage === "notifications" ? "nav-bell-active" : ""
+          }`}
           onClick={handleBell}
         >
           <FiBell size={20} />
@@ -142,7 +160,10 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
                     className={`notif-item ${
                       readNotifs.includes(n.id) ? "read" : "unread"
                     }`}
-                    onClick={() => markRead(n.id)}
+                    onClick={() => {
+                      markRead(n.id);
+                      navigate("notifications");
+                    }}
                   >
                     <span className="notif-icon">{n.icon}</span>
                     <div className="notif-body">
@@ -166,11 +187,52 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
 
       {/* Avatar */}
       <div className="tooltip-wrap">
-        <div className="nav-avatar" onClick={() => navigate("profile")}>
+        <div
+          className="nav-avatar"
+          onClick={() => setAvatarMenuOpen((p) => !p)}
+        >
           {user.initials || "SJ"}
           <span className="avatar-dot" />
           <span className="avatar-ring" />
         </div>
+
+        {avatarMenuOpen && (
+          <div className="avatar-menu">
+            <div className="avatar-menu-header">
+              <div className="avatar-menu-name">
+                {user.name || "Sara Johnson"}
+              </div>
+              <div className="avatar-menu-email">
+                {user.email || "sara@uniconnect.edu"}
+              </div>
+            </div>
+            <button
+              className="avatar-menu-item"
+              onClick={() => navigate("profile")}
+            >
+              <FiUser size={14} /> View Profile
+            </button>
+            <button
+              className="avatar-menu-item"
+              onClick={() => navigate("settings")}
+            >
+              <FiSettings size={14} /> Settings
+            </button>
+            <button
+              className="avatar-menu-item"
+              onClick={() => navigate("switch-account")}
+            >
+              <FiRepeat size={14} /> Switch Account
+            </button>
+            <div className="avatar-menu-divider" />
+            <button
+              className="avatar-menu-item avatar-menu-danger"
+              onClick={() => navigate("logout")}
+            >
+              <FiLogOut size={14} /> Log Out
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   );

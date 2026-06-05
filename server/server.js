@@ -13,7 +13,9 @@ const commentRoutes      = require("./routes/commentRoutes");
 const likeRoutes         = require("./routes/likeRoutes");
 const followRoutes       = require("./routes/followRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-
+const groupRoutes = require("./routes/groupRoutes");
+const fileRoutes = require("./routes/fileRoutes");
+const groupPostRoutes = require("./routes/groupPostRoutes");
 const app = express();
 
 app.use(cors());
@@ -30,6 +32,9 @@ app.use("/api/comments",      commentRoutes);
 app.use("/api/likes",         likeRoutes);
 app.use("/api/follow",        followRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/group-posts", groupPostRoutes);
+app.use("/api/files", fileRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });

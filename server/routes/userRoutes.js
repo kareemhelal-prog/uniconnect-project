@@ -38,4 +38,6 @@ router.put("/:id", userController.updateUser);
 // =======================
 router.delete("/:id", userController.deleteUser);
 
+router.put("/:id/profile", authMiddleware, userController.updateProfile);
+
 module.exports = router;

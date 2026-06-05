@@ -34,7 +34,10 @@ function ForgotPassword() {
 };
 
   return (
-    <div className="forgot-page">
+    <div className="forgot-page">  {/* أو otp-page أو reset-page */}
+      <div className="page-bg" />
+      <div className="page-overlay" />
+      {/* باقي الكود */}
       <div className="forgot-content">
       <div className="logo-container">
         <img src="/logo.png" className="logo" />

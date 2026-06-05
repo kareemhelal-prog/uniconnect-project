@@ -3,16 +3,24 @@ import React, { useState, useEffect } from 'react'
 import UniConnectLoader from './pages/LoadingPage'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import NotAccept from './pages/NotAccept'
+import CreateGroup from './pages/CreateGroup'
+import GroupsList from './pages/GroupsList'
+import MyGroups from './pages/MyGroups'
 import ForgotPassword from './pages/ForgotPassword'
 import OtpVerification from './pages/OtpVerification'
+import DoctorProfile from './pages/DoctorProfile'
 import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
+import ProjectsPage from './pages/ProjectsPage'
 import AcademicReviewsPage from './pages/AcademicReviewsPage'
 import PostDetails from './pages/PostDetails'
 import ProfilePage from './pages/ProfilePage'
 import GroupDetails from './pages/GroupDetails'
 import ProfileEdit from './pages/ProfileEdit'
 import Dashboard from './pages/Dashboard'
+import UserManagement from './pages/UserManagement'
+import SearchResults from './pages/SearchResults'
 import Notifications from './pages/Notifications'
 import NotFound from './pages/NotFound'
 import Files from './pages/Files'
@@ -47,12 +55,20 @@ function App() {
         <Route path="/otp-verification" element={<OtpVerification />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/Home" element={<Home />} />
+        <Route path="/NotAccept" element={<NotAccept />} />
+        <Route path="/CreateGroup" element={<CreateGroup />} />
+        <Route path="/GroupsList" element={<GroupsList />} />
+        <Route path="/MyGroups" element={<MyGroups />} />
+        <Route path="/DoctorProfile" element={<DoctorProfile />} />
+        <Route path="/ProjectsPage" element={<ProjectsPage />} />
         <Route path="/AcademicReviews" element={<AcademicReviewsPage />} />
         <Route path="/PostDetails" element={<PostDetails />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/edit" element={<ProfileEdit />} />
         <Route path="/group/details" element={<GroupDetails />} />
         <Route path="/Dashboard" element={<Dashboard />} />
+        <Route path="/UserManagement" element={<UserManagement />} />
+        <Route path="/SearchResults" element={<SearchResults />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/files" element={<Files />} />
         <Route path="*" element={<NotFound />} />
