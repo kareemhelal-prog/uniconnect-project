@@ -31,46 +31,47 @@ function PrivateRoute({ children }) {
 }
 
 function App() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
+    const timer = setTimeout(() => setIsLoading(false), 2000)
+    return () => clearTimeout(timer)
+  }, [])
 
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return <UniConnectLoader />;
-  }
+  if (isLoading) return <UniConnectLoader />
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/login" />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/otp-verification" element={<OtpVerification />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/Home" element={<Home />} />
-        <Route path="/NotAccept" element={<NotAccept />} />
-        <Route path="/CreateGroup" element={<CreateGroup />} />
-        <Route path="/GroupsList" element={<GroupsList />} />
-        <Route path="/MyGroups" element={<MyGroups />} />
-        <Route path="/DoctorProfile" element={<DoctorProfile />} />
-        <Route path="/ProjectsPage" element={<ProjectsPage />} />
-        <Route path="/AcademicReviews" element={<AcademicReviewsPage />} />
-        <Route path="/PostDetails" element={<PostDetails />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/profile/edit" element={<ProfileEdit />} />
-        <Route path="/group/details" element={<GroupDetails />} />
-        <Route path="/Dashboard" element={<Dashboard />} />
-        <Route path="/UserManagement" element={<UserManagement />} />
-        <Route path="/SearchResults" element={<SearchResults />} />
-        <Route path="/notifications" element={<Notifications />} />
-        <Route path="/files" element={<Files />} />
+        {/* Public Routes */}
+        <Route path="/"                  element={<Navigate to="/login" />} />
+        <Route path="/login"             element={<Login />} />
+        <Route path="/register"          element={<Register />} />
+        <Route path="/forgot-password"   element={<ForgotPassword />} />
+        <Route path="/otp-verification"  element={<OtpVerification />} />
+        <Route path="/reset-password"    element={<ResetPassword />} />
+        <Route path="/NotAccept"         element={<NotAccept />} />
+
+        {/* Protected Routes */}
+        <Route path="/Home"              element={<PrivateRoute><Home /></PrivateRoute>} />
+        <Route path="/Dashboard"         element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/profile"           element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+        <Route path="/profile/:id"       element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+        <Route path="/profile/edit"      element={<PrivateRoute><ProfileEdit /></PrivateRoute>} />
+        <Route path="/CreateGroup"       element={<PrivateRoute><CreateGroup /></PrivateRoute>} />
+        <Route path="/GroupsList"        element={<PrivateRoute><GroupsList /></PrivateRoute>} />
+        <Route path="/MyGroups"          element={<PrivateRoute><MyGroups /></PrivateRoute>} />
+        <Route path="/group/details/:id" element={<PrivateRoute><GroupDetails /></PrivateRoute>} />
+        <Route path="/DoctorProfile/:id" element={<PrivateRoute><DoctorProfile /></PrivateRoute>} />
+        <Route path="/ProjectsPage"      element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
+        <Route path="/AcademicReviews"   element={<PrivateRoute><AcademicReviewsPage /></PrivateRoute>} />
+        <Route path="/PostDetails/:id"   element={<PrivateRoute><PostDetails /></PrivateRoute>} />
+        <Route path="/SearchResults"     element={<PrivateRoute><SearchResults /></PrivateRoute>} />
+        <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />
+        <Route path="/files"             element={<PrivateRoute><Files /></PrivateRoute>} />
+        <Route path="/UserManagement"    element={<PrivateRoute><UserManagement /></PrivateRoute>} />
+
+        {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

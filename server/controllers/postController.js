@@ -36,12 +36,12 @@ exports.createPost = async (req, res) => {
 // =======================
 exports.getAllPosts = async (req, res) => {
   try {
-    const [posts] = await promisePool.query(`
-      SELECT Posts.*, Users.username, Users.name
-      FROM Posts
-      JOIN Users ON Posts.user_id = Users.id
-      ORDER BY Posts.created_at DESC
-    `);
+    const [posts] = await promisePool.query(
+      `SELECT Posts.*, Users.username, Users.name
+       FROM Posts
+       JOIN Users ON Posts.user_id = Users.id
+       ORDER BY Posts.created_at DESC`
+    );
 
     res.json({
       message: "Posts fetched successfully",
@@ -62,9 +62,9 @@ exports.getAllPosts = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const [post] = await promisePool.query(
-      `SELECT Posts.*, Users.username 
-       FROM Posts 
-       JOIN Users ON Posts.user_id = Users.id 
+      `SELECT Posts.*, Users.username
+       FROM Posts
+       JOIN Users ON Posts.user_id = Users.id
        WHERE Posts.id = ?`,
       [req.params.id]
     );
@@ -76,6 +76,57 @@ exports.getPostById = async (req, res) => {
     }
 
     res.json(post[0]);
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
+// =======================
+// UPDATE POST
+// =======================
+exports.updatePost = async (req, res) => {
+  try {
+    const { title, content } = req.body;
+
+    if (!content) {
+      return res.status(400).json({
+        message: "Content is required"
+      });
+    }
+
+    const [posts] = await promisePool.query(
+      "SELECT * FROM Posts WHERE id = ?",
+      [req.params.id]
+    );
+
+    if (posts.length === 0) {
+      return res.status(404).json({
+        message: "Post not found"
+      });
+    }
+
+    const post = posts[0];
+
+    if (post.user_id !== req.user.id) {
+      return res.status(403).json({
+        message: "Not authorized"
+      });
+    }
+
+    await promisePool.query(
+      `UPDATE Posts
+       SET title = ?, content = ?
+       WHERE id = ?`,
+      [title, content, req.params.id]
+    );
+
+    res.json({
+      message: "Post updated successfully"
+    });
 
   } catch (error) {
     res.status(500).json({
@@ -103,7 +154,6 @@ exports.deletePost = async (req, res) => {
 
     const post = posts[0];
 
-    // check owner
     if (post.user_id !== req.user.id) {
       return res.status(403).json({
         message: "Not authorized"

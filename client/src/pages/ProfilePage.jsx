@@ -1,91 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import "../styles/ProfilePage.css";
-
-// ── Mock Data ────────────────────────────────────────────────────────────────
-const student = {
-  name: "Ahmed Ayman",
-  title: "Student",
-  verified: false,
-  department: "School of Engineering",
-  field: "Computer Science",
-  specialty: "AI & Machine Learning",
-  followers: 342,
-  courses: 6,
-  groups: 4,
-  uploadedFiles: 12,
-  active: true,
-  about:
-    "Third-year Computer Science student at Borg El Arab Technological University, passionate about AI, data science, and building impactful software.",
-  year: "Third Year",
-  skills: [
-    "Machine Learning",
-    "Data Science",
-    "Full-Stack Dev",
-    "Data Analysis",
-  ],
-  researchInterests: [
-    "Deep Learning",
-    "Computer Vision",
-    "NLP",
-    "Data Mining",
-    "Web Development",
-    "Cloud Computing",
-  ],
-  coursesList: [
-    { code: "CS301", name: "Data Structures", year: "2023 – 2024", color: "#6c47ff", icon: "</>" },
-    { code: "CS401", name: "Algorithms", year: "2023 – 2024", color: "#22c55e", icon: "↑" },
-    { code: "CS501", name: "Machine Learning", year: "2023 – 2024", color: "#f59e0b", icon: "✦" },
-    { code: "CS302", name: "Web Development", year: "2023 – 2024", color: "#3b82f6", icon: "{}" },
-  ],
-  groupsList: [
-    { name: "AI & ML Study Group", members: 54, color: "#6c47ff" },
-    { name: "Competitive Programming", members: 38, color: "#22c55e" },
-    { name: "Web Dev Community", members: 67, color: "#f59e0b" },
-  ],
-  posts: [
-    {
-      id: 1,
-      date: "May 10 at 10:00 AM",
-      text: "Just finished my Machine Learning project on image classification using CNNs. Achieved 94% accuracy on the test set! Happy to share the notes and code with anyone interested.",
-      likes: 28,
-      comments: 9,
-      shares: 5,
-    },
-    {
-      id: 2,
-      date: "Apr 30 at 3:00 PM",
-      text: "Reminder to everyone in CS301: the Data Structures assignment is due this Friday. Don't forget to handle edge cases in your tree traversal implementation!",
-      likes: 15,
-      comments: 4,
-      shares: 2,
-    },
-    {
-      id: 3,
-      date: "Apr 18 at 9:30 AM",
-      text: "Excited to share that I joined the university's AI research team this semester. Looking forward to contributing to real-world projects in NLP and computer vision.",
-      likes: 41,
-      comments: 11,
-      shares: 7,
-      badge: "New Achievement",
-    },
-  ],
-  files: [
-    { name: "ML Lecture Notes – Week 1-6.pdf", type: "PDF", size: "2.4 MB", age: "5 days ago", color: "#ef4444" },
-    { name: "CNN Project Report.pptx", type: "PPT", size: "3.1 MB", age: "1 week ago", color: "#f97316" },
-    { name: "Data Structures – Assignment 1.pdf", type: "DOC", size: "1.7 MB", age: "2 weeks ago", color: "#3b82f6" },
-  ],
-};
 
 const TABS = ["Posts", "Files", "Groups", "Courses"];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function VerifiedBadge() {
-  return (
-    <span className="pp-verified" title="Verified">
-      ✓
-    </span>
-  );
+  return <span className="pp-verified" title="Verified">✓</span>;
 }
 
 function StatItem({ icon, value, label }) {
@@ -102,17 +22,22 @@ function StatItem({ icon, value, label }) {
   );
 }
 
-function PostCard({ post }) {
+function PostCard({ post, userName }) {
   const [liked, setLiked] = useState(false);
   return (
     <div className="pp-post-card">
       <div className="pp-post-header">
-        <div className="pp-post-avatar">AC</div>
-        <div>
-          <p className="pp-post-name">{student.name}</p>
-          <p className="pp-post-date">{post.date}</p>
+        <div className="pp-post-avatar">
+          {userName ? userName.charAt(0).toUpperCase() : "?"}
         </div>
-        {post.badge && <span className="pp-post-badge">{post.badge}</span>}
+        <div>
+          <p className="pp-post-name">{userName}</p>
+          <p className="pp-post-date">
+            {new Date(post.date).toLocaleDateString("en-US", {
+              month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+            })}
+          </p>
+        </div>
         <button className="pp-post-menu">⋯</button>
       </div>
       <p className="pp-post-text">{post.text}</p>
@@ -121,73 +46,78 @@ function PostCard({ post }) {
           className={`pp-action-btn${liked ? " active" : ""}`}
           onClick={() => setLiked(!liked)}
         >
-          <span>👍</span> Like ({post.likes + (liked ? 1 : 0)})
+          <span>👍</span> Like
         </button>
-        <button className="pp-action-btn">
-          <span>💬</span> Comment ({post.comments})
-        </button>
-        <button className="pp-action-btn">
-          <span>↗</span> Share ({post.shares})
-        </button>
+        <button className="pp-action-btn"><span>💬</span> Comment</button>
+        <button className="pp-action-btn"><span>↗</span> Share</button>
         <button className="pp-action-btn pp-save-btn">🔖 Save</button>
       </div>
     </div>
   );
 }
 
-function FilesTab() {
+function FilesTab({ files }) {
+  if (!files || files.length === 0)
+    return <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No files uploaded yet.</p>;
+
+  const colors = ["#ef4444", "#f97316", "#3b82f6", "#22c55e", "#a855f7"];
+
   return (
     <div className="pp-files-list">
-      {student.files.map((f, i) => (
+      {files.map((f, i) => (
         <div className="pp-file-row" key={i}>
-          <span className="pp-file-type" style={{ background: f.color }}>
-            {f.type}
+          <span className="pp-file-type" style={{ background: colors[i % colors.length] }}>
+            {f.file_type?.toUpperCase().slice(0, 3) || "FILE"}
           </span>
           <div className="pp-file-info">
-            <p className="pp-file-name">{f.name}</p>
-            <p className="pp-file-meta">
-              Uploaded {f.age} · {f.size}
-            </p>
+            <p className="pp-file-name">{f.file_name}</p>
+            <p className="pp-file-meta">{f.file_size ? `${(f.file_size / 1024).toFixed(1)} KB` : ""}</p>
           </div>
-          <button className="pp-download-btn">⬇ Download</button>
+          <a href={f.file_url} target="_blank" rel="noreferrer">
+            <button className="pp-download-btn">⬇ Download</button>
+          </a>
         </div>
       ))}
     </div>
   );
 }
 
-// ── Tabs Components ────────────────────────────────────────────────────────────
+function GroupsTab({ groups }) {
+  const colors = ["#6c47ff", "#22c55e", "#f59e0b", "#3b82f6", "#ec4899"];
+  if (!groups || groups.length === 0)
+    return <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No groups joined yet.</p>;
 
-function GroupsTab() {
   return (
     <div className="pp-groups-grid">
-      {student.groupsList.map((g, i) => (
+      {groups.map((g, i) => (
         <div className="pp-group-card" key={i}>
-          <span className="pp-group-icon" style={{ background: g.color }}>
-            ◈
-          </span>
+          <span className="pp-group-icon" style={{ background: colors[i % colors.length] }}>◈</span>
           <div>
             <p className="pp-group-name">{g.name}</p>
-            <p className="pp-group-members">{g.members} members</p>
+            <p className="pp-group-members">{g.member_count || 0} members</p>
           </div>
-          <button className="pp-join-btn">Join</button>
         </div>
       ))}
     </div>
   );
 }
 
-function CoursesTab() {
+function CoursesTab({ courses }) {
+  const colors = ["#6c47ff", "#22c55e", "#f59e0b", "#3b82f6"];
+  const icons = ["</>", "↑", "✦", "{}"];
+  if (!courses || courses.length === 0)
+    return <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No courses enrolled yet.</p>;
+
   return (
     <div className="pp-courses-grid">
-      {student.coursesList.map((c, i) => (
+      {courses.map((c, i) => (
         <div className="pp-course-card" key={i}>
-          <span className="pp-course-icon" style={{ background: c.color }}>
-            {c.icon}
+          <span className="pp-course-icon" style={{ background: colors[i % colors.length] }}>
+            {icons[i % icons.length]}
           </span>
           <div className="pp-course-info">
-            <p className="pp-course-name">{c.name}</p>
-            <p className="pp-course-code">{c.code} · {c.year}</p>
+            <p className="pp-course-name">{c.title}</p>
+            <p className="pp-course-code">{c.doctor_name}</p>
           </div>
         </div>
       ))}
@@ -195,46 +125,128 @@ function CoursesTab() {
   );
 }
 
-// ── Main Component ────────────────────────────────────────────────────────────
-
 export default function ProfilePage() {
+  const { id } = useParams();
+  const [profile, setProfile] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [activeTab, setActiveTab] = useState("Posts");
   const [following, setFollowing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const url = id ? `/api/profile/${id}` : "/api/profile";
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setProfile(data);
+      } catch (err) {
+        console.error("Failed to fetch profile:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchFiles = async () => {
+      try {
+        const userId = id || "me";
+        const res = await fetch(`/api/files?user=${userId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setFiles(data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch files:", err);
+      }
+    };
+
+    const fetchGroups = async () => {
+      try {
+        const res = await fetch(`/api/groups/my`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setGroups(data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch groups:", err);
+      }
+    };
+
+    const fetchCourses = async () => {
+      try {
+        const res = await fetch(`/api/courses/my`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setCourses(data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch courses:", err);
+      }
+    };
+
+    fetchProfile();
+    fetchFiles();
+    fetchGroups();
+    fetchCourses();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "#00e5ff" }}>
+        Loading...
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "rgba(255,255,255,0.5)" }}>
+        User not found.
+      </div>
+    );
+  }
 
   return (
     <div className="pp-root">
-      {/* ── Cover ── */}
+      {/* Cover */}
       <div className="pp-cover">
         <div className="pp-cover-overlay" />
       </div>
 
-      {/* ── Profile Header ── */}
+      {/* Header */}
       <div className="pp-header-wrap">
         <div className="pp-header">
           <div className="pp-avatar-wrap">
-            <img
-              src="/ahmed.png"
-              alt="Ahmed Ayman"
-              className="pp-avatar"
-              onError={(e) => {
-                e.target.style.display = "none";
-                e.target.parentNode.querySelector(".pp-avatar-fallback").style.display = "flex";
-              }}
-            />
-            <div className="pp-avatar-fallback">👤</div>
-            <span className="pp-active-dot" title="Active" />
+            {profile.profile_picture ? (
+              <img
+                src={profile.profile_picture}
+                alt={profile.name}
+                className="pp-avatar"
+                onError={(e) => {
+                  e.target.style.display = "none";
+                  e.target.parentNode.querySelector(".pp-avatar-fallback").style.display = "flex";
+                }}
+              />
+            ) : null}
+            <div className="pp-avatar-fallback" style={{ display: profile.profile_picture ? "none" : "flex" }}>
+              👤
+            </div>
+            <span className="pp-active-dot" />
           </div>
 
           <div className="pp-identity">
-            <h1 className="pp-name">
-              {student.name}
-              {student.verified && <VerifiedBadge />}
-            </h1>
-            <p className="pp-title">{student.title}</p>
+            <h1 className="pp-name">{profile.name}</h1>
+            <p className="pp-title">{profile.role}</p>
             <div className="pp-meta-row">
-              <span>🏛 {student.department}</span>
-              <span>💻 {student.field}</span>
-              <span>🏷 {student.specialty}</span>
+              {profile.faculty && <span>🏛 {profile.faculty}</span>}
+              {profile.major && <span>💻 {profile.major}</span>}
+              {profile.academic_year && <span>📅 Year {profile.academic_year}</span>}
             </div>
           </div>
 
@@ -245,25 +257,23 @@ export default function ProfilePage() {
             >
               {following ? "✓ Following" : "+ Follow"}
             </button>
-            <button className="pp-btn-message">✉ Message</button>
           </div>
         </div>
 
-        {/* Stats row */}
+        {/* Stats */}
         <div className="pp-stats-row">
-          <StatItem icon="👥" value={student.followers} label="Followers" />
+          <StatItem icon="👥" value={profile.followers || 0} label="Followers" />
           <div className="pp-stats-divider" />
-          <StatItem icon="📚" value={student.courses} label="Courses" />
+          <StatItem icon="📚" value={courses.length} label="Courses" />
           <div className="pp-stats-divider" />
-          <StatItem icon="🗂" value={student.groups} label="Groups" />
+          <StatItem icon="🗂" value={profile.groups || 0} label="Groups" />
           <div className="pp-stats-divider" />
-          <StatItem icon="📄" value={student.uploadedFiles} label="Files" />
+          <StatItem icon="📄" value={profile.uploadedFiles || 0} label="Files" />
         </div>
       </div>
 
-      {/* ── Tabs + Main Content ── */}
+      {/* Body */}
       <div className="pp-body">
-        {/* Left: tabs + feed */}
         <div className="pp-main">
           <nav className="pp-tabs">
             {TABS.map((t) => (
@@ -279,79 +289,69 @@ export default function ProfilePage() {
 
           <div className="pp-tab-content">
             {activeTab === "Posts" &&
-              student.posts.map((p) => <PostCard key={p.id} post={p} />)}
-            {activeTab === "Files" && <FilesTab />}
-            {activeTab === "Groups" && <GroupsTab />}
-            {activeTab === "Courses" && <CoursesTab />}
+              (profile.posts?.length > 0
+                ? profile.posts.map((p) => <PostCard key={p.id} post={p} userName={profile.name} />)
+                : <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No posts yet.</p>
+              )}
+            {activeTab === "Files" && <FilesTab files={files} />}
+            {activeTab === "Groups" && <GroupsTab groups={groups} />}
+            {activeTab === "Courses" && <CoursesTab courses={courses} />}
           </div>
         </div>
 
-        {/* Right: sidebar */}
+        {/* Sidebar */}
         <aside className="pp-sidebar">
-          {/* About */}
           <section className="pp-sidebar-card">
             <h3 className="pp-sidebar-title">ℹ About</h3>
-            <p className="pp-about-text">{student.about}</p>
+            <p className="pp-about-text">{profile.bio || "No bio added yet."}</p>
             <div className="pp-about-grid">
-              <span className="pp-about-key">Year</span>
-              <span className="pp-about-val">{student.year}</span>
-              <span className="pp-about-key">Skills</span>
-              <span className="pp-about-val">{student.skills.join(", ")}</span>
+              <span className="pp-about-key">Role</span>
+              <span className="pp-about-val">{profile.role}</span>
+              {profile.faculty && <>
+                <span className="pp-about-key">Faculty</span>
+                <span className="pp-about-val">{profile.faculty}</span>
+              </>}
+              {profile.major && <>
+                <span className="pp-about-key">Major</span>
+                <span className="pp-about-val">{profile.major}</span>
+              </>}
+              {profile.academic_year && <>
+                <span className="pp-about-key">Year</span>
+                <span className="pp-about-val">Year {profile.academic_year}</span>
+              </>}
             </div>
           </section>
 
-          {/* Research Interests */}
           <section className="pp-sidebar-card">
-            <h3 className="pp-sidebar-title">🔬 Interests</h3>
-            <div className="pp-tags">
-              {student.researchInterests.map((r) => (
-                <span className="pp-tag" key={r}>
-                  {r}
-                </span>
-              ))}
+            <div className="pp-sidebar-row-head">
+              <h3 className="pp-sidebar-title">👥 Groups</h3>
             </div>
+            {groups.slice(0, 3).map((g, i) => (
+              <div className="pp-sg-item" key={i}>
+                <span className="pp-sg-icon" style={{ background: "#6c47ff" }}>◈</span>
+                <div>
+                  <p className="pp-sg-name">{g.name}</p>
+                  <p className="pp-sg-members">{g.member_count || 0} members</p>
+                </div>
+              </div>
+            ))}
           </section>
 
-          {/* Courses */}
           <section className="pp-sidebar-card">
             <div className="pp-sidebar-row-head">
               <h3 className="pp-sidebar-title">📖 Courses</h3>
-              <button className="pp-view-all">View All</button>
             </div>
             <div className="pp-sidebar-courses">
-              {student.coursesList.slice(0, 4).map((c) => (
-                <div className="pp-sc-item" key={c.code}>
-                  <span className="pp-sc-icon" style={{ background: c.color }}>
-                    {c.icon}
-                  </span>
+              {courses.slice(0, 4).map((c, i) => (
+                <div className="pp-sc-item" key={i}>
+                  <span className="pp-sc-icon" style={{ background: "#6c47ff" }}>{"/>"}</span>
                   <div>
-                    <p className="pp-sc-name">{c.name}</p>
-                    <p className="pp-sc-code">
-                      {c.code} · {c.year}
-                    </p>
+                    <p className="pp-sc-name">{c.title}</p>
+                    <p className="pp-sc-code">{c.doctor_name}</p>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
-
-          {/* Groups */}
-          <section className="pp-sidebar-card">
-            <div className="pp-sidebar-row-head">
-              <h3 className="pp-sidebar-title">👥 Groups</h3>
-              <button className="pp-view-all">See All</button>
-            </div>
-            {student.groupsList.map((g) => (
-              <div className="pp-sg-item" key={g.name}>
-                <span className="pp-sg-icon" style={{ background: g.color }}>
-                  ◈
-                </span>
-                <div>
-                  <p className="pp-sg-name">{g.name}</p>
-                  <p className="pp-sg-members">{g.members} members</p>
-                </div>
-              </div>
-            ))}
           </section>
         </aside>
       </div>

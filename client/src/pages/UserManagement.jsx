@@ -1,3 +1,4 @@
+import "../styles/UserManagement.css";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import api from "../api/axios";
 
