@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import "./Navbar.css";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FiBell,
   FiSearch,
@@ -11,49 +12,56 @@ import {
   FiStar,
   FiHome,
   FiSettings,
-  FiRepeat,
   FiLogOut,
+  FiBook,
+  FiEdit,
 } from "react-icons/fi";
 import { HiOutlineLink } from "react-icons/hi";
 
-const LAUNCHER_PAGES = [
-  { id: "profile", label: "Profile", icon: FiUser },
-  { id: "projects", label: "Projects", icon: FiFolderPlus },
-  { id: "files", label: "Files", icon: FiFile },
-  { id: "groups", label: "Groups", icon: FiUsers },
-  { id: "academic-reviews", label: "Academic Reviews", icon: FiStar },
+// ── Launcher items حسب الـ role ──
+const LAUNCHER_PAGES_STUDENT = [
+  { id: "profile",   label: "Profile",          icon: FiUser,       path: "/profile" },
+  { id: "projects",  label: "Projects",         icon: FiFolderPlus, path: "/projects" },
+  { id: "files",     label: "Files",            icon: FiFile,       path: "/files" },
+  { id: "groups",    label: "Groups",           icon: FiUsers,      path: "/groups" },
+  { id: "reviews",   label: "Academic Reviews", icon: FiStar,       path: "/reviews" },
 ];
 
-function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
-  const [bellRing, setBellRing] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [readNotifs, setReadNotifs] = useState([]);
-  const [launcherOpen, setLauncherOpen] = useState(false);
-  const [launcherClicked, setLauncherClicked] = useState(false);
+const LAUNCHER_PAGES_DOCTOR = [
+  { id: "profile",    label: "Profile",     icon: FiUser,       path: "/profile" },
+  { id: "groups",     label: "My Courses",  icon: FiBook,       path: "/groups" },
+  { id: "files",      label: "Files",       icon: FiFile,       path: "/files" },
+  { id: "my-groups",  label: "My Groups",   icon: FiUsers,      path: "/my-groups" },
+  { id: "reviews",    label: "Reviews",     icon: FiStar,       path: "/reviews" },
+];
+
+function Navbar({ notifications = [], user = {}, searchValue, onSearchChange, role = "student" }) {
+  const navigate  = useNavigate();
+  const location  = useLocation();
+
+  const [bellRing,       setBellRing]       = useState(false);
+  const [notifOpen,      setNotifOpen]      = useState(false);
+  const [readNotifs,     setReadNotifs]     = useState([]);
+  const [launcherOpen,   setLauncherOpen]   = useState(false);
+  const [launcherClicked,setLauncherClicked]= useState(false);
   const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
 
-  React.useEffect(() => {
-    const handleClick = (e) => {
-      if (!e.target.closest(".tooltip-wrap")) {
-        setAvatarMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
+  // اختار الـ launcher items حسب الـ role
+  const launcherPages =
+    role === "doctor" ? LAUNCHER_PAGES_DOCTOR : LAUNCHER_PAGES_STUDENT;
 
-  const unreadCount = notifications.filter(
-    (n) => !readNotifs.includes(n.id)
-  ).length;
+  const unreadCount = notifications.filter((n) => !readNotifs.includes(n.id)).length;
+  const activePage  = location.pathname.replace("/", "") || "home";
 
   const handleBell = () => {
     setBellRing(true);
     setNotifOpen((p) => !p);
     setLauncherOpen(false);
+    setAvatarMenuOpen(false);
     setTimeout(() => setBellRing(false), 600);
   };
 
-  const markRead = (id) => setReadNotifs((p) => [...p, id]);
+  const markRead    = (id) => setReadNotifs((p) => [...p, id]);
   const markAllRead = () => {
     setReadNotifs(notifications.map((n) => n.id));
     setNotifOpen(false);
@@ -62,34 +70,58 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
   const handleLauncher = () => {
     setLauncherOpen((p) => !p);
     setNotifOpen(false);
+    setAvatarMenuOpen(false);
     setLauncherClicked(true);
     setTimeout(() => setLauncherClicked(false), 600);
   };
 
-  const navigate = (id) => {
-    onNavigate(id);
+  const handleAvatarMenu = () => {
+    setAvatarMenuOpen((p) => !p);
+    setNotifOpen(false);
+    setLauncherOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  const goTo = (path) => {
+    navigate(path);
     setLauncherOpen(false);
     setNotifOpen(false);
     setAvatarMenuOpen(false);
   };
 
+  // الـ home path حسب الـ role
+  const homePath = role === "doctor" ? "/dashboard" : "/dashboard";
+
   return (
     <nav className="navbar">
-      <div className="nav-logo">
+      {/* Logo */}
+      <div className="nav-logo" onClick={() => goTo(homePath)} style={{ cursor: "pointer" }}>
         <HiOutlineLink className="logo-icon" />
         <span className="logo-text">UniConnect</span>
       </div>
 
+      {/* Search */}
       <div className="nav-search-wrap">
         <FiSearch className="search-icon" />
-        <input className="nav-search" placeholder="Search..." type="text" />
+        <input
+          className="nav-search"
+          placeholder="Search..."
+          type="text"
+          value={searchValue || ""}
+          onChange={onSearchChange}
+        />
       </div>
 
       <div style={{ flex: 1 }} />
 
+      {/* Home Button */}
       <button
-        className={`home-btn ${activePage === "home" ? "home-btn-active" : ""}`}
-        onClick={() => navigate("home")}
+        className={`home-btn ${activePage === "dashboard" ? "home-btn-active" : ""}`}
+        onClick={() => goTo(homePath)}
         title="Home"
       >
         <FiHome size={18} />
@@ -99,9 +131,7 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
       {/* App Launcher */}
       <div className="launcher-wrap">
         <button
-          className={`launcher-btn ${
-            launcherOpen ? "launcher-btn-active" : ""
-          } ${launcherClicked ? "clicked" : ""}`}
+          className={`launcher-btn ${launcherOpen ? "launcher-btn-active" : ""} ${launcherClicked ? "clicked" : ""}`}
           onClick={handleLauncher}
           title="App Launcher"
         >
@@ -112,13 +142,11 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
           <div className="launcher-dropdown">
             <div className="launcher-title">Quick Nav</div>
             <div className="launcher-grid">
-              {LAUNCHER_PAGES.map(({ id, label, icon: Icon }) => (
+              {launcherPages.map(({ id, label, icon: Icon, path }) => (
                 <button
                   key={id}
-                  className={`launcher-item ${
-                    activePage === id ? "launcher-item-active" : ""
-                  }`}
-                  onClick={() => navigate(id)}
+                  className={`launcher-item ${activePage === id ? "launcher-item-active" : ""}`}
+                  onClick={() => goTo(path)}
                 >
                   <Icon size={22} className="launcher-icon" />
                   <span className="launcher-label">{label}</span>
@@ -129,12 +157,10 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
         )}
       </div>
 
-      {/* Notifications Bell */}
+      {/* Bell */}
       <div className="notif-wrap">
         <div
-          className={`nav-bell ${bellRing ? "ring" : ""} ${
-            activePage === "notifications" ? "nav-bell-active" : ""
-          }`}
+          className={`nav-bell ${bellRing ? "ring" : ""} ${notifOpen ? "nav-bell-active" : ""}`}
           onClick={handleBell}
         >
           <FiBell size={20} />
@@ -154,16 +180,11 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
               {notifications.length === 0 ? (
                 <div className="notif-empty">No notifications</div>
               ) : (
-                notifications.map((n) => (
+                notifications.slice(0, 5).map((n) => (
                   <div
                     key={n.id}
-                    className={`notif-item ${
-                      readNotifs.includes(n.id) ? "read" : "unread"
-                    }`}
-                    onClick={() => {
-                      markRead(n.id);
-                      navigate("notifications");
-                    }}
+                    className={`notif-item ${readNotifs.includes(n.id) ? "read" : "unread"}`}
+                    onClick={() => markRead(n.id)}
                   >
                     <span className="notif-icon">{n.icon}</span>
                     <div className="notif-body">
@@ -171,27 +192,26 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
                       <div className="notif-item-body">{n.body}</div>
                       <div className="notif-item-time">{n.time}</div>
                     </div>
-                    {!readNotifs.includes(n.id) && (
-                      <span className="notif-dot" />
-                    )}
+                    {!readNotifs.includes(n.id) && <span className="notif-dot" />}
                   </div>
                 ))
               )}
             </div>
-            {unreadCount === 0 && notifications.length > 0 && (
-              <div className="notif-empty">All caught up!</div>
-            )}
+            <div
+              className="notif-mark-all"
+              style={{ padding: "10px 16px", borderTop: "1px solid #1e1e3a", textAlign: "center" }}
+              onClick={() => goTo("/notifications")}
+            >
+              View all notifications
+            </div>
           </div>
         )}
       </div>
 
       {/* Avatar */}
       <div className="tooltip-wrap">
-        <div
-          className="nav-avatar"
-          onClick={() => setAvatarMenuOpen((p) => !p)}
-        >
-          {user.initials || "SJ"}
+        <div className="nav-avatar" onClick={handleAvatarMenu}>
+          {user.initials || "U"}
           <span className="avatar-dot" />
           <span className="avatar-ring" />
         </div>
@@ -199,37 +219,18 @@ function Navbar({ activePage, onNavigate, notifications = [], user = {} }) {
         {avatarMenuOpen && (
           <div className="avatar-menu">
             <div className="avatar-menu-header">
-              <div className="avatar-menu-name">
-                {user.name || "Sara Johnson"}
-              </div>
-              <div className="avatar-menu-email">
-                {user.email || "sara@uniconnect.edu"}
-              </div>
+              <div className="avatar-menu-name">{user.name || "User"}</div>
+              <div className="avatar-menu-email">{user.email || ""}</div>
             </div>
-            <button
-              className="avatar-menu-item"
-              onClick={() => navigate("profile")}
-            >
-              <FiUser size={14} /> View Profile
+            <button className="avatar-menu-item" onClick={() => goTo("/profile")}>
+              <FiUser size={15} /> Profile
             </button>
-            <button
-              className="avatar-menu-item"
-              onClick={() => navigate("settings")}
-            >
-              <FiSettings size={14} /> Settings
-            </button>
-            <button
-              className="avatar-menu-item"
-              onClick={() => navigate("switch-account")}
-            >
-              <FiRepeat size={14} /> Switch Account
+            <button className="avatar-menu-item" onClick={() => goTo("/edit-profile")}>
+              <FiSettings size={15} /> Settings
             </button>
             <div className="avatar-menu-divider" />
-            <button
-              className="avatar-menu-item avatar-menu-danger"
-              onClick={() => navigate("logout")}
-            >
-              <FiLogOut size={14} /> Log Out
+            <button className="avatar-menu-item avatar-menu-danger" onClick={handleLogout}>
+              <FiLogOut size={15} /> Logout
             </button>
           </div>
         )}

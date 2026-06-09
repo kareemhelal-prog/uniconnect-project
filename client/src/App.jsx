@@ -12,6 +12,7 @@ import OtpVerification from './pages/OtpVerification'
 import DoctorProfile from './pages/DoctorProfile'
 import ResetPassword from './pages/ResetPassword'
 import Home from './pages/Home'
+import HomeDoctor from './pages/HomeDoctor'
 import ProjectsPage from './pages/ProjectsPage'
 import AcademicReviewsPage from './pages/AcademicReviewsPage'
 import PostDetails from './pages/PostDetails'
@@ -53,23 +54,44 @@ function App() {
         <Route path="/NotAccept"         element={<NotAccept />} />
 
         {/* Protected Routes */}
-        <Route path="/Home"              element={<PrivateRoute><Home /></PrivateRoute>} />
-        <Route path="/Dashboard"         element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/home"              element={<PrivateRoute><Home /></PrivateRoute>} />
+        <Route path="/HomeDoctor"        element={<PrivateRoute><HomeDoctor /></PrivateRoute>} />
+        <Route path="/dashboard"         element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+
+        {/* Profile */}
         <Route path="/profile"           element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/profile/:id"       element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/profile/edit"      element={<PrivateRoute><ProfileEdit /></PrivateRoute>} />
-        <Route path="/CreateGroup"       element={<PrivateRoute><CreateGroup /></PrivateRoute>} />
-        <Route path="/GroupsList"        element={<PrivateRoute><GroupsList /></PrivateRoute>} />
-        <Route path="/MyGroups"          element={<PrivateRoute><MyGroups /></PrivateRoute>} />
-        <Route path="/group/details/:id" element={<PrivateRoute><GroupDetails /></PrivateRoute>} />
-        <Route path="/DoctorProfile/:id" element={<PrivateRoute><DoctorProfile /></PrivateRoute>} />
-        <Route path="/ProjectsPage"      element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
-        <Route path="/AcademicReviews"   element={<PrivateRoute><AcademicReviewsPage /></PrivateRoute>} />
-        <Route path="/PostDetails/:id"   element={<PrivateRoute><PostDetails /></PrivateRoute>} />
-        <Route path="/SearchResults"     element={<PrivateRoute><SearchResults /></PrivateRoute>} />
-        <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />
+
+        {/* Groups */}
+        <Route path="/groups"            element={<PrivateRoute><GroupsList /></PrivateRoute>} />
+        <Route path="/my-groups"         element={<PrivateRoute><MyGroups /></PrivateRoute>} />
+        <Route path="/create-group"      element={<PrivateRoute><CreateGroup /></PrivateRoute>} />
+        <Route path="/groups/:id"        element={<PrivateRoute><GroupDetails /></PrivateRoute>} />
+
+        {/* Doctor */}
+        <Route path="/doctor/:id"        element={<PrivateRoute><DoctorProfile /></PrivateRoute>} />
+
+        {/* Projects */}
+        <Route path="/projects"          element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
+
+        {/* Posts */}
+        <Route path="/posts/:id"         element={<PrivateRoute><PostDetails /></PrivateRoute>} />
+
+        {/* Reviews */}
+        <Route path="/reviews"           element={<PrivateRoute><AcademicReviewsPage /></PrivateRoute>} />
+
+        {/* Files */}
         <Route path="/files"             element={<PrivateRoute><Files /></PrivateRoute>} />
-        <Route path="/UserManagement"    element={<PrivateRoute><UserManagement /></PrivateRoute>} />
+
+        {/* Notifications */}
+        <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />
+
+        {/* Search */}
+        <Route path="/search"            element={<PrivateRoute><SearchResults /></PrivateRoute>} />
+
+        {/* Admin */}
+        <Route path="/admin/users"       element={<PrivateRoute><UserManagement /></PrivateRoute>} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />

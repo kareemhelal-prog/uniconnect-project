@@ -138,6 +138,7 @@ function PostCard({ post, onUpdate }) {
           <span className="post-role">{post.role}</span>
           <span className="post-time">{post.time}</span>
         </div>
+        <button className="more-btn">•••</button>
       </div>
 
       <div className="post-body">

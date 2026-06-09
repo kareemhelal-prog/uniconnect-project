@@ -1,141 +1,92 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "../styles/Notifications.css";
-import { useEffect } from "react";
-
-const notificationsData = [
-  {
-    id: 1,
-    user: "Ahmed Hassan",
-    avatar: "https://i.pravatar.cc/150?u=ahmed",
-    type: "like",
-    text: "liked your post",
-    subText: null,
-    time: "2 minutes ago",
-    isUnread: true,
-  },
-  {
-    id: 2,
-    user: "Sara Khan",
-    avatar: "https://i.pravatar.cc/150?u=sara",
-    type: "comment",
-    text: "commented on your file",
-    subText: "Operating Systems Question Bank",
-    time: "15 minutes ago",
-    isUnread: true,
-  },
-  {
-    id: 3,
-    user: "Rohan Verma",
-    avatar: "https://i.pravatar.cc/150?u=rohan",
-    type: "follow",
-    text: "started following you",
-    subText: null,
-    time: "28 minutes ago",
-    isUnread: true,
-  },
-  {
-    id: 4,
-    user: "Priya Sharma",
-    avatar: "https://i.pravatar.cc/150?u=priya",
-    type: "like",
-    text: "liked your file",
-    subText: "Data Structures Summary Notes",
-    time: "1 hour ago",
-    isUnread: false,
-  },
-  {
-    id: 5,
-    user: "Karan Mehta",
-    avatar: "https://i.pravatar.cc/150?u=karan",
-    type: "comment",
-    text: "commented on your post",
-    subText: "What are the best resources for ML?",
-    time: "2 hours ago",
-    isUnread: false,
-  },
-  {
-    id: 6,
-    user: "Ananya Singh",
-    avatar: "https://i.pravatar.cc/150?u=ananya",
-    type: "follow",
-    text: "started following you",
-    subText: null,
-    time: "3 hours ago",
-    isUnread: false,
-  },
-];
+import Navbar from "../components/Navbar";
+import { FiHeart, FiMessageSquare, FiUserPlus } from "react-icons/fi";
+import axios from "../api/axios";
 
 const iconMap = {
-  like: { className: "fa-solid fa-heart icon-heart", colorClass: "icon-heart" },
-  comment: { className: "fa-solid fa-comment icon-comment", colorClass: "icon-comment" },
-  follow: { className: "fa-solid fa-user-plus icon-follow", colorClass: "icon-follow" },
+  like: <FiHeart className="action-icon icon-heart" />,
+  comment: <FiMessageSquare className="action-icon icon-comment" />,
+  follow: <FiUserPlus className="action-icon icon-follow" />,
 };
 
 export default function Notifications() {
-  useEffect(() => {
-    document.title = "Notifications | UniConnect";
-}, []);
-  const [notifications, setNotifications] = useState(notificationsData);
+  const [notifications, setNotifications] = useState([]);
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const unreadCount = notifications.filter((n) => n.isUnread).length;
+  useEffect(() => {
+    document.title = "Notifications | UniConnect";
+    fetchNotifications();
+  }, []);
 
-  const handleCardClick = (id) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isUnread: false } : n))
-    );
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get("/api/notifications");
+      setNotifications(res.data);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCardClick = async (id) => {
+    try {
+      await axios.put(`/api/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+    } catch (err) {
+      console.error("Failed to mark as read:", err);
+    }
+  };
+
+  const markAllRead = async () => {
+    try {
+      await axios.put("/api/notifications/read-all");
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    }
   };
 
   const filtered = notifications.filter((n) => {
-    const matchesFilter = filter === "all" || n.isUnread;
-    const query = search.toLowerCase();
-    const matchesSearch = n.user.toLowerCase().includes(query);
+    const matchesFilter =
+      filter === "all" ||
+      (filter === "unread" && !n.is_read) ||
+      (filter === "read" && n.is_read);
+    const matchesSearch = n.message?.toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
   return (
     <div className="notif-page">
-      {/* Navbar */}
-      <nav className="navbar">
-        <a href="#" className="logo">
-          <div className="logo-icon">U</div>
-          UniConnect
-        </a>
+      <Navbar
+        activePage="notifications"
+        searchValue={search}
+        onSearchChange={(e) => setSearch(e.target.value)}
+        notifications={notifications.map((n) => ({
+          id: n.id,
+          title: n.message,
+          body: "",
+          time: n.created_at,
+          icon: iconMap[n.type] || <FiHeart />,
+        }))}
+      />
 
-        <div className="search-container">
-          <i className="fa-solid fa-magnifying-glass search-icon"></i>
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search for people, subjects, or posts..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        <div className="nav-right">
-          <i className="fa-solid fa-th nav-icon"></i>
-          <div className="nav-icon bell-wrapper">
-            <i className="fa-regular fa-bell"></i>
-            {unreadCount > 0 && (
-              <span className="notification-badge">{unreadCount}</span>
-            )}
-          </div>
-          <div className="user-profile">
-            <img
-              src="https://i.pravatar.cc/150?u=myprofile"
-              className="user-avatar-nav"
-              alt="profile"
-            />
-            <i className="fa-solid fa-chevron-down chevron-icon"></i>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
       <div className="main-content">
-        <h1 className="page-title">Notifications</h1>
+        <div className="notif-page-header">
+          <h1 className="page-title">Notifications</h1>
+          {unreadCount > 0 && (
+            <button className="mark-all-btn" onClick={markAllRead}>
+              Mark all as read
+            </button>
+          )}
+        </div>
 
         <div className="filters">
           <button
@@ -148,35 +99,43 @@ export default function Notifications() {
             className={`filter-btn ${filter === "unread" ? "active" : ""}`}
             onClick={() => setFilter("unread")}
           >
-            Unread
+            Unread {unreadCount > 0 && <span className="filter-count">{unreadCount}</span>}
+          </button>
+          <button
+            className={`filter-btn ${filter === "read" ? "active" : ""}`}
+            onClick={() => setFilter("read")}
+          >
+            Read
           </button>
         </div>
 
-        {filtered.length === 0 ? (
-          <div className="no-results">
-            <i className="fa-solid fa-magnifying-glass-minus"></i> No notifications found.
-          </div>
+        {loading ? (
+          <div className="no-results">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="no-results">No notifications found.</div>
         ) : (
           <div className="notification-list">
             {filtered.map((notif, index) => (
               <div
                 key={notif.id}
-                className={`notification-card ${notif.isUnread ? "unread" : ""}`}
+                className={`notification-card ${!notif.is_read ? "unread" : ""}`}
                 style={{ animationDelay: `${index * 0.07}s` }}
                 onClick={() => handleCardClick(notif.id)}
               >
-                <img src={notif.avatar} className="avatar" alt={notif.user} />
-                <i className={`fa-solid ${notif.type === "like" ? "fa-heart icon-heart" : notif.type === "comment" ? "fa-comment icon-comment" : "fa-user-plus icon-follow"} action-icon`}></i>
+                <div className="avatar-placeholder">
+                  {notif.sender_name?.[0]?.toUpperCase() || "U"}
+                </div>
+                {iconMap[notif.type] || iconMap["like"]}
                 <div className="content">
                   <p>
-                    <strong>{notif.user}</strong> {notif.text}
+                    <strong>{notif.sender_name || "Someone"}</strong>{" "}
+                    {notif.message}
                   </p>
-                  {notif.subText && (
-                    <span className="sub-text">{notif.subText}</span>
-                  )}
-                  <span className="time-text">{notif.time}</span>
+                  <span className="time-text">
+                    {new Date(notif.created_at).toLocaleString()}
+                  </span>
                 </div>
-                {notif.isUnread && <div className="unread-dot"></div>}
+                {!notif.is_read && <div className="unread-dot" />}
               </div>
             ))}
           </div>
