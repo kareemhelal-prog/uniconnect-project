@@ -1,8 +1,8 @@
 require("dotenv").config();
 
 const express = require("express");
-const cors    = require("cors");
-const helmet  = require("helmet");
+const cors = require("cors");
+const helmet = require("helmet");
 
 const { testConnection } = require("./config/db");
 
@@ -13,16 +13,11 @@ const commentRoutes      = require("./routes/commentRoutes");
 const likeRoutes         = require("./routes/likeRoutes");
 const followRoutes       = require("./routes/followRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
-const groupRoutes        = require("./routes/groupRoutes");
-const groupPostRoutes    = require("./routes/groupPostRoutes");
-const fileRoutes         = require("./routes/fileRoutes");
-const projectRoutes      = require("./routes/projectRoutes");
-const courseRoutes       = require("./routes/courseRoutes");
-const reviewRoutes       = require("./routes/reviewRoutes");
-const adminRoutes        = require("./routes/adminRoutes");
-const profileRoutes      = require("./routes/profileRoutes");
-
+const groupRoutes = require("./routes/groupRoutes");
+const fileRoutes = require("./routes/fileRoutes");
+const groupPostRoutes = require("./routes/groupPostRoutes");
 const app = express();
+const adminRoutes = require("./routes/adminRoutes");
 
 app.use(cors());
 app.use(helmet());
@@ -38,14 +33,10 @@ app.use("/api/comments",      commentRoutes);
 app.use("/api/likes",         likeRoutes);
 app.use("/api/follow",        followRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/groups",        groupRoutes);
-app.use("/api/group-posts",   groupPostRoutes);
-app.use("/api/files",         fileRoutes);
-app.use("/api/projects",      projectRoutes);
-app.use("/api/courses",       courseRoutes);
-app.use("/api/reviews",       reviewRoutes);
-app.use("/api/admin",         adminRoutes);
-app.use("/api/profile",       profileRoutes);
+app.use("/api/groups", groupRoutes);
+app.use("/api/group-posts", groupPostRoutes);
+app.use("/api/files", fileRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });
@@ -62,6 +53,6 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`http://localhost:${PORT}`);
+  console.log(`🚀 Server running on ${PORT}`);
+  console.log(`👉 http://localhost:${PORT}`);
 });
