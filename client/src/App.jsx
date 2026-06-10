@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import React, { useState, useEffect } from 'react'
 import UniConnectLoader from './pages/LoadingPage'
 import Login from './pages/Login'
@@ -25,77 +25,83 @@ import SearchResults from './pages/SearchResults'
 import Notifications from './pages/Notifications'
 import NotFound from './pages/NotFound'
 import Files from './pages/Files'
+import Navbar from './components/Navbar'
 
-function PrivateRoute({ children }) {
+const NO_NAVBAR = ['/login','/dashboard','/home','/HomeDoctor', '/register', '/forgot-password', '/otp-verification', '/reset-password', '/NotAccept', '/']
+
+function AppLayout() {
+  const location = useLocation()
   const token = localStorage.getItem('token')
-  return token ? children : <Navigate to="/login" />
+  const hideNavbar = NO_NAVBAR.includes(location.pathname) || !token
+
+  const [user, setUser] = useState({})
+
+  useEffect(() => {
+    if (!token) return
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      fetch(`http://localhost:5000/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+        .then(r => r.json())
+        .then(json => setUser(json.user || json))
+        .catch(() => setUser({ id: payload.id, role: payload.role }))
+    } catch {}
+  }, [token])
+
+  return (
+    <>
+      {!hideNavbar && <Navbar user={user} />}
+      <Routes>
+        {/* Public */}
+        <Route path="/"                 element={<Navigate to="/login" />} />
+        <Route path="/login"            element={<Login />} />
+        <Route path="/register"         element={<Register />} />
+        <Route path="/forgot-password"  element={<ForgotPassword />} />
+        <Route path="/otp-verification" element={<OtpVerification />} />
+        <Route path="/reset-password"   element={<ResetPassword />} />
+        <Route path="/NotAccept"        element={<NotAccept />} />
+
+        {/* Protected */}
+        <Route path="/home"             element={<Home />} />
+        <Route path="/HomeDoctor"       element={<HomeDoctor />} />
+        <Route path="/dashboard"        element={<Dashboard />} />
+
+        <Route path="/profile"          element={<ProfilePage />} />
+        <Route path="/myprofile"        element={<ProfilePage />} />
+        <Route path="/profile/edit"     element={<ProfileEdit />} />
+
+        <Route path="/groups"           element={<GroupsList />} />
+        <Route path="/my-groups"        element={<MyGroups />} />
+        <Route path="/create-group"     element={<CreateGroup />} />
+        <Route path="/groups/:id"       element={<GroupDetails />} />
+
+        <Route path="/doctor/:id"       element={<DoctorProfile />} />
+        <Route path="/projects"         element={<ProjectsPage />} />
+        <Route path="/posts/:id"        element={<PostDetails />} />
+        <Route path="/reviews"          element={<AcademicReviewsPage />} />
+        <Route path="/files"            element={<Files />} />
+        <Route path="/notifications"    element={<Notifications />} />
+        <Route path="/search"           element={<SearchResults />} />
+        <Route path="/admin/users"      element={<UserManagement />} />
+        <Route path="*"                 element={<NotFound />} />
+      </Routes>
+    </>
+  )
 }
 
 function App() {
   const [isLoading, setIsLoading] = useState(true)
-
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 2000)
-    return () => clearTimeout(timer)
+    const t = setTimeout(() => setIsLoading(false), 2000)
+    return () => clearTimeout(t)
   }, [])
 
   if (isLoading) return <UniConnectLoader />
 
   return (
     <BrowserRouter>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/"                  element={<Navigate to="/login" />} />
-        <Route path="/login"             element={<Login />} />
-        <Route path="/register"          element={<Register />} />
-        <Route path="/forgot-password"   element={<ForgotPassword />} />
-        <Route path="/otp-verification"  element={<OtpVerification />} />
-        <Route path="/reset-password"    element={<ResetPassword />} />
-        <Route path="/NotAccept"         element={<NotAccept />} />
-
-        {/* Protected Routes */}
-        <Route path="/home"              element={<Home />} />
-        <Route path="/HomeDoctor"        element={<HomeDoctor />} />
-        <Route path="/dashboard"         element={<Dashboard />} />
-
-        {/* Profile */}
-        <Route path="/profile"           element={<ProfilePage />} />
-        <Route path="/myprofile"         element={<ProfilePage />} />
-        <Route path="/profile/edit"      element={<ProfileEdit />} />
-
-        {/* Groups */}
-        <Route path="/groups"            element={<GroupsList />} />
-        <Route path="/my-groups"         element={<MyGroups />} />
-        <Route path="/create-group"      element={<CreateGroup />} />
-        <Route path="/groups/:id"        element={<GroupDetails />} />
-
-        {/* Doctor */}
-        <Route path="/doctor/:id"        element={<DoctorProfile />} />
-
-        {/* Projects */}
-        <Route path="/projects"          element={<ProjectsPage />} />
-
-        {/* Posts */}
-        <Route path="/posts/:id"         element={<PostDetails />} />
-
-        {/* Reviews */}
-        <Route path="/reviews"           element={<AcademicReviewsPage />} />
-
-        {/* Files */}
-        <Route path="/files"             element={<Files />} />
-
-        {/* Notifications */}
-        <Route path="/notifications"     element={<Notifications />} />
-
-        {/* Search */}
-        <Route path="/search"            element={<SearchResults />} />
-
-        {/* Admin */}
-        <Route path="/admin/users"       element={<UserManagement />} />
-
-        {/* 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <AppLayout />
     </BrowserRouter>
   )
 }

@@ -17,7 +17,6 @@ import {
 } from "react-icons/fi";
 import { HiOutlineLink } from "react-icons/hi";
 
-// ── Launcher items حسب الـ role ──
 const LAUNCHER_PAGES_STUDENT = [
   { id: "profile",  label: "Profile",          icon: FiUser,       path: "/profile" },
   { id: "projects", label: "Projects",         icon: FiFolderPlus, path: "/projects" },
@@ -38,7 +37,6 @@ function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) 
   const navigate = useNavigate();
   const location = useLocation();
 
-  // قراءة الـ role من الـ JWT أوتوماتيك
   const token = localStorage.getItem("token");
   const role = token
     ? JSON.parse(atob(token.split(".")[1])).role
@@ -51,12 +49,11 @@ function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) 
   const [launcherClicked, setLauncherClicked] = useState(false);
   const [avatarMenuOpen,  setAvatarMenuOpen]  = useState(false);
 
-  const launcherPages =
-    role === "doctor" ? LAUNCHER_PAGES_DOCTOR : LAUNCHER_PAGES_STUDENT;
+  const launcherPages = role === "doctor" ? LAUNCHER_PAGES_DOCTOR : LAUNCHER_PAGES_STUDENT;
+  const homePath      = role === "doctor" ? "/HomeDoctor" : "/home";
 
   const unreadCount = notifications.filter((n) => !readNotifs.includes(n.id)).length;
   const activePage  = location.pathname.replace("/", "") || "home";
-  const homePath    = "/dashboard";
 
   const handleBell = () => {
     setBellRing(true);
@@ -113,8 +110,8 @@ function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) 
           className="nav-search"
           placeholder="Search..."
           type="text"
-          value={searchValue || ""}
-          onChange={onSearchChange}
+          value={searchValue ?? ""}
+          onChange={onSearchChange || (() => {})}
         />
       </div>
 
@@ -122,7 +119,7 @@ function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) 
 
       {/* Home Button */}
       <button
-        className={`home-btn ${activePage === "dashboard" ? "home-btn-active" : ""}`}
+        className={`home-btn ${activePage === "home" || activePage === "HomeDoctor" ? "home-btn-active" : ""}`}
         onClick={() => goTo(homePath)}
         title="Home"
       >
@@ -227,7 +224,7 @@ function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) 
             <button className="avatar-menu-item" onClick={() => goTo("/profile")}>
               <FiUser size={15} /> Profile
             </button>
-            <button className="avatar-menu-item" onClick={() => goTo("/edit-profile")}>
+            <button className="avatar-menu-item" onClick={() => goTo("/profile/edit")}>
               <FiSettings size={15} /> Settings
             </button>
             <div className="avatar-menu-divider" />

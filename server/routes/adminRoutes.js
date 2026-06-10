@@ -23,4 +23,4 @@ router.put('/reports/:id/resolve',          adminController.resolveReport);
 router.put('/reports/:id/dismiss',          adminController.dismissReport);
 router.delete('/reports/:id/content',       adminController.deleteReportedContent);
 
-module.exports = router;s
+module.exports = router;
