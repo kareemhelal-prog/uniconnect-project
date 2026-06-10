@@ -14,44 +14,49 @@ import {
   FiSettings,
   FiLogOut,
   FiBook,
-  FiEdit,
 } from "react-icons/fi";
 import { HiOutlineLink } from "react-icons/hi";
 
 // ── Launcher items حسب الـ role ──
 const LAUNCHER_PAGES_STUDENT = [
-  { id: "profile",   label: "Profile",          icon: FiUser,       path: "/profile" },
-  { id: "projects",  label: "Projects",         icon: FiFolderPlus, path: "/projects" },
-  { id: "files",     label: "Files",            icon: FiFile,       path: "/files" },
-  { id: "groups",    label: "Groups",           icon: FiUsers,      path: "/groups" },
-  { id: "reviews",   label: "Academic Reviews", icon: FiStar,       path: "/reviews" },
+  { id: "profile",  label: "Profile",          icon: FiUser,       path: "/profile" },
+  { id: "projects", label: "Projects",         icon: FiFolderPlus, path: "/projects" },
+  { id: "files",    label: "Files",            icon: FiFile,       path: "/files" },
+  { id: "groups",   label: "Groups",           icon: FiUsers,      path: "/groups" },
+  { id: "reviews",  label: "Academic Reviews", icon: FiStar,       path: "/reviews" },
 ];
 
 const LAUNCHER_PAGES_DOCTOR = [
-  { id: "profile",    label: "Profile",     icon: FiUser,       path: "/profile" },
-  { id: "groups",     label: "My Courses",  icon: FiBook,       path: "/groups" },
-  { id: "files",      label: "Files",       icon: FiFile,       path: "/files" },
-  { id: "my-groups",  label: "My Groups",   icon: FiUsers,      path: "/my-groups" },
-  { id: "reviews",    label: "Reviews",     icon: FiStar,       path: "/reviews" },
+  { id: "profile",   label: "Profile",    icon: FiUser,  path: "/profile" },
+  { id: "groups",    label: "My Courses", icon: FiBook,  path: "/groups" },
+  { id: "files",     label: "Files",      icon: FiFile,  path: "/files" },
+  { id: "my-groups", label: "My Groups",  icon: FiUsers, path: "/my-groups" },
+  { id: "reviews",   label: "Reviews",    icon: FiStar,  path: "/reviews" },
 ];
 
-function Navbar({ notifications = [], user = {}, searchValue, onSearchChange, role = "student" }) {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const [bellRing,       setBellRing]       = useState(false);
-  const [notifOpen,      setNotifOpen]      = useState(false);
-  const [readNotifs,     setReadNotifs]     = useState([]);
-  const [launcherOpen,   setLauncherOpen]   = useState(false);
-  const [launcherClicked,setLauncherClicked]= useState(false);
-  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false);
+  // قراءة الـ role من الـ JWT أوتوماتيك
+  const token = localStorage.getItem("token");
+  const role = token
+    ? JSON.parse(atob(token.split(".")[1])).role
+    : "student";
 
-  // اختار الـ launcher items حسب الـ role
+  const [bellRing,        setBellRing]        = useState(false);
+  const [notifOpen,       setNotifOpen]       = useState(false);
+  const [readNotifs,      setReadNotifs]      = useState([]);
+  const [launcherOpen,    setLauncherOpen]    = useState(false);
+  const [launcherClicked, setLauncherClicked] = useState(false);
+  const [avatarMenuOpen,  setAvatarMenuOpen]  = useState(false);
+
   const launcherPages =
     role === "doctor" ? LAUNCHER_PAGES_DOCTOR : LAUNCHER_PAGES_STUDENT;
 
   const unreadCount = notifications.filter((n) => !readNotifs.includes(n.id)).length;
   const activePage  = location.pathname.replace("/", "") || "home";
+  const homePath    = "/dashboard";
 
   const handleBell = () => {
     setBellRing(true);
@@ -92,9 +97,6 @@ function Navbar({ notifications = [], user = {}, searchValue, onSearchChange, ro
     setNotifOpen(false);
     setAvatarMenuOpen(false);
   };
-
-  // الـ home path حسب الـ role
-  const homePath = role === "doctor" ? "/dashboard" : "/dashboard";
 
   return (
     <nav className="navbar">

@@ -54,44 +54,44 @@ function App() {
         <Route path="/NotAccept"         element={<NotAccept />} />
 
         {/* Protected Routes */}
-        <Route path="/home"              element={<PrivateRoute><Home /></PrivateRoute>} />
-        <Route path="/HomeDoctor"        element={<PrivateRoute><HomeDoctor /></PrivateRoute>} />
-        <Route path="/dashboard"         element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/home"              element={<Home />} />
+        <Route path="/HomeDoctor"        element={<HomeDoctor />} />
+        <Route path="/dashboard"         element={<Dashboard />} />
 
         {/* Profile */}
-        <Route path="/profile"           element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-        <Route path="/profile/:id"       element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-        <Route path="/profile/edit"      element={<PrivateRoute><ProfileEdit /></PrivateRoute>} />
+        <Route path="/profile"           element={<ProfilePage />} />
+        <Route path="/myprofile"         element={<ProfilePage />} />
+        <Route path="/profile/edit"      element={<ProfileEdit />} />
 
         {/* Groups */}
-        <Route path="/groups"            element={<PrivateRoute><GroupsList /></PrivateRoute>} />
-        <Route path="/my-groups"         element={<PrivateRoute><MyGroups /></PrivateRoute>} />
-        <Route path="/create-group"      element={<PrivateRoute><CreateGroup /></PrivateRoute>} />
-        <Route path="/groups/:id"        element={<PrivateRoute><GroupDetails /></PrivateRoute>} />
+        <Route path="/groups"            element={<GroupsList />} />
+        <Route path="/my-groups"         element={<MyGroups />} />
+        <Route path="/create-group"      element={<CreateGroup />} />
+        <Route path="/groups/:id"        element={<GroupDetails />} />
 
         {/* Doctor */}
-        <Route path="/doctor/:id"        element={<PrivateRoute><DoctorProfile /></PrivateRoute>} />
+        <Route path="/doctor/:id"        element={<DoctorProfile />} />
 
         {/* Projects */}
-        <Route path="/projects"          element={<PrivateRoute><ProjectsPage /></PrivateRoute>} />
+        <Route path="/projects"          element={<ProjectsPage />} />
 
         {/* Posts */}
-        <Route path="/posts/:id"         element={<PrivateRoute><PostDetails /></PrivateRoute>} />
+        <Route path="/posts/:id"         element={<PostDetails />} />
 
         {/* Reviews */}
-        <Route path="/reviews"           element={<PrivateRoute><AcademicReviewsPage /></PrivateRoute>} />
+        <Route path="/reviews"           element={<AcademicReviewsPage />} />
 
         {/* Files */}
-        <Route path="/files"             element={<PrivateRoute><Files /></PrivateRoute>} />
+        <Route path="/files"             element={<Files />} />
 
         {/* Notifications */}
-        <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />
+        <Route path="/notifications"     element={<Notifications />} />
 
         {/* Search */}
-        <Route path="/search"            element={<PrivateRoute><SearchResults /></PrivateRoute>} />
+        <Route path="/search"            element={<SearchResults />} />
 
         {/* Admin */}
-        <Route path="/admin/users"       element={<PrivateRoute><UserManagement /></PrivateRoute>} />
+        <Route path="/admin/users"       element={<UserManagement />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
