@@ -1,5 +1,4 @@
 // server/controllers/authProfileController.js
-// ملف جديد منفصل عشان مش يتعارض مع userController الموجود
 
 const { promisePool } = require('../config/db');
 const bcrypt = require('bcrypt');
@@ -22,7 +21,6 @@ exports.getProfile = async (req, res) => {
     if (rows.length === 0)
       return res.status(404).json({ success: false, message: 'User not found' });
 
-    // جيب الـ skills
     const [skillRows] = await promisePool.query(`
       SELECT s.name
       FROM User_Skills us
@@ -50,7 +48,6 @@ exports.updateProfile = async (req, res) => {
   const { name, username, email, bio, phone, profile_picture, faculty, year, skills } = req.body;
 
   try {
-    // تحقق إن الـ username مش مكرر
     if (username) {
       const [existing] = await promisePool.query(
         'SELECT id FROM Users WHERE username = ? AND id != ?',
@@ -60,7 +57,6 @@ exports.updateProfile = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Username already taken' });
     }
 
-    // update Users
     await promisePool.query(`
       UPDATE Users
       SET name            = COALESCE(?, name),
@@ -80,7 +76,6 @@ exports.updateProfile = async (req, res) => {
       userId
     ]);
 
-    // upsert Profile_Studies
     await promisePool.query(`
       INSERT INTO Profile_Studies (user_id, faculty, academic_year)
       VALUES (?, ?, ?)
@@ -89,21 +84,17 @@ exports.updateProfile = async (req, res) => {
         academic_year = COALESCE(VALUES(academic_year), academic_year)
     `, [userId, faculty || null, year || null]);
 
-    // update Skills
     if (Array.isArray(skills)) {
-      // امسح القديمة
       await promisePool.query('DELETE FROM User_Skills WHERE user_id = ?', [userId]);
 
       for (const skillName of skills) {
         if (!skillName.trim()) continue;
 
-        // insert skill لو مش موجودة
         await promisePool.query(
           'INSERT IGNORE INTO Skills (name) VALUES (?)',
           [skillName.trim()]
         );
 
-        // جيب الـ id
         const [skillRow] = await promisePool.query(
           'SELECT id FROM Skills WHERE name = ?',
           [skillName.trim()]

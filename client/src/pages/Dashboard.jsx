@@ -9,11 +9,14 @@ import {
   ArcElement,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
 import "../styles/Dashboard.css";
 import Navbar from "./NavbarDashboard.jsx";
 import OwnersPage from "./OwnersPage.jsx";
+import GroupsList from "./GroupsList.jsx";
+import ReportsPage from "./ReportsPage.jsx";
 import api from "../api/axios.js";
 
 ChartJS.register(
@@ -24,26 +27,77 @@ ChartJS.register(
   BarElement,
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
-const chartOptions = {
+// ── Chart Options ──────────────────────────────────────────────
+const lineOptions = {
   responsive: true,
   maintainAspectRatio: false,
-  plugins: { legend: { display: false } },
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: "#0d0d25",
+      borderColor: "#00e5ff44",
+      borderWidth: 1,
+      titleColor: "#00e5ff",
+      bodyColor: "#aaa",
+      padding: 10,
+    },
+  },
+  scales: {
+    x: {
+      grid: { color: "rgba(255,255,255,0.04)" },
+      ticks: { color: "#555", font: { size: 11 } },
+    },
+    y: {
+      grid: { color: "rgba(255,255,255,0.04)" },
+      ticks: { color: "#555", font: { size: 11 } },
+    },
+  },
 };
 
-// ── Placeholder charts (مش بتيجي من API) ──────────────────────
+const barOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: { display: false },
+    tooltip: {
+      backgroundColor: "#0d0d25",
+      borderColor: "#ff33cc44",
+      borderWidth: 1,
+      titleColor: "#ff33cc",
+      bodyColor: "#aaa",
+      padding: 10,
+    },
+  },
+  scales: {
+    x: {
+      grid: { display: false },
+      ticks: { color: "#555", font: { size: 11 } },
+    },
+    y: {
+      grid: { color: "rgba(255,255,255,0.04)" },
+      ticks: { color: "#555", font: { size: 11 } },
+    },
+  },
+};
+
 const lineData = {
   labels: ["1am", "5am", "10am", "3pm", "8pm", "11pm"],
   datasets: [{
     label: "Activity",
     data: [300, 600, 400, 800, 500, 900],
     borderColor: "#00e5ff",
-    backgroundColor: "rgba(0, 229, 255, 0.2)",
+    backgroundColor: "rgba(0, 229, 255, 0.08)",
     fill: true,
-    tension: 0.4,
-    pointRadius: 4,
+    tension: 0.45,
+    pointRadius: 5,
+    pointBackgroundColor: "#00e5ff",
+    pointBorderColor: "#080818",
+    pointBorderWidth: 2,
+    pointHoverRadius: 7,
   }],
 };
 
@@ -52,23 +106,30 @@ const barData = {
   datasets: [{
     label: "Subjects",
     data: [40, 60, 30, 80, 50, 70],
-    backgroundColor: "#bd00ff",
-    borderRadius: 5,
+    backgroundColor: [
+      "rgba(189,0,255,0.7)",
+      "rgba(255,51,204,0.7)",
+      "rgba(189,0,255,0.5)",
+      "rgba(255,51,204,0.9)",
+      "rgba(189,0,255,0.6)",
+      "rgba(255,51,204,0.8)",
+    ],
+    borderRadius: 8,
+    borderSkipped: false,
   }],
 };
 
-// ── Header ─────────────────────────────────────────────────────
+// ── Header (بدون Create Admin) ─────────────────────────────────
 function DashboardHeader() {
   return (
     <header className="dashboard-header">
       <div className="logo">🌀 UniConnect</div>
       <h1 className="admin-title">Admin Dashboard</h1>
-      <button className="create-btn">Create Admin</button>
     </header>
   );
 }
 
-// ── User Statistics (بيانات حقيقية) ───────────────────────────
+// ── User Statistics ────────────────────────────────────────────
 function UserStatisticsColumn({ totalUsers, loading }) {
   return (
     <div>
@@ -80,23 +141,39 @@ function UserStatisticsColumn({ totalUsers, loading }) {
         </div>
       </div>
       <div className="card neon-blue chart-card">
-        <p>Most Pled Activity (Hourly)</p>
+        <p>Most Active Hours</p>
         <div className="chart-wrapper">
-          <Line data={lineData} options={chartOptions} />
+          <Line data={lineData} options={lineOptions} />
         </div>
       </div>
     </div>
   );
 }
 
-// ── New Users (بيانات حقيقية) ──────────────────────────────────
+// ── New Users ──────────────────────────────────────────────────
 function NewUsersColumn({ totalUsers, loading }) {
   const doughnutData = {
     datasets: [{
       data: [totalUsers, Math.max(1000 - totalUsers, 0)],
       backgroundColor: ["#ff33cc", "#1a1a3a"],
       borderWidth: 0,
+      hoverOffset: 6,
     }],
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    cutout: "72%",
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#0d0d25",
+        borderColor: "#ff33cc44",
+        borderWidth: 1,
+        bodyColor: "#aaa",
+        padding: 10,
+      },
+    },
   };
 
   return (
@@ -109,13 +186,13 @@ function NewUsersColumn({ totalUsers, loading }) {
           </div>
         </div>
         <div className="doughnut-wrapper">
-          <Doughnut data={doughnutData} />
+          <Doughnut data={doughnutData} options={doughnutOptions} />
         </div>
       </div>
       <div className="card neon-pink chart-card">
         <p>Most Popular Subjects</p>
         <div className="chart-wrapper">
-          <Bar data={barData} options={chartOptions} />
+          <Bar data={barData} options={barOptions} />
         </div>
       </div>
     </div>
@@ -125,21 +202,24 @@ function NewUsersColumn({ totalUsers, loading }) {
 // ── Stats Cards ────────────────────────────────────────────────
 function StatsCards({ stats, loading }) {
   const cards = [
-    { label: "Total Posts",    value: stats.posts         },
-    { label: "Total Groups",   value: stats.groups        },
-    { label: "Total Projects", value: stats.projects      },
-    { label: "Pending Reports",value: stats.pendingReports},
+    { label: "Total Posts",     value: stats.posts,          icon: "📝" },
+    { label: "Total Groups",    value: stats.groups,         icon: "👥" },
+    { label: "Total Projects",  value: stats.projects,       icon: "📁" },
+    { label: "Pending Reports", value: stats.pendingReports, icon: "🚨" },
   ];
 
   return (
     <div>
       <h3 className="section-title">Platform Stats</h3>
       <div className="card">
-        {cards.map(({ label, value }) => (
-          <div key={label} style={{ marginBottom: "1rem" }}>
-            <div className="stat-label">{label}</div>
-            <div className="big-number" style={{ fontSize: "1.4rem" }}>
-              {loading ? "..." : (value ?? 0).toLocaleString()}
+        {cards.map(({ label, value, icon }) => (
+          <div key={label} style={{ marginBottom: "1rem", display: "flex", alignItems: "center", gap: "10px" }}>
+            <span style={{ fontSize: "1.3rem" }}>{icon}</span>
+            <div>
+              <div className="stat-label">{label}</div>
+              <div className="big-number" style={{ fontSize: "1.4rem" }}>
+                {loading ? "..." : (value ?? 0).toLocaleString()}
+              </div>
             </div>
           </div>
         ))}
@@ -148,7 +228,7 @@ function StatsCards({ stats, loading }) {
   );
 }
 
-// ── Reports Table (بيانات حقيقية) ─────────────────────────────
+// ── Reports Table ──────────────────────────────────────────────
 function ReportsTable({ reports, loading }) {
   return (
     <div className="card mt">
@@ -195,7 +275,7 @@ function ReportsTable({ reports, loading }) {
 
 // ── Dashboard Main ─────────────────────────────────────────────
 function Dashboard() {
-  const [stats, setStats]     = useState({ users: 0, posts: 0, groups: 0, projects: 0, pendingReports: 0 });
+  const [stats,   setStats]   = useState({ users: 0, posts: 0, groups: 0, projects: 0, pendingReports: 0 });
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -207,17 +287,11 @@ function Dashboard() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // جيب الإحصائيات
       const statsRes = await api.get("/admin/stats");
-      if (statsRes.data.success) {
-        setStats(statsRes.data.stats);
-      }
+      if (statsRes.data.success) setStats(statsRes.data.stats);
 
-      // جيب الريبورتس
       const reportsRes = await api.get("/admin/reports?limit=5");
-      if (reportsRes.data.success) {
-        setReports(reportsRes.data.reports);
-      }
+      if (reportsRes.data.success) setReports(reportsRes.data.reports);
     } catch (error) {
       console.error("Dashboard fetch error:", error);
     } finally {
@@ -250,8 +324,8 @@ function App() {
       {activePage === "dashboard" && <Dashboard />}
       {activePage === "users"     && <OwnersPage />}
       {activePage === "projects"  && <div style={{ padding: 40, color: "#fff" }}>Projects — قريباً</div>}
-      {activePage === "reports"   && <div style={{ padding: 40, color: "#fff" }}>Reports — قريباً</div>}
-      {activePage === "settings"  && <div style={{ padding: 40, color: "#fff" }}>Settings — قريباً</div>}
+      {activePage === "reports"   && <ReportsPage />}
+      {activePage === "groups"    && <GroupsList />}
     </>
   );
 }

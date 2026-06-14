@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import "../styles/ProfilePage.css";
 
@@ -24,6 +24,12 @@ function StatItem({ icon, value, label }) {
 
 function PostCard({ post, userName }) {
   const [liked, setLiked] = useState(false);
+  const formattedDate = post.date
+    ? new Date(post.date).toLocaleDateString("en-US", {
+        month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
+      })
+    : "Unknown date";
+
   return (
     <div className="pp-post-card">
       <div className="pp-post-header">
@@ -32,13 +38,9 @@ function PostCard({ post, userName }) {
         </div>
         <div>
           <p className="pp-post-name">{userName}</p>
-          <p className="pp-post-date">
-            {new Date(post.date).toLocaleDateString("en-US", {
-              month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
-            })}
-          </p>
+          <p className="pp-post-date">{formattedDate}</p>
         </div>
-        <button className="pp-post-menu">⋯</button>
+        <button className="pp-post-menu" aria-label="Post options">⋯</button>
       </div>
       <p className="pp-post-text">{post.text}</p>
       <div className="pp-post-actions">
@@ -74,7 +76,7 @@ function FilesTab({ files }) {
             <p className="pp-file-meta">{f.file_size ? `${(f.file_size / 1024).toFixed(1)} KB` : ""}</p>
           </div>
           <a href={f.file_url} target="_blank" rel="noreferrer">
-            <button className="pp-download-btn">⬇ Download</button>
+            <button className="pp-download-btn" aria-label={`Download ${f.file_name}`}>⬇ Download</button>
           </a>
         </div>
       ))}
@@ -127,6 +129,7 @@ function CoursesTab({ courses }) {
 
 export default function ProfilePage() {
   const { id } = useParams();
+  const isOwnProfile = !id;
   const [profile, setProfile] = useState(null);
   const [files, setFiles] = useState([]);
   const [groups, setGroups] = useState([]);
@@ -134,8 +137,29 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState("Posts");
   const [following, setFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
 
+  // FIX: token داخل الـ component بس مش في الـ useEffect مباشرة
   const token = localStorage.getItem("token");
+
+  const handleShare = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    });
+  }, []);
+
+  const handleInvite = useCallback(() => {
+    // FIX: لو isOwnProfile، نستخدم الـ URL الحالي بدل /profile/undefined
+    const profileUrl = id
+      ? `${window.location.origin}/profile/${id}`
+      : window.location.href;
+    navigator.clipboard.writeText(profileUrl).then(() => {
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    });
+  }, [id]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -168,7 +192,7 @@ export default function ProfilePage() {
 
     const fetchGroups = async () => {
       try {
-        const res = await fetch(`/api/groups/my`, {
+        const res = await fetch(`/api/groups/my-groups`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -194,7 +218,7 @@ export default function ProfilePage() {
     fetchFiles();
     fetchGroups();
     fetchCourses();
-  }, [id]);
+  }, [id, token]); // FIX: أضفنا token في dependency array
 
   if (loading) {
     return (
@@ -241,7 +265,11 @@ export default function ProfilePage() {
           </div>
 
           <div className="pp-identity">
-            <h1 className="pp-name">{profile.name}</h1>
+            {/* FIX: VerifiedBadge بتتعرض دلوقتي */}
+            <h1 className="pp-name">
+              {profile.name}
+              {profile.verified && <VerifiedBadge />}
+            </h1>
             <p className="pp-title">{profile.role}</p>
             <div className="pp-meta-row">
               {profile.faculty && <span>🏛 {profile.faculty}</span>}
@@ -251,24 +279,38 @@ export default function ProfilePage() {
           </div>
 
           <div className="pp-cta-group">
-            <button
-              className={`pp-btn-follow${following ? " followed" : ""}`}
-              onClick={() => setFollowing(!following)}
-            >
-              {following ? "✓ Following" : "+ Follow"}
-            </button>
+            {isOwnProfile ? (
+              <button className="pp-btn-share" onClick={handleShare}>
+                {shareCopied ? "✓ Copied!" : "↗ Share Profile"}
+              </button>
+            ) : (
+              <>
+                <button
+                  className={`pp-btn-follow${following ? " followed" : ""}`}
+                  onClick={() => setFollowing(!following)}
+                >
+                  {following ? "✓ Following" : "+ Follow"}
+                </button>
+                <button className="pp-btn-invite" onClick={handleInvite}>
+                  {inviteCopied ? "✓ Copied!" : "👥 Invite Friends"}
+                </button>
+                <button className="pp-btn-share" onClick={handleShare}>
+                  {shareCopied ? "✓ Copied!" : "↗ Share"}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        {/* Stats */}
+        {/* FIX: Stats كلها consistent — courses.length للكل المحسوب محلياً */}
         <div className="pp-stats-row">
           <StatItem icon="👥" value={profile.followers || 0} label="Followers" />
           <div className="pp-stats-divider" />
           <StatItem icon="📚" value={courses.length} label="Courses" />
           <div className="pp-stats-divider" />
-          <StatItem icon="🗂" value={profile.groups || 0} label="Groups" />
+          <StatItem icon="🗂" value={groups.length} label="Groups" />
           <div className="pp-stats-divider" />
-          <StatItem icon="📄" value={profile.uploadedFiles || 0} label="Files" />
+          <StatItem icon="📄" value={files.length} label="Files" />
         </div>
       </div>
 

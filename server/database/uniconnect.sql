@@ -44,12 +44,12 @@ CREATE TABLE Profile_Studies (
 );
 
 CREATE TABLE Doctor_Profiles (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    user_id        INT UNIQUE NOT NULL,
-    faculty        VARCHAR(100),
-    specialization VARCHAR(100),
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    user_id         INT UNIQUE NOT NULL,
+    faculty         VARCHAR(100),
+    specialization  VARCHAR(100),
     office_location VARCHAR(100),
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
     INDEX (user_id)
 );
@@ -102,8 +102,8 @@ CREATE TABLE Likes (
     post_id    INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_like (user_id, post_id),
-    FOREIGN KEY (user_id)  REFERENCES Users(id)  ON DELETE CASCADE,
-    FOREIGN KEY (post_id)  REFERENCES Posts(id)  ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES Users(id)  ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES Posts(id)  ON DELETE CASCADE
 );
 
 CREATE TABLE Comments (
@@ -192,8 +192,8 @@ CREATE TABLE Group_Post_Likes (
     user_id    INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_group_post_like (post_id, user_id),
-    FOREIGN KEY (post_id)  REFERENCES Group_Posts(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)  REFERENCES Users(id)       ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES Group_Posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id)       ON DELETE CASCADE,
     INDEX (post_id),
     INDEX (user_id)
 );
@@ -204,8 +204,8 @@ CREATE TABLE Group_Post_Comments (
     user_id    INT NOT NULL,
     content    TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (post_id)  REFERENCES Group_Posts(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)  REFERENCES Users(id)       ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES Group_Posts(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id)       ON DELETE CASCADE,
     INDEX (post_id),
     INDEX (user_id)
 );
@@ -275,8 +275,8 @@ CREATE TABLE File_Likes (
     user_id    INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_file_like (file_id, user_id),
-    FOREIGN KEY (file_id)  REFERENCES Files(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)  REFERENCES Users(id) ON DELETE CASCADE
+    FOREIGN KEY (file_id) REFERENCES Files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE File_Comments (
@@ -285,8 +285,8 @@ CREATE TABLE File_Comments (
     user_id    INT NOT NULL,
     content    TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (file_id)  REFERENCES Files(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)  REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES Files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
     INDEX (file_id)
 );
 
@@ -297,12 +297,37 @@ CREATE TABLE File_Ratings (
     rating     TINYINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_file_rating (file_id, user_id),
-    FOREIGN KEY (file_id)  REFERENCES Files(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id)  REFERENCES Users(id) ON DELETE CASCADE
+    FOREIGN KEY (file_id) REFERENCES Files(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 -- ===============================
--- 9. REVIEWS
+-- 9. COURSES
+-- ===============================
+CREATE TABLE Courses (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    doctor_id   INT NOT NULL,
+    title       VARCHAR(150) NOT NULL,
+    description TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doctor_id) REFERENCES Users(id) ON DELETE CASCADE,
+    INDEX (doctor_id)
+);
+
+CREATE TABLE Course_Enrollments (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    course_id   INT NOT NULL,
+    student_id  INT NOT NULL,
+    enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_enrollment (course_id, student_id),
+    FOREIGN KEY (course_id)  REFERENCES Courses(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES Users(id)   ON DELETE CASCADE,
+    INDEX (course_id),
+    INDEX (student_id)
+);
+
+-- ===============================
+-- 10. REVIEWS
 -- ===============================
 CREATE TABLE Academic_Reviews (
     id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -318,7 +343,7 @@ CREATE TABLE Academic_Reviews (
 );
 
 -- ===============================
--- 10. NOTIFICATIONS
+-- 11. NOTIFICATIONS
 -- ===============================
 CREATE TABLE Notifications (
     id           INT AUTO_INCREMENT PRIMARY KEY,
@@ -335,7 +360,7 @@ CREATE TABLE Notifications (
 );
 
 -- ===============================
--- 11. REPORTS
+-- 12. REPORTS
 -- ===============================
 CREATE TABLE Reports (
     id               INT AUTO_INCREMENT PRIMARY KEY,
@@ -349,7 +374,7 @@ CREATE TABLE Reports (
 );
 
 -- ===============================
--- 12. EVENTS
+-- 13. EVENTS
 -- ===============================
 CREATE TABLE Events (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -363,7 +388,7 @@ CREATE TABLE Events (
 );
 
 -- ===============================
--- 13. PASSWORD RESETS
+-- 14. PASSWORD RESETS
 -- ===============================
 CREATE TABLE password_resets (
     id         INT AUTO_INCREMENT PRIMARY KEY,

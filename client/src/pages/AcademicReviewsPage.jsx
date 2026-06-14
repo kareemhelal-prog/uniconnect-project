@@ -136,7 +136,10 @@ export default function AcademicReviewsPage() {
 
   // Anonymous profile warning
   const [anonWarn, setAnonWarn] = useState(false);
-
+  const [searchQuery, setSearchQuery] = useState("");
+  const filteredDoctors = doctors.filter((d) =>
+  d.name.toLowerCase().includes(searchQuery.toLowerCase())
+);
   const showToast = (msg, c = "#a855f7") => {
     setToast({ msg, c });
     setTimeout(() => setToast(null), 2500);
@@ -255,16 +258,30 @@ export default function AcademicReviewsPage() {
     setEditRating(r.rating);
   };
 
-  const saveEdit = async (id) => {
-    setSavingEdit(true);
-    // الباك اند مش عنده update endpoint، هنحدّث locally بس
-    setReviews((prev) =>
-      prev.map((r) => r.id === id ? { ...r, comment: editText, rating: editRating } : r)
-    );
+// الـ saveEdit — غيّره من local-only لـ API call حقيقي
+const saveEdit = async (id) => {
+  if (!editText.trim()) return;
+  setSavingEdit(true);
+  try {
+    const res = await fetch(`${API_BASE}/reviews/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify({ rating: editRating, comment: editText.trim() }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message || "Failed");
     setEditingId(null);
     showToast("Review updated! ✏️", "#00e5ff");
+    fetchReviews(activeDoctor.id); // refresh من الـ API
+  } catch (err) {
+    showToast("Failed to update review ❌", "#f87171");
+  } finally {
     setSavingEdit(false);
-  };
+  }
+};
 
   // ── Navigate to profile ───────────────────────────────────
   const goToProfile = (r) => {
@@ -298,54 +315,79 @@ export default function AcademicReviewsPage() {
   return (
     <div className="ar-page">
       {/* Toast */}
-      {toast && <div className="ar-toast" style={{ background: toast.c }}>{toast.msg}</div>}
+{toast && (
+  <div className="ar-toast ar-toast-animated" style={{ background: toast.c }}>
+    {toast.msg}
+  </div>
+)}
 
-      {/* Anonymous warning */}
-      {anonWarn && (
-        <div className="ar-toast" style={{ background: "#64748b" }}>
-          This reviewer is anonymous — profile not available.
-        </div>
-      )}
+{/* Anonymous warning */}
+{anonWarn && (
+  <div className="ar-toast ar-toast-animated" style={{ background: "#64748b" }}>
+    This reviewer is anonymous — profile not available.
+  </div>
+)}
 
-      {/* Confirm dialog */}
-      {confirm && (
-        <ConfirmDialog
-          message={confirm.message}
-          onConfirm={confirm.onConfirm}
-          onCancel={() => setConfirm(null)}
-        />
-      )}
+{/* Confirm dialog */}
+{confirm && (
+  <div className="ar-confirm-overlay ar-confirm-overlay-animated">
+    <div className="ar-confirm-box ar-confirm-box-animated">
+      <p className="ar-confirm-msg">{confirm.message}</p>
+      <div className="ar-confirm-btns">
+        <button className="ar-cancel-btn ar-btn-hover" onClick={() => setConfirm(null)}>Cancel</button>
+        <button className="ar-confirm-yes ar-btn-hover" onClick={confirm.onConfirm}>Confirm</button>
+      </div>
+    </div>
+  </div>
+)}
 
       <h1 className="ar-title">Academic Reviews</h1>
 
       <div className="ar-layout">
 
         {/* ── Doctors Sidebar ── */}
-        <aside className="ar-subjects">
-          {loadingDoctors && <DoctorSkeleton />}
-          {doctorsError && (
-            <div className="ar-error-box"><span>⚠️</span><p>{doctorsError}</p></div>
-          )}
-          {!loadingDoctors && !doctorsError && doctors.length === 0 && (
-            <div className="ar-empty">No doctors registered yet.</div>
-          )}
-          {!loadingDoctors && doctors.map((doc) => (
-            <button
-              key={doc.id}
-              className={`ar-subj-btn ${activeDoctor?.id === doc.id ? "ar-subj-active" : ""}`}
-              onClick={() => setActiveDoctor(doc)}
-              style={{ "--sc": colorFor(doc.id) }}
-            >
-              <div className="ar-doc-avatar-sm" style={{ background: colorFor(doc.id) }}>
-                {getInitials(doc.name)}
-              </div>
-              <div className="ar-doc-info">
-                <span className="ar-subj-name">{doc.name}</span>
-                <span className="ar-subj-code">@{doc.username}</span>
-              </div>
-            </button>
-          ))}
-        </aside>
+<aside className="ar-subjects">
+  {/* Search Bar */}
+  <div className="ar-search-wrap">
+    <span className="ar-search-icon">🔍</span>
+    <input
+      className="ar-search-input"
+      type="text"
+      placeholder="Search doctors..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+    />
+    {searchQuery && (
+      <button className="ar-search-clear" onClick={() => setSearchQuery("")}>✕</button>
+    )}
+  </div>
+
+  {loadingDoctors && <DoctorSkeleton />}
+  {doctorsError && (
+    <div className="ar-error-box"><span>⚠️</span><p>{doctorsError}</p></div>
+  )}
+  {!loadingDoctors && !doctorsError && filteredDoctors.length === 0 && (
+    <div className="ar-empty">
+      {searchQuery ? `No doctors found for "${searchQuery}"` : "No doctors registered yet."}
+    </div>
+  )}
+  {!loadingDoctors && filteredDoctors.map((doc) => (
+    <button
+      key={doc.id}
+      className={`ar-subj-btn ${activeDoctor?.id === doc.id ? "ar-subj-active" : ""}`}
+      onClick={() => setActiveDoctor(doc)}
+      style={{ "--sc": colorFor(doc.id) }}
+    >
+      <div className="ar-doc-avatar-sm" style={{ background: colorFor(doc.id) }}>
+        {getInitials(doc.name)}
+      </div>
+      <div className="ar-doc-info">
+        <span className="ar-subj-name">{doc.name}</span>
+        <span className="ar-subj-code">@{doc.username}</span>
+      </div>
+    </button>
+  ))}
+</aside>
 
         {/* ── Main Panel ── */}
         <main className="ar-main">
@@ -415,7 +457,7 @@ export default function AcademicReviewsPage() {
                 )}
 
                 {!loadingReviews && reviews.map((r) => {
-                  const isOwner = !r._fake && currentUser?.id === r.student_id;
+                  const isOwner = !r._fake && (r.is_mine === 1 || r.is_mine === true);
                   const initials = r.is_anonymous ? "?" : getInitials(r.student_name);
                   const avatarColor = r.is_anonymous ? "#64748b" : colorFor(r.id);
                   const isEditing = editingId === r.id;

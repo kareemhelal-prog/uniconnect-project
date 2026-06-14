@@ -9,16 +9,19 @@ const { testConnection } = require("./config/db");
 const authRoutes         = require("./routes/authRoutes");
 const userRoutes         = require("./routes/userRoutes");
 const postRoutes         = require("./routes/postRoutes");
+const profileRoutes      = require("./routes/profileRoutes");
 const commentRoutes      = require("./routes/commentRoutes");
 const likeRoutes         = require("./routes/likeRoutes");
 const followRoutes       = require("./routes/followRoutes");
-const reviewRoutes       = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const groupRoutes        = require("./routes/groupRoutes");
 const fileRoutes         = require("./routes/fileRoutes");
 const groupPostRoutes    = require("./routes/groupPostRoutes");
-const app = express();
 const adminRoutes        = require("./routes/adminRoutes");
+const courseRoutes       = require("./routes/courseRoutes");
+const reviewRoutes       = require("./routes/reviewRoutes");
+
+const app = express();
 
 app.use(cors());
 app.use(helmet());
@@ -27,18 +30,21 @@ app.use(express.urlencoded({ extended: true }));
 
 testConnection();
 
-app.use("/api/reviews", reviewRoutes);
 app.use("/api/auth",          authRoutes);
 app.use("/api/users",         userRoutes);
 app.use("/api/posts",         postRoutes);
+app.use("/api/profile",       profileRoutes);
 app.use("/api/comments",      commentRoutes);
 app.use("/api/likes",         likeRoutes);
 app.use("/api/follow",        followRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/groups", groupRoutes);
-app.use("/api/group-posts", groupPostRoutes);
-app.use("/api/files", fileRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/groups",        groupRoutes);
+app.use("/api/group-posts",   groupPostRoutes);
+app.use("/api/files",         fileRoutes);
+app.use("/api/admin",         adminRoutes);
+app.use("/api/courses",       courseRoutes);
+app.use("/api/reviews",       reviewRoutes);
+
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });

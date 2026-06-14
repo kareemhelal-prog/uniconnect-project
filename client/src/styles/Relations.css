@@ -1,0 +1,389 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+.users-container {
+  padding: 40px 30px;
+  background: #020617;
+  min-height: 100vh;
+  color: white;
+  font-family: Arial, sans-serif;
+  position: relative;
+}
+
+.admin-title {
+  font-size: 28px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 30px;
+  background: linear-gradient(to right, #00d2ff, #9d50bb, #ff00c1, #00d2ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: flow 2s linear infinite;
+  background-size: 200%;
+  white-space: nowrap;
+}
+
+@keyframes flow {
+  to {
+    background-position: 200%;
+  }
+}
+
+.tabs-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: -1px;
+}
+
+.tab-btn:hover {
+  color: white;
+}
+
+.tab-active {
+  color: white;
+  border-bottom: 2px solid #6366f1;
+}
+
+.tab-count {
+  background: #1e293b;
+  padding: 2px 9px;
+  border-radius: 50px;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.tab-active .tab-count {
+  background: rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+}
+
+.search-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 13px 22px;
+  border-radius: 50px;
+  border: 1px solid #1e293b;
+  background: #0f172a;
+  color: white;
+  font-size: 15px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.search-input::placeholder {
+  color: #4b5563;
+}
+
+.search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 28px;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.search-btn-hovered {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99, 102, 241, 0.5);
+}
+
+.users-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.user-card {
+  background: #0f172a;
+  padding: 14px 20px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid #1e293b;
+  transition: all 0.3s ease;
+}
+
+.user-card:hover {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.avatar-wrap {
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #1e293b;
+  display: block;
+}
+
+.status-dot {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid #0f172a;
+}
+
+.dot-active {
+  background: #22c55e;
+}
+.dot-inactive {
+  background: #ef4444;
+}
+
+.user-info {
+  flex: 1;
+  cursor: pointer;
+}
+
+.user-info h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.user-info p {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.user-id-label {
+  font-size: 11px;
+  color: #334155;
+  margin-top: 2px;
+  font-family: monospace;
+}
+
+.role-tag {
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.role-student {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.role-doctor {
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.action-btn {
+  padding: 7px 18px;
+  border-radius: 8px;
+  border: 1px solid #ef4444;
+  background: transparent;
+  color: #ef4444;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  flex-shrink: 0;
+}
+
+.action-btn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+.no-results {
+  text-align: center;
+  color: #4b5563;
+  padding: 50px 0;
+  font-size: 16px;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal-box {
+  width: 500px;
+  background: #0f172a;
+  border-radius: 20px;
+  padding: 32px;
+  color: white;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  border: 1px solid #1e293b;
+  animation: fadeUp 0.3s ease;
+}
+
+.close-button {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: #1e293b;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: 0.3s;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button:hover {
+  background: #ef4444;
+  transform: rotate(90deg);
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+}
+
+.modal-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 3px solid #6366f1;
+  object-fit: cover;
+}
+
+.modal-header h2 {
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.modal-username {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.modal-id-label {
+  font-size: 11px;
+  color: #334155;
+  font-family: monospace;
+  margin-bottom: 8px;
+}
+
+.role-badge {
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  padding: 5px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  display: inline-block;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.info-item {
+  background: #1e293b;
+  padding: 14px 16px;
+  border-radius: 12px;
+  transition: 0.3s;
+  border: 1px solid transparent;
+}
+
+.info-item:hover {
+  border-color: #6366f1;
+}
+
+.info-item span {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.info-item p {
+  margin-top: 6px;
+  font-size: 15px;
+}
+
+.active {
+  color: #22c55e;
+  font-weight: bold;
+}
+.inactive {
+  color: #ef4444;
+  font-weight: bold;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -19,6 +19,7 @@ import PostDetails from './pages/PostDetails'
 import ProfilePage from './pages/ProfilePage'
 import GroupDetails from './pages/GroupDetails'
 import ProfileEdit from './pages/ProfileEdit'
+import Relations from './pages/Relations'
 import Dashboard from './pages/Dashboard'
 import UserManagement from './pages/UserManagement'
 import SearchResults from './pages/SearchResults'
@@ -27,20 +28,39 @@ import NotFound from './pages/NotFound'
 import Files from './pages/Files'
 import Navbar from './components/Navbar'
 
-const NO_NAVBAR = ['/login','/dashboard','/home','/HomeDoctor', '/register', '/forgot-password', '/otp-verification', '/reset-password', '/NotAccept', '/']
+const NO_NAVBAR = [
+  '/login', '/dashboard', '/home', '/homedoctor',
+  '/register', '/forgot-password', '/otp-verification',
+  '/reset-password', '/notaccept', '/','/notifications'
+]
+
+// FIX: ProtectedRoute — يمنع الدخول من غير token
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token')
+  return token ? children : <Navigate to="/login" replace />
+}
 
 function AppLayout() {
   const location = useLocation()
-  const token = localStorage.getItem('token')
-  const hideNavbar = NO_NAVBAR.includes(location.pathname) || !token
-
+  const [token, setToken] = useState(() => localStorage.getItem('token'))
   const [user, setUser] = useState({})
+
+  // FIX: بنسمع على تغييرات الـ token (login/logout)
+  useEffect(() => {
+    const handleStorage = () => setToken(localStorage.getItem('token'))
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
+  }, [])
+
+  // FIX: case-insensitive navbar check
+  const hideNavbar = NO_NAVBAR.includes(location.pathname.toLowerCase()) || !token
 
   useEffect(() => {
     if (!token) return
     try {
       const payload = JSON.parse(atob(token.split('.')[1]))
-      fetch(`http://localhost:5000/api/users/me`, {
+      // FIX: VITE_API_URL بدل localhost hardcoded
+      fetch(`${import.meta.env.VITE_API_URL}/api/users/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(r => r.json())
@@ -54,7 +74,7 @@ function AppLayout() {
       {!hideNavbar && <Navbar user={user} />}
       <Routes>
         {/* Public */}
-        <Route path="/"                 element={<Navigate to="/login" />} />
+        <Route path="/"                 element={<Navigate to="/login" replace />} />
         <Route path="/login"            element={<Login />} />
         <Route path="/register"         element={<Register />} />
         <Route path="/forgot-password"  element={<ForgotPassword />} />
@@ -63,28 +83,31 @@ function AppLayout() {
         <Route path="/NotAccept"        element={<NotAccept />} />
 
         {/* Protected */}
-        <Route path="/home"             element={<Home />} />
-        <Route path="/HomeDoctor"       element={<HomeDoctor />} />
-        <Route path="/dashboard"        element={<Dashboard />} />
+        <Route path="/home"            element={<ProtectedRoute><Home /></ProtectedRoute>} />
+        <Route path="/HomeDoctor"      element={<ProtectedRoute><HomeDoctor /></ProtectedRoute>} />
+        <Route path="/dashboard"       element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
 
-        <Route path="/profile"          element={<ProfilePage />} />
-        <Route path="/myprofile"        element={<ProfilePage />} />
-        <Route path="/profile/edit"     element={<ProfileEdit />} />
+        {/* FIX: /profile/edit لازم تيجي قبل /profile/:id */}
+        <Route path="/profile"         element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+        <Route path="/profile/edit"    element={<ProtectedRoute><ProfileEdit /></ProtectedRoute>} />
+        <Route path="/profile/:id"     element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-        <Route path="/groups"           element={<GroupsList />} />
-        <Route path="/my-groups"        element={<MyGroups />} />
-        <Route path="/create-group"     element={<CreateGroup />} />
-        <Route path="/groups/:id"       element={<GroupDetails />} />
+        <Route path="/groups"          element={<ProtectedRoute><GroupsList /></ProtectedRoute>} />
+        <Route path="/my-groups"       element={<ProtectedRoute><MyGroups /></ProtectedRoute>} />
+        <Route path="/create-group"    element={<ProtectedRoute><CreateGroup /></ProtectedRoute>} />
+        <Route path="/groups/:id"      element={<ProtectedRoute><GroupDetails /></ProtectedRoute>} />
 
-        <Route path="/doctor/:id"       element={<DoctorProfile />} />
-        <Route path="/projects"         element={<ProjectsPage />} />
-        <Route path="/posts/:id"        element={<PostDetails />} />
-        <Route path="/reviews"          element={<AcademicReviewsPage />} />
-        <Route path="/files"            element={<Files />} />
-        <Route path="/notifications"    element={<Notifications />} />
-        <Route path="/search"           element={<SearchResults />} />
-        <Route path="/admin/users"      element={<UserManagement />} />
-        <Route path="*"                 element={<NotFound />} />
+        <Route path="/doctor/:id"      element={<ProtectedRoute><DoctorProfile /></ProtectedRoute>} />
+        <Route path="/projects"        element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+        <Route path="/posts/:id"       element={<ProtectedRoute><PostDetails /></ProtectedRoute>} />
+        <Route path="/reviews"         element={<ProtectedRoute><AcademicReviewsPage /></ProtectedRoute>} />
+        <Route path="/files"           element={<ProtectedRoute><Files /></ProtectedRoute>} />
+        <Route path="/notifications"   element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+        <Route path="/search"          element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
+        <Route path="/admin/users"     element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+        <Route path="/Relations"       element={<ProtectedRoute><Relations /></ProtectedRoute>} />
+
+        <Route path="*"                element={<NotFound />} />
       </Routes>
     </>
   )

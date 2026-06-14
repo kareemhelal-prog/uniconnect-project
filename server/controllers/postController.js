@@ -8,9 +8,7 @@ exports.createPost = async (req, res) => {
 
   try {
     if (!content) {
-      return res.status(400).json({
-        message: "Content is required"
-      });
+      return res.status(400).json({ message: "Content is required" });
     }
 
     const [result] = await promisePool.query(
@@ -18,16 +16,22 @@ exports.createPost = async (req, res) => {
       [req.user.id, title, content]
     );
 
+    // ── جيب البوست كامل مع بيانات اليوزر عشان الـ frontend يعرضه فورًا ──
+    const [rows] = await promisePool.query(
+      `SELECT Posts.*, Users.name, Users.role
+       FROM Posts
+       JOIN Users ON Posts.user_id = Users.id
+       WHERE Posts.id = ?`,
+      [result.insertId]
+    );
+
     res.status(201).json({
       message: "Post created successfully",
-      postId: result.insertId
+      data: rows[0],
     });
 
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -37,7 +41,7 @@ exports.createPost = async (req, res) => {
 exports.getAllPosts = async (req, res) => {
   try {
     const [posts] = await promisePool.query(
-      `SELECT Posts.*, Users.username, Users.name
+      `SELECT Posts.*, Users.name, Users.role
        FROM Posts
        JOIN Users ON Posts.user_id = Users.id
        ORDER BY Posts.created_at DESC`
@@ -45,14 +49,11 @@ exports.getAllPosts = async (req, res) => {
 
     res.json({
       message: "Posts fetched successfully",
-      data: posts
+      data: posts,
     });
 
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -62,7 +63,7 @@ exports.getAllPosts = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const [post] = await promisePool.query(
-      `SELECT Posts.*, Users.username
+      `SELECT Posts.*, Users.name, Users.role
        FROM Posts
        JOIN Users ON Posts.user_id = Users.id
        WHERE Posts.id = ?`,
@@ -70,18 +71,13 @@ exports.getPostById = async (req, res) => {
     );
 
     if (post.length === 0) {
-      return res.status(404).json({
-        message: "Post not found"
-      });
+      return res.status(404).json({ message: "Post not found" });
     }
 
-    res.json(post[0]);
+    res.json({ data: post[0] });
 
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -93,9 +89,7 @@ exports.updatePost = async (req, res) => {
     const { title, content } = req.body;
 
     if (!content) {
-      return res.status(400).json({
-        message: "Content is required"
-      });
+      return res.status(400).json({ message: "Content is required" });
     }
 
     const [posts] = await promisePool.query(
@@ -104,35 +98,22 @@ exports.updatePost = async (req, res) => {
     );
 
     if (posts.length === 0) {
-      return res.status(404).json({
-        message: "Post not found"
-      });
+      return res.status(404).json({ message: "Post not found" });
     }
 
-    const post = posts[0];
-
-    if (post.user_id !== req.user.id) {
-      return res.status(403).json({
-        message: "Not authorized"
-      });
+    if (posts[0].user_id !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
     await promisePool.query(
-      `UPDATE Posts
-       SET title = ?, content = ?
-       WHERE id = ?`,
+      "UPDATE Posts SET title = ?, content = ? WHERE id = ?",
       [title, content, req.params.id]
     );
 
-    res.json({
-      message: "Post updated successfully"
-    });
+    res.json({ message: "Post updated successfully" });
 
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -147,32 +128,18 @@ exports.deletePost = async (req, res) => {
     );
 
     if (posts.length === 0) {
-      return res.status(404).json({
-        message: "Post not found"
-      });
+      return res.status(404).json({ message: "Post not found" });
     }
 
-    const post = posts[0];
-
-    if (post.user_id !== req.user.id) {
-      return res.status(403).json({
-        message: "Not authorized"
-      });
+    if (posts[0].user_id !== req.user.id) {
+      return res.status(403).json({ message: "Not authorized" });
     }
 
-    await promisePool.query(
-      "DELETE FROM Posts WHERE id = ?",
-      [req.params.id]
-    );
+    await promisePool.query("DELETE FROM Posts WHERE id = ?", [req.params.id]);
 
-    res.json({
-      message: "Post deleted successfully"
-    });
+    res.json({ message: "Post deleted successfully" });
 
   } catch (error) {
-    res.status(500).json({
-      message: "Server error",
-      error: error.message
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };

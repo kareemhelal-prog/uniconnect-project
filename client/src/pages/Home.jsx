@@ -11,13 +11,10 @@ import NotificationsPage from "./Notifications";
 
 import "../styles/Home.css";
 
-// ── Base URL — غيّرها لو السيرفر على port تاني ──
 const API_BASE = "http://localhost:5000/api";
 
-// ── Helper: جيب الـ token من localStorage ──
 const getToken = () => localStorage.getItem("token");
 
-// ── Helper: عمل request بـ auth header ──
 const authFetch = (url, options = {}) =>
   fetch(url, {
     ...options,
@@ -28,13 +25,13 @@ const authFetch = (url, options = {}) =>
     },
   });
 
-// ── Helper: حوّل بيانات post من الـ API للشكل اللي الـ UI بيتوقعه ──
+// ── حوّل بيانات البوست — يتعامل مع الشكل الجديد (name/role مباشرة) والقديم (user object) ──
 const mapPost = (p) => ({
   id: p.id,
-  author: p.user?.name || p.author_name || "Unknown",
-  avatar: (p.user?.name || "U").slice(0, 2).toUpperCase(),
+  author: p.name || p.user?.name || p.author_name || "Unknown",
+  avatar: (p.name || p.user?.name || "U").slice(0, 2).toUpperCase(),
   avatarColor: "#a855f7",
-  role: p.user?.role || "",
+  role: p.role || p.user?.role || "",
   time: new Date(p.created_at).toLocaleString(),
   title: p.title || "",
   content: p.content || p.body || "",
@@ -50,14 +47,13 @@ const mapPost = (p) => ({
   })),
 });
 
-// ── render الصفحات الفرعية ──
 function renderPage(page, user, setUser) {
   switch (page) {
-    case "profile":           return <ProfilePage user={user} setUser={setUser} />;
-    case "projects":          return <ProjectsPage />;
-    case "academic-reviews":  return <AcademicReviewsPage />;
-    case "notifications":     return <NotificationsPage />;
-    default:                  return null;
+    case "profile":          return <ProfilePage user={user} setUser={setUser} />;
+    case "projects":         return <ProjectsPage />;
+    case "academic-reviews": return <AcademicReviewsPage />;
+    case "notifications":    return <NotificationsPage />;
+    default:                 return null;
   }
 }
 
@@ -71,7 +67,6 @@ function PostCard({ post, onUpdate }) {
   const [showShareToast, setShowShareToast] = useState(false);
   const [loading, setLoading]           = useState(false);
 
-  // ── Like / Unlike ──
   const handleLike = async () => {
     try {
       await authFetch(`${API_BASE}/likes`, {
@@ -86,7 +81,6 @@ function PostCard({ post, onUpdate }) {
     }
   };
 
-  // ── Add Comment ──
   const handleComment = async () => {
     if (!commentText.trim()) return;
     setLoading(true);
@@ -113,7 +107,6 @@ function PostCard({ post, onUpdate }) {
     }
   };
 
-  // ── Share (local فقط — مفيش endpoint للـ share في الـ API) ──
   const handleShare = () => {
     setShowShareToast(true);
     onUpdate({ ...post, shares: post.shares + 1 });
@@ -229,8 +222,9 @@ function CreatePostModal({ onClose, onPost }) {
         }),
       });
       if (!res.ok) throw new Error("Failed to create post");
-      const data = await res.json();
-      onPost(mapPost(data));
+      const json = await res.json();
+      // الـ backend بيرجع { message, data: postObject }
+      onPost(mapPost(json.data));
       onClose();
     } catch (err) {
       setError("حصل خطأ، حاول تاني.");
@@ -268,11 +262,7 @@ function CreatePostModal({ onClose, onPost }) {
             onChange={(e) => setContent(e.target.value)}
             rows={5}
           />
-          {error && (
-            <p style={{ color: "#f87171", fontSize: "13px", marginTop: "8px" }}>
-              {error}
-            </p>
-          )}
+          {error && <p className="modal-error">{error}</p>}
         </div>
         <div className="modal-footer-btns">
           <button className="modal-cancel-btn" onClick={onClose} disabled={loading}>
@@ -295,26 +285,25 @@ function CreatePostModal({ onClose, onPost }) {
 // Home Component
 // ══════════════════════════════════════════════
 const Home = () => {
-  const [activePage, setActivePage]       = useState("home");
-  const [user, setUser]                   = useState(null);
-  const [posts, setPosts]                 = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [activePage, setActivePage]         = useState("home");
+  const [user, setUser]                     = useState(null);
+  const [posts, setPosts]                   = useState([]);
+  const [notifications, setNotifications]   = useState([]);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [loadingUser, setLoadingUser]     = useState(true);
-  const [loadingPosts, setLoadingPosts]   = useState(true);
+  const [loadingUser, setLoadingUser]       = useState(true);
+  const [loadingPosts, setLoadingPosts]     = useState(true);
+  const [showToast, setShowToast]           = useState(false);
 
   const isHome = activePage === "home";
 
-  // ── جيب بيانات اليوزر الحالي ──
   useEffect(() => {
     authFetch(`${API_BASE}/users/me`)
       .then((r) => r.json())
       .then((data) => {
-        // الـ API بيرجع { user: {...} }
         const u = data.user || data;
         setUser({
           id: u.id,
-          name: u.name || u.full_name || "User",
+          name: u.name || "User",
           initials: (u.name || "U").slice(0, 2).toUpperCase(),
           role: u.role || "",
           dept: u.department || "",
@@ -331,25 +320,23 @@ const Home = () => {
       .finally(() => setLoadingUser(false));
   }, []);
 
-  // ── جيب الـ posts ──
+  // ── الـ API بيرجع { data: [...] } ──
   useEffect(() => {
     authFetch(`${API_BASE}/posts`)
       .then((r) => r.json())
-      .then((data) => {
-        // الـ API ممكن يرجع array أو { posts: [...] }
-        const list = Array.isArray(data) ? data : data.posts || [];
+      .then((json) => {
+        const list = Array.isArray(json) ? json : json.data || json.posts || [];
         setPosts(list.map(mapPost));
       })
       .catch((err) => console.error("Fetch posts error:", err))
       .finally(() => setLoadingPosts(false));
   }, []);
 
-  // ── جيب الـ notifications ──
   useEffect(() => {
     authFetch(`${API_BASE}/notifications`)
       .then((r) => r.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data.notifications || [];
+      .then((json) => {
+        const list = json.data || json.notifications || (Array.isArray(json) ? json : []);
         setNotifications(
           list.map((n) => ({
             id: n.id,
@@ -360,25 +347,32 @@ const Home = () => {
           }))
         );
       })
-      .catch(() => {}); // مش critical لو فشلت
+      .catch(() => {});
   }, []);
 
   const updatePost = (updated) =>
     setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
 
-  const addPost = (newPost) => setPosts((prev) => [newPost, ...prev]);
+  const addPost = (newPost) => {
+    setPosts((prev) => [newPost, ...prev]);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
-  // ── Loading state ──
   if (loadingUser) {
-    return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#00e5ff" }}>
-        Loading...
-      </div>
-    );
+    return <div className="home-loading">Loading...</div>;
   }
 
   return (
     <div className="home-page">
+
+      {showToast && (
+        <div className="success-toast">
+          <span className="toast-check">✓</span>
+          تم نشر البوست بنجاح!
+        </div>
+      )}
+
       <Navbar
         activePage={activePage}
         onNavigate={(id) => setActivePage(id)}
@@ -405,10 +399,19 @@ const Home = () => {
               </button>
             </div>
 
+            <div className="write-here-bar">
+              <button
+                className="write-here-btn"
+                disabled
+                title="Coming soon — Groups feature"
+              >
+                <span className="write-here-icon">✏️</span>
+                اكتب هنا... (متاح بعد إضافة Groups)
+              </button>
+            </div>
+
             {loadingPosts ? (
-              <p style={{ color: "#8b949e", textAlign: "center", padding: "2rem" }}>
-                Loading posts...
-              </p>
+              <p className="feed-loading">Loading posts...</p>
             ) : posts.length === 0 ? (
               <div className="feed-empty">
                 <span className="feed-empty-icon">📭</span>

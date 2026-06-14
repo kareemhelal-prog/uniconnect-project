@@ -187,3 +187,156 @@
   .ar-add-footer { flex-direction: column; align-items: flex-start; gap: 10px; }
   .ar-submit-btn { align-self: flex-end; }
 }
+/* ── Author link (name clickable) ── */
+.ar-author-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.ar-author-link:hover { color: #a855f7; text-decoration: underline; }
+
+/* ── Add review label ── */
+.ar-add-label { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
+
+/* ── Edit form ── */
+.ar-edit-form {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 8px;
+}
+.ar-edit-btns {
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ── Cancel button ── */
+.ar-cancel-btn {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 13px; font-weight: 600; padding: 9px 18px;
+  cursor: pointer; font-family: "Segoe UI", sans-serif; transition: all 0.2s;
+}
+.ar-cancel-btn:hover { border-color: #a855f7; }
+
+/* ── Confirm dialog ── */
+.ar-confirm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 99999;
+}
+.ar-confirm-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 32px; max-width: 360px; width: 90%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; gap: 20px;
+}
+.ar-confirm-msg {
+  font-size: 14px; color: var(--text); margin: 0; line-height: 1.6; text-align: center;
+}
+.ar-confirm-btns {
+  display: flex; gap: 10px; justify-content: center;
+}
+.ar-confirm-yes {
+  background: #f87171; border: none; border-radius: 8px;
+  color: #fff; font-size: 13px; font-weight: 700; padding: 9px 22px;
+  cursor: pointer; font-family: "Segoe UI", sans-serif; transition: all 0.2s;
+}
+.ar-confirm-yes:hover { background: #ef4444; }
+
+/* ── Fake / Sample badge ── */
+.ar-fake-card { opacity: 0.7; }
+.ar-fake-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  background: rgba(251,191,36,0.15); color: #fbbf24;
+  border-radius: 20px;
+}
+
+/* ── Edit action button ── */
+.ar-action-btn.edit:hover:not(:disabled) {
+  background: rgba(168,85,247,0.1);
+  border-color: rgba(168,85,247,0.3);
+}
+/* ── Search Bar ── */
+.ar-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 10px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.ar-search-wrap:focus-within {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
+}
+.ar-search-icon {
+  font-size: 13px;
+  margin-right: 6px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.ar-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  padding: 9px 0;
+}
+.ar-search-input::placeholder { color: var(--muted); }
+.ar-search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.ar-search-clear:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+/* ── Toast Animation ── */
+.ar-toast-animated {
+  animation: arToastIn 0.3s cubic-bezier(0.34,1.56,0.64,1),
+             arToastOut 0.4s ease 2.1s forwards;
+}
+@keyframes arToastIn {
+  from { opacity: 0; transform: translateX(60px) scale(0.85); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes arToastOut {
+  0%   { opacity: 1; transform: translateX(0) scale(1); }
+  60%  { opacity: 0.3; transform: translateX(20px) scale(1.05); }
+  100% { opacity: 0; transform: translateX(80px) scale(0.8); }
+}
+
+/* ── Confirm Dialog Animation ── */
+.ar-confirm-overlay-animated {
+  animation: arOverlayIn 0.25s ease forwards;
+}
+@keyframes arOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.ar-confirm-box-animated {
+  animation: arBoxIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes arBoxIn {
+  from { opacity: 0; transform: scale(0.75) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Button Hover Effects ── */
+.ar-btn-hover {
+  transition: transform 0.15s, box-shadow 0.15s !important;
+}
+.ar-btn-hover:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+.ar-btn-hover:active:not(:disabled) {
+  transform: scale(0.95) translateY(0px);
+}
