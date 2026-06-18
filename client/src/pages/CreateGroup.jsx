@@ -5,6 +5,9 @@ import API from "../api/axios";
 
 import "../styles/CreateGroup.css";
 
+const YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "All Years"];
+const TYPE_OPTIONS = ["Subject Groups", "Other Groups"];
+
 const CreateGroup = () => {
 
   const navigate = useNavigate();
@@ -14,9 +17,12 @@ const CreateGroup = () => {
     description: "",
     group_image: "",
     is_private: false,
+    academic_year: "",
+    group_type: "",
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
 
@@ -30,22 +36,27 @@ const CreateGroup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     try {
 
       setLoading(true);
 
-      await API.post("/groups", formData);
-
-      alert("Group created successfully");
+      await API.post("/groups", {
+        ...formData,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+      });
 
       navigate("/groups");
 
-    } catch (error) {
+    } catch (err) {
 
-      console.error(error);
+      console.error(err);
 
-      alert("Failed to create group");
+      setError(
+        err.response?.data?.message || "Failed to create group. Please try again."
+      );
 
     } finally {
       setLoading(false);
@@ -62,6 +73,8 @@ const CreateGroup = () => {
         <p>
           Build your own student community and connect with others.
         </p>
+
+        {error && <div className="form-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
 
@@ -92,6 +105,46 @@ const CreateGroup = () => {
               rows="5"
               required
             />
+
+          </div>
+
+          <div className="form-row">
+
+            <div className="form-group">
+
+              <label>Academic Year</label>
+
+              <select
+                name="academic_year"
+                value={formData.academic_year}
+                onChange={handleChange}
+                required
+              >
+                <option value="" disabled>-- Select Year --</option>
+                {YEAR_OPTIONS.map((y) => (
+                  <option key={y} value={y}>{y}</option>
+                ))}
+              </select>
+
+            </div>
+
+            <div className="form-group">
+
+              <label>Group Type</label>
+
+              <select
+                name="group_type"
+                value={formData.group_type}
+                onChange={handleChange}
+                required
+              >
+                <option value="" disabled>-- Select Type --</option>
+                {TYPE_OPTIONS.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+
+            </div>
 
           </div>
 

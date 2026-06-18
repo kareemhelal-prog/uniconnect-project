@@ -1,0 +1,373 @@
+.users-container {
+    padding: 30px;
+    background: #020617;
+    min-height: 100vh;
+    color: white;
+    font-family: Arial, sans-serif;
+}
+
+/* ================= TITLE ================= */
+
+.users-title {
+    margin-bottom: 25px;
+    font-size: 32px;
+    font-weight: bold;
+}
+
+/* ================= USERS LIST ================= */
+
+.users-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.user-card {
+    background: #111827;
+    padding: 15px;
+    border-radius: 14px;
+
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    cursor: pointer;
+
+    transition: 0.3s;
+
+    border: 1px solid transparent;
+}
+
+.user-card:hover {
+    background: #1e293b;
+    transform: translateY(-3px);
+
+    border-color: #2563eb;
+}
+
+.user-avatar {
+    width: 55px;
+    height: 55px;
+
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* ================= MODAL ================= */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+    height: 100vh;
+
+    background: rgba(0,0,0,0.7);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 1000;
+
+    backdrop-filter: blur(4px);
+}
+
+.modal-box {
+    width: 850px;
+
+    background: #0f172a;
+
+    border-radius: 22px;
+
+    padding: 30px;
+
+    position: relative;
+
+    border: 1px solid #1e293b;
+
+    box-shadow:
+        0 0 20px rgba(37, 99, 235, 0.15),
+        0 10px 40px rgba(0,0,0,0.5);
+
+    animation: fadeUp 0.35s ease;
+}
+
+/* ================= CLOSE BUTTON ================= */
+
+.close-button {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+
+    width: 42px;
+    height: 42px;
+
+    border: none;
+    border-radius: 50%;
+
+    background: #111827;
+
+    color: white;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    cursor: pointer;
+
+    transition: 0.3s;
+}
+
+.close-button:hover {
+    background: #ef4444;
+    transform: rotate(90deg);
+}
+
+/* ================= HEADER ================= */
+
+.modal-header {
+    padding-bottom: 25px;
+    border-bottom: 1px solid #1e293b;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.modal-image {
+    width: 95px;
+    height: 95px;
+
+    border-radius: 50%;
+    object-fit: cover;
+
+    border: 3px solid #2563eb;
+
+    box-shadow:
+        0 0 15px rgba(37, 99, 235, 0.5);
+}
+
+.user-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    margin-top: 10px;
+}
+
+.role-badge {
+    background: #2563eb;
+
+    padding: 7px 15px;
+
+    border-radius: 8px;
+
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.status {
+    padding: 7px 14px;
+    border-radius: 8px;
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.active-status {
+    background: rgba(34,197,94,0.15);
+    color: #22c55e;
+}
+
+.inactive-status {
+    background: rgba(239,68,68,0.15);
+    color: #ef4444;
+}
+
+/* ================= CONTENT ================= */
+
+.modal-content {
+    display: flex;
+    gap: 30px;
+
+    margin-top: 30px;
+}
+
+/* ================= LEFT SIDE ================= */
+
+.left-side {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.info-item {
+    background: #111827;
+
+    border-radius: 15px;
+
+    padding: 18px;
+
+    display: flex;
+    align-items: center;
+    gap: 15px;
+
+    border: 1px solid transparent;
+
+    transition: 0.3s;
+}
+
+.info-item:hover {
+    background: #1e293b;
+
+    border-color: #2563eb;
+
+    transform: translateY(-2px);
+}
+
+.info-item span {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.info-item p {
+    margin-top: 5px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.active {
+    color: #22c55e;
+}
+
+.inactive {
+    color: #ef4444;
+}
+
+/* ================= RIGHT SIDE ================= */
+
+.right-side {
+    width: 250px;
+
+    background: #111827;
+
+    border-radius: 18px;
+
+    padding: 22px;
+
+    border-left: 1px solid #1e293b;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.role-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    margin-bottom: 20px;
+
+    font-size: 18px;
+}
+
+/* ================= ROLE BUTTONS ================= */
+
+.roles-container {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.role-btn {
+    padding: 13px;
+
+    border: none;
+    border-radius: 12px;
+
+    background: #1e293b;
+
+    color: white;
+
+    font-size: 15px;
+    font-weight: 500;
+
+    cursor: pointer;
+
+    transition: 0.3s;
+}
+
+.role-btn:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+}
+
+.active-role {
+    background: #2563eb;
+}
+
+/* ================= BUTTONS ================= */
+
+.buttons-section {
+    margin-top: 25px;
+}
+
+.reset-password-btn,
+.close-modal-btn {
+    width: 100%;
+
+    padding: 14px;
+
+    border: none;
+    border-radius: 12px;
+
+    color: white;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: 0.3s;
+}
+
+.reset-password-btn {
+    background: #2563eb;
+}
+
+.reset-password-btn:hover {
+    background: #1d4ed8;
+    transform: scale(1.02);
+}
+
+.close-modal-btn {
+    margin-top: 12px;
+    background: #374151;
+}
+
+.close-modal-btn:hover {
+    background: #4b5563;
+    transform: scale(1.02);
+}
+
+/* ================= ANIMATION ================= */
+
+@keyframes fadeUp {
+
+    from {
+        opacity: 0;
+        transform: translateY(25px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

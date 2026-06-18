@@ -9,36 +9,51 @@ import api from "../api/axios";
 export default function Register() {
   useEffect(() => {
     document.title = "Register | UniConnect";
-}, []);
+  }, []);
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    fullName: "",
     email: "",
     password: "",
     confirmPass: "",
-    username: "",
+    username: "", 
     role: "student",
     academicYear: "",
     specialization: "",
     phone: "",
+    studentId: "", 
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+    const { name, value } = e.target;
+
+    if (name === "studentId") {
+      if (!/^\d*$/.test(value) || value.length > 7) {
+        return; 
+      }
+    }
+
+    setFormData({ ...formData, [name]: value });
+    setErrors({ ...errors, [name]: "" });
   };
 
   const validate = () => {
     const errs = {};
-    if (!formData.fullName.trim()) errs.fullName = "Full name is required.";
-    if (!formData.username.trim()) errs.username = "Username is required.";
     if (!formData.email.includes("@")) errs.email = "Enter a valid email.";
+    
     if (formData.role === "student") {
+      if (!formData.username.trim()) errs.username = "Username is required.";
+      if (!formData.studentId.trim()) {
+        errs.studentId = "Student ID is required.";
+      } else if (formData.studentId.length !== 7) {
+        errs.studentId = "Student ID must be exactly 7 digits.";
+      }
       if (!formData.academicYear) errs.academicYear = "Please select a year.";
       if (!formData.specialization) errs.specialization = "Please select a specialization.";
     }
+
     if (!formData.phone.trim()) errs.phone = "Phone number is required.";
     if (formData.password.length < 7) errs.password = "Min 7 characters.";
     if (formData.password !== formData.confirmPass) errs.confirmPass = "Passwords don't match.";
@@ -53,17 +68,23 @@ export default function Register() {
       return;
     }
     setLoading(true);
+
+    const requestData = {
+      email: formData.email,
+      password: formData.password,
+      role: formData.role,
+      phone_number: formData.phone,
+    };
+
+    if (formData.role === "student") {
+      requestData.username = formData.username;
+      requestData.studentId = formData.studentId;
+      requestData.academicYear = formData.academicYear;
+      requestData.specialization = formData.specialization;
+    }
+
     try {
-      await api.post("/auth/register", {
-        name: formData.fullName,
-        email: formData.email,
-        password: formData.password,
-        username: formData.username,
-        role: formData.role,
-        academicYear: formData.academicYear,
-        specialization: formData.specialization,
-        phone_number: formData.phone,
-      });
+      await api.post("/auth/register", requestData);
       navigate("/login");
     } catch (err) {
       const message = err.response?.data?.message || "An error occurred, please try again.";
@@ -90,20 +111,7 @@ export default function Register() {
             <h2 className="register-title">Create Account</h2>
 
             <form className="register-form" onSubmit={handleSubmit} noValidate>
-              <div>
-                <label htmlFor="fullName" className="field-label">Full Name</label>
-                <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  placeholder="Ahmed Mohamed"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  className={`register-input ${errors.fullName ? "error" : ""}`}
-                />
-                <p className="field-error">{errors.fullName}</p>
-              </div>
-
+              
               <div>
                 <label htmlFor="email" className="field-label">Email Address</label>
                 <input
@@ -116,20 +124,6 @@ export default function Register() {
                   className={`register-input ${errors.email ? "error" : ""}`}
                 />
                 <p className="field-error">{errors.email}</p>
-              </div>
-
-              <div>
-                <label htmlFor="username" className="field-label">Username</label>
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  placeholder="ahmed123"
-                  value={formData.username}
-                  onChange={handleChange}
-                  className={`register-input ${errors.username ? "error" : ""}`}
-                />
-                <p className="field-error">{errors.username}</p>
               </div>
 
               <div>
@@ -163,6 +157,36 @@ export default function Register() {
 
               {formData.role === "student" && (
                 <div className="student-fields">
+                  
+                  <div style={{ gridColumn: "span 2" }}>
+                    <label htmlFor="username" className="field-label">Username</label>
+                    <input
+                      id="username"
+                      name="username"
+                      type="text"
+                      placeholder="ahmed123"
+                      value={formData.username}
+                      onChange={handleChange}
+                      className={`register-input ${errors.username ? "error" : ""}`}
+                    />
+                    <p className="field-error">{errors.username}</p>
+                  </div>
+
+                  <div style={{ gridColumn: "span 2" }}>
+                    <label htmlFor="studentId" className="field-label">Student ID</label>
+                    <input
+                      id="studentId"
+                      name="studentId"
+                      type="text"
+                      maxLength={7}
+                      placeholder="Enter 7-digit ID"
+                      value={formData.studentId}
+                      onChange={handleChange}
+                      className={`register-input ${errors.studentId ? "error" : ""}`}
+                    />
+                    <p className="field-error">{errors.studentId}</p>
+                  </div>
+
                   <div>
                     <label htmlFor="academicYear" className="field-label">Select Year</label>
                     <select

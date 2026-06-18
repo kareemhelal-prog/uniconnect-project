@@ -27,6 +27,11 @@ import Notifications from './pages/Notifications'
 import NotFound from './pages/NotFound'
 import Files from './pages/Files'
 import Navbar from './components/Navbar'
+import ProjectsManagement from './pages/ProjectsManagement'
+import InvestorPortal from './pages/InvestorPortal'
+import GroupsManagement from './pages/GroupsManagement'
+import postsManagement from './pages/postsManagement'
+import ReportsPage from './pages/ReportsPage'
 
 const NO_NAVBAR = [
   '/login', '/dashboard', '/home', '/homedoctor',
@@ -106,7 +111,11 @@ function AppLayout() {
         <Route path="/search"          element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
         <Route path="/admin/users"     element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
         <Route path="/Relations"       element={<ProtectedRoute><Relations /></ProtectedRoute>} />
-
+        <Route path="/ProjectsManagement"       element={<ProtectedRoute><ProjectsManagement /></ProtectedRoute>} />
+        <Route path="/InvestorPortal"  element={<ProtectedRoute><InvestorPortal /></ProtectedRoute>} />
+        <Route path="/GroupsManagement"element={<ProtectedRoute><GroupsManagement /></ProtectedRoute>} />
+        <Route path="/postsManagement"element={<ProtectedRoute><postsManagement /></ProtectedRoute>} />
+        <Route path="/ReportsPage"element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
         <Route path="*"                element={<NotFound />} />
       </Routes>
     </>
