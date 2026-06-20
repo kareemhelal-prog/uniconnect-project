@@ -31,7 +31,8 @@ import ProjectsManagement from './pages/ProjectsManagement'
 import InvestorPortal from './pages/InvestorPortal'
 import GroupsManagement from './pages/GroupsManagement'
 import postsManagement from './pages/postsManagement'
-import ReportsPage from './pages/ReportsPage'
+import ReportsManagement from './pages/ReportsManagement'
+import ReviewsManagement from './pages/ReviewsManagement'
 
 const NO_NAVBAR = [
   '/login', '/dashboard', '/home', '/homedoctor',
@@ -114,8 +115,9 @@ function AppLayout() {
         <Route path="/ProjectsManagement"       element={<ProtectedRoute><ProjectsManagement /></ProtectedRoute>} />
         <Route path="/InvestorPortal"  element={<ProtectedRoute><InvestorPortal /></ProtectedRoute>} />
         <Route path="/GroupsManagement"element={<ProtectedRoute><GroupsManagement /></ProtectedRoute>} />
-        <Route path="/postsManagement"element={<ProtectedRoute><postsManagement /></ProtectedRoute>} />
-        <Route path="/ReportsPage"element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+        <Route path="/postsManagement" element={<ProtectedRoute><postsManagement /></ProtectedRoute>} />
+        <Route path="/ReportsManagement"     element={<ProtectedRoute><ReportsManagement /></ProtectedRoute>} />
+        <Route path="/ReviewsManagement"     element={<ProtectedRoute><ReviewsManagement /></ProtectedRoute>} />
         <Route path="*"                element={<NotFound />} />
       </Routes>
     </>
