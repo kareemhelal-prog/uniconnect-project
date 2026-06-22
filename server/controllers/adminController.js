@@ -267,3 +267,63 @@ exports.deleteReportedContent = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
+
+// =======================
+// ANNOUNCEMENTS
+// =======================
+exports.getAllAnnouncements = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const [rows] = await promisePool.query(
+      `SELECT a.*, u.name AS admin_name
+       FROM Announcements a
+       JOIN Users u ON a.admin_id = u.id
+       ORDER BY a.created_at DESC`
+    );
+
+    res.json({ success: true, announcements: rows });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.createAnnouncement = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const { title, content, target } = req.body;
+
+    if (!title || !content) {
+      return res.status(400).json({ success: false, message: "Title and content are required" });
+    }
+
+    const [result] = await promisePool.query(
+      "INSERT INTO Announcements (admin_id, title, content, target) VALUES (?, ?, ?, ?)",
+      [req.user.id, title, content, target || "Everyone"]
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Announcement published",
+      announcementId: result.insertId
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+exports.deleteAnnouncement = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    await promisePool.query("DELETE FROM Announcements WHERE id = ?", [req.params.id]);
+
+    res.json({ success: true, message: "Announcement deleted" });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

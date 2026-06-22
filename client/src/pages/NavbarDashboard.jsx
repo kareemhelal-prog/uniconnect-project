@@ -1,45 +1,126 @@
-import React, { useState } from "react";
-import { useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/NavbarDashboard.css";
-import {
-  MdDashboard,
-  MdPeople,
-  MdFolder,
-  MdBarChart,
-  MdGroup,
-} from "react-icons/md";
+import { MdSettings } from "react-icons/md";
 import {
   FiBell,
-  FiSearch,
   FiX,
   FiChevronRight,
   FiLogOut,
+  FiRefreshCw,
+  FiHome,
+  FiUsers,
+  FiFileText,
+  FiFlag,
+  FiBriefcase,
+  FiLayers,
+  FiStar,
+  FiFolder,
+  FiMail,
+  FiActivity,
+  FiBook,
 } from "react-icons/fi";
 import { RiAdminLine } from "react-icons/ri";
-import { HiOutlineLink } from "react-icons/hi";
+import { HiOutlineLink, HiOutlineSpeakerphone } from "react-icons/hi";
+import axios from "../api/axios";
 
-const NAV_IDS = {
-  dashboard: "DASH_01",
-  users:     "USR_02",
-  projects:  "PRJ_03",
-  search:    "SRCH_04",
-  notifications: "NOTIF_05",
-  reports:   "RPT_06",
-  groups:    "GRP_07",
+const ROUTES = {
+  dashboard: "dashboard",
+  users: "users",
+  posts: "posts",
+  reports: "reports",
+  projects: "projects",
+  groups: "groups",
+  reviews: "reviews",
+  files: "files",
+  announcements: "announcements",
+  emailAlerts: "email-alerts",
+  activityLogs: "activity-logs",
 };
 
-function Navbar({ activePage, onNavigate }) {
+const MENU_ITEMS = [
+  { label: "Dashboard", icon: FiHome, pageKey: ROUTES.dashboard },
+  { label: "Users", icon: FiUsers, pageKey: ROUTES.users },
+  { label: "Posts", icon: FiFileText, pageKey: ROUTES.posts },
+  { label: "Reports", icon: FiFlag, pageKey: ROUTES.reports },
+  { label: "Projects", icon: FiBriefcase, pageKey: ROUTES.projects },
+  { label: "Groups", icon: FiLayers, pageKey: ROUTES.groups },
+  { label: "Reviews", icon: FiStar, pageKey: ROUTES.reviews },
+  { label: "Files", icon: FiFolder, pageKey: ROUTES.files },
+  { label: "Announcements", icon: HiOutlineSpeakerphone, pageKey: ROUTES.announcements },
+  { label: "Email Alerts", icon: FiMail, pageKey: ROUTES.emailAlerts },
+  { label: "Activity Logs", icon: FiActivity, pageKey: ROUTES.activityLogs },
+];
+
+const NOTIF_ICON_MAP = {
+  like: FiStar,
+  comment: FiFileText,
+  follow: FiUsers,
+  post: FiFileText,
+  review: FiStar,
+  mention: FiBell,
+};
+
+const NOTIF_TITLE_MAP = {
+  like: "New Like",
+  comment: "New Comment",
+  follow: "New Follower",
+  post: "New Post",
+  review: "New Review",
+  mention: "You were mentioned",
+};
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function Navbar({ activePage, onNavigate, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [bellRing,    setBellRing]    = useState(false);
-  const [notifOpen,   setNotifOpen]   = useState(false);
-  const [readNotifs,  setReadNotifs]  = useState([]);
+  const [bellRing, setBellRing] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [readNotifs, setReadNotifs] = useState([]);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const notifications = [
-    { id: 1, icon: "📚", title: "Quantum Physics Q&A",  body: "Prof. Anya بدأت session جديدة",       time: "منذ 5 دقائق"  },
-    { id: 2, icon: "👥", title: "Group Project Update", body: "تم إضافتك لمجموعة AI in Medicine",    time: "منذ 2 ساعة"   },
-    { id: 3, icon: "🔔", title: "Campus News",          body: "Fall Break يبدأ الأسبوع القادم",      time: "منذ 4 ساعات"  },
-  ];
+  const [adminUser, setAdminUser] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [loadingNotifs, setLoadingNotifs] = useState(true);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get("/auth/profile");
+        if (res.data.success) setAdminUser(res.data.user);
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+      } finally {
+        setLoadingUser(false);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const fetchNotifs = async () => {
+      try {
+        const res = await axios.get("/notifications");
+        setNotifications(res.data.data || []);
+      } catch (err) {
+        console.error("Failed to fetch notifications:", err);
+      } finally {
+        setLoadingNotifs(false);
+      }
+    };
+    fetchNotifs();
+  }, []);
+
+  const unreadCount = notifications.filter(
+    (n) => !readNotifs.includes(n.id) && !n.is_read
+  ).length;
 
   const handleBell = () => {
     setBellRing(true);
@@ -47,185 +128,270 @@ function Navbar({ activePage, onNavigate }) {
     setTimeout(() => setBellRing(false), 600);
   };
 
-  const markRead    = (id) => setReadNotifs((prev) => [...prev, id]);
-  const markAllRead = ()   => { setReadNotifs(notifications.map((n) => n.id)); setNotifOpen(false); };
+  const markRead = (id) => setReadNotifs((prev) => [...prev, id]);
 
-  const unreadCount = notifications.filter((n) => !readNotifs.includes(n.id)).length;
+  const markAllRead = async () => {
+    try {
+      await axios.patch("/notifications/read-all");
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    } finally {
+      setReadNotifs(notifications.map((n) => n.id));
+      setNotifOpen(false);
+    }
+  };
 
-  const handleSearch = (value, id) => console.log(`Searching: ${value} — area: ${id}`);
-  const handleLogout = () => { console.log("تسجيل الخروج..."); setProfileOpen(false); setSidebarOpen(false); };
+  const navigateTo = (pageKey) => {
+    onNavigate(pageKey ?? "not-found");
+    setSidebarOpen(false);
+    setProfileOpen(false);
+    setNotifOpen(false);
+  };
+
+  const handleNotifClick = async (id) => {
+    try {
+      await axios.patch(`/notifications/${id}/read`);
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+    markRead(id);
+    navigateTo(null);
+  };
+
+  const handleLogoutClick = () => {
+    localStorage.removeItem("token");
+    setProfileOpen(false);
+    setSidebarOpen(false);
+    onLogout();
+  };
+
+  const displayName = loadingUser ? "Loading..." : adminUser?.name ?? "Admin";
+  const displayEmail = loadingUser ? "" : adminUser?.email ?? "";
+  const displayStatus = "Online";
+  const displayAvatar = adminUser?.profile_picture;
 
   return (
     <>
       <nav className="navbar">
-        {/* Hamburger */}
-        <button className="hamburger" onClick={() => setSidebarOpen(!sidebarOpen)}>
-          <span className={`ham-line ${sidebarOpen ? "open" : ""}`}></span>
-          <span className={`ham-line ${sidebarOpen ? "open" : ""}`}></span>
-          <span className={`ham-line ${sidebarOpen ? "open" : ""}`}></span>
+        <button
+          className="hamburger"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="Toggle sidebar"
+        >
+          <span className={`ham-line ${sidebarOpen ? "open" : ""}`} />
+          <span className={`ham-line ${sidebarOpen ? "open" : ""}`} />
+          <span className={`ham-line ${sidebarOpen ? "open" : ""}`} />
         </button>
 
-        {/* Logo */}
         <div className="nav-logo">
           <HiOutlineLink className="logo-icon" />
           <span className="logo-text">UniConnect</span>
         </div>
 
-        {/* Nav Links */}
-        <div className="nav-links">
-          <div className="tooltip-wrap">
-            <button className={`nav-link ${activePage === "dashboard" ? "active" : ""}`}
-              onClick={() => onNavigate("dashboard", NAV_IDS.dashboard)}>
-              <MdDashboard size={16} /> Dashboard
-            </button>
-            <span className="tooltip">الصفحة الرئيسية</span>
-          </div>
+        <div className="nav-links" />
 
-          <div className="tooltip-wrap">
-            <button className={`nav-link ${activePage === "users" ? "active" : ""}`}
-              onClick={() => onNavigate("users", NAV_IDS.users)}>
-              <MdPeople size={16} /> Users
-            </button>
-            <span className="tooltip">إدارة المستخدمين</span>
-          </div>
-
-          <div className="tooltip-wrap">
-            <button className={`nav-link ${activePage === "projects" ? "active" : ""}`}
-              onClick={() => onNavigate("projects", NAV_IDS.projects)}>
-              <MdFolder size={16} /> Projects
-            </button>
-            <span className="tooltip">المشاريع</span>
-          </div>
-
-          <div className="tooltip-wrap">
-            <button className={`nav-link ${activePage === "reports" ? "active" : ""}`}
-              onClick={() => onNavigate("reports", NAV_IDS.reports)}>
-              <MdBarChart size={16} /> Reports
-            </button>
-            <span className="tooltip">البلاغات</span>
-          </div>
-
-          <div className="tooltip-wrap">
-            <button className={`nav-link ${activePage === "groups" ? "active" : ""}`}
-              onClick={() => onNavigate("groups", NAV_IDS.groups)}>
-              <MdGroup size={16} /> Groups
-            </button>
-            <span className="tooltip">المجموعات</span>
-          </div>
-        </div>
-
-        {/* Search */}
-        <div className="nav-search-wrap">
-          <FiSearch className="search-icon" />
-          <input className="nav-search" placeholder="Search..." type="text"
-            onChange={(e) => handleSearch(e.target.value, NAV_IDS.search)} />
-        </div>
-
-        {/* Bell */}
         <div className="notif-wrap">
-          <div className={`nav-bell ${bellRing ? "ring" : ""}`} onClick={handleBell}>
+          <div
+            className={`nav-bell ${bellRing ? "ring" : ""}`}
+            onClick={handleBell}
+          >
             <FiBell size={20} />
-            {unreadCount > 0 && <span className="bell-badge">{unreadCount}</span>}
-            {unreadCount > 0 && <span className="bell-pulse"></span>}
+            {unreadCount > 0 && (
+              <span className="bell-badge">{unreadCount}</span>
+            )}
+            {unreadCount > 0 && <span className="bell-pulse" />}
           </div>
 
           {notifOpen && (
             <div className="notif-dropdown">
               <div className="notif-header">
-                <span className="notif-title">الإشعارات</span>
-                <button className="notif-mark-all" onClick={markAllRead}>تحديد الكل كمقروء</button>
+                <span className="notif-title">Notifications</span>
+                {notifications.length > 0 && (
+                  <button className="notif-mark-all" onClick={markAllRead}>
+                    Mark all as read
+                  </button>
+                )}
               </div>
-              <div className="notif-list">
-                {notifications.map((n) => (
-                  <div key={n.id}
-                    className={`notif-item ${readNotifs.includes(n.id) ? "read" : "unread"}`}
-                    onClick={() => markRead(n.id)}>
-                    <span className="notif-icon">{n.icon}</span>
-                    <div className="notif-body">
-                      <div className="notif-item-title">{n.title}</div>
-                      <div className="notif-item-body">{n.body}</div>
-                      <div className="notif-item-time">{n.time}</div>
-                    </div>
-                    {!readNotifs.includes(n.id) && <span className="notif-dot"></span>}
-                  </div>
-                ))}
-              </div>
-              {unreadCount === 0 && <div className="notif-empty">✅ كل الإشعارات مقروءة</div>}
+
+              {loadingNotifs ? (
+                <div className="notif-empty">
+                  <span>Loading...</span>
+                </div>
+              ) : notifications.length > 0 ? (
+                <div className="notif-list">
+                  {notifications.map((n) => {
+                    const Icon = NOTIF_ICON_MAP[n.type] || FiBell;
+                    const title = NOTIF_TITLE_MAP[n.type] || "Notification";
+                    const isUnread = !readNotifs.includes(n.id) && !n.is_read;
+                    return (
+                      <div
+                        key={n.id}
+                        className={`notif-item ${isUnread ? "unread" : "read"}`}
+                        onClick={() => handleNotifClick(n.id)}
+                      >
+                        <div className="notif-icon-wrap">
+                          <Icon size={18} />
+                        </div>
+                        <div className="notif-body">
+                          <div className="notif-item-title">{title}</div>
+                          <div className="notif-item-body">{n.message}</div>
+                          <div className="notif-item-time">{timeAgo(n.created_at)}</div>
+                        </div>
+                        {isUnread && <span className="notif-dot" />}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="notif-empty">
+                  <FiBell size={28} className="notif-empty-icon" />
+                  <span>No notifications</span>
+                </div>
+              )}
+
+              <button
+                className="notif-view-all"
+                onClick={() => navigateTo(null)}
+              >
+                View all notifications
+              </button>
             </div>
           )}
         </div>
-
-        {/* Avatar */}
-        <div className="tooltip-wrap">
-          <div className="nav-avatar" style={{ cursor: "default" }}>
-            SJ
-            <span className="avatar-dot"></span>
-            <span className="avatar-ring"></span>
-          </div>
-          <span className="tooltip">Sarah J. — Admin</span>
-        </div>
       </nav>
 
-      {/* Overlay */}
-      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+      {sidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
-          <div className="sidebar-logo"><HiOutlineLink size={18} /> UniConnect</div>
-          <button className="sidebar-close" onClick={() => setSidebarOpen(false)}><FiX size={16} /></button>
+          <div className="sidebar-logo">
+            <HiOutlineLink size={18} /> UniConnect
+          </div>
+          <button
+            className="sidebar-close"
+            onClick={() => setSidebarOpen(false)}
+          >
+            <FiX size={16} />
+          </button>
         </div>
 
-        <div className="sidebar-menu">
-          {[
-            { page: "dashboard", icon: <MdDashboard size={20} />, label: "Dashboard" },
-            { page: "users",     icon: <MdPeople    size={20} />, label: "Users"     },
-            { page: "projects",  icon: <MdFolder    size={20} />, label: "Projects"  },
-            { page: "reports",   icon: <MdBarChart  size={20} />, label: "Reports"   },
-            { page: "groups",    icon: <MdGroup     size={20} />, label: "Groups"    },
-          ].map(({ page, icon, label }) => (
-            <button key={page}
-              className={`sidebar-item ${activePage === page ? "active" : ""}`}
-              onClick={() => { onNavigate(page, NAV_IDS[page]); setSidebarOpen(false); }}>
-              <span className="sidebar-icon">{icon}</span>
-              {label}
-              <FiChevronRight className="sidebar-arrow" size={16} />
-            </button>
-          ))}
-        </div>
+        <nav className="sidebar-menu">
+          {MENU_ITEMS.map(({ label, icon: Icon, pageKey }) => {
+            const isActive = activePage === pageKey;
+            return (
+              <button
+                key={label}
+                className={`sidebar-menu-item ${isActive ? "active" : ""}`}
+                onClick={() => navigateTo(pageKey)}
+              >
+                <Icon size={16} className="sidebar-menu-icon" />
+                <span>{label}</span>
+                {isActive && <span className="sidebar-menu-indicator" />}
+              </button>
+            );
+          })}
+        </nav>
 
-        {/* Footer Profile */}
         <div className="sidebar-footer-wrap">
           {profileOpen && (
             <div className="profile-card">
               <div className="profile-card-header">
-                <div className="profile-card-avatar"><RiAdminLine size={20} /></div>
-                <div className="profile-card-info">
-                  <div className="profile-card-name">Sarah J.</div>
-                  <div className="profile-card-email">sarah.j@uniconnect.edu</div>
+                <div className="profile-card-avatar">
+                  {displayAvatar ? (
+                    <img
+                      src={displayAvatar}
+                      alt="avatar"
+                      style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <RiAdminLine size={20} />
+                  )}
                 </div>
-                <button className="profile-card-close" onClick={(e) => { e.stopPropagation(); setProfileOpen(false); }}>
+                <div className="profile-card-info">
+                  <div className="profile-card-name">{displayName}</div>
+                  <div className="profile-card-email">{displayEmail}</div>
+                </div>
+                <button
+                  className="profile-card-close"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setProfileOpen(false);
+                  }}
+                >
                   <FiX size={14} />
                 </button>
               </div>
+
               <div className="profile-card-divider" />
-              <button className="profile-card-item logout"
-                onClick={(e) => { e.stopPropagation(); handleLogout(); }}>
+
+              <button
+                className="profile-card-item"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateTo(null);
+                }}
+              >
+                <MdSettings size={16} className="profile-card-icon" />
+                <span>Settings</span>
+                <FiChevronRight size={14} className="profile-card-arrow" />
+              </button>
+
+              <button
+                className="profile-card-item"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigateTo(null);
+                }}
+              >
+                <FiRefreshCw size={16} className="profile-card-icon" />
+                <span>Switch Account</span>
+                <FiChevronRight size={14} className="profile-card-arrow" />
+              </button>
+
+              <div className="profile-card-divider" />
+
+              <button
+                className="profile-card-item logout"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLogoutClick();
+                }}
+              >
                 <FiLogOut size={16} className="profile-card-icon" />
-                <span>تسجيل الخروج</span>
+                <span>Log Out</span>
               </button>
             </div>
           )}
 
-          <div className={`sidebar-footer ${profileOpen ? "footer-active" : ""}`}
+          <div
+            className={`sidebar-footer ${profileOpen ? "footer-active" : ""}`}
             onClick={() => setProfileOpen((prev) => !prev)}
-            style={{ cursor: "pointer" }}>
-            <div className="sidebar-avatar"><RiAdminLine size={18} /></div>
-            <div style={{ flex: 1 }}>
-              <div className="sidebar-username">Sarah J.</div>
-              <div className="sidebar-role">⬤ Online · Admin</div>
+            style={{ cursor: "pointer" }}
+          >
+            <div className="sidebar-avatar">
+              {displayAvatar ? (
+                <img
+                  src={displayAvatar}
+                  alt="avatar"
+                  style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }}
+                />
+              ) : (
+                <RiAdminLine size={18} />
+              )}
             </div>
-            <FiChevronRight size={14} className={`footer-chevron ${profileOpen ? "chevron-up" : ""}`} />
+            <div style={{ flex: 1 }}>
+              <div className="sidebar-username">{displayName}</div>
+              <div className="sidebar-role">⬤ {displayStatus} · Admin</div>
+            </div>
+            <FiChevronRight
+              size={14}
+              className={`footer-chevron ${profileOpen ? "chevron-up" : ""}`}
+            />
           </div>
         </div>
       </div>

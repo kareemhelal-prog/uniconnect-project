@@ -89,7 +89,7 @@ CREATE TABLE Posts (
     title      VARCHAR(200),
     content    TEXT,
     image_url  VARCHAR(255),
-    post_type  ENUM('general','academic','opportunity') DEFAULT 'general',
+    post_type  ENUM('general','academic') DEFAULT 'general',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE,
@@ -152,13 +152,15 @@ CREATE TABLE Followers (
 -- 6. GROUPS
 -- ===============================
 CREATE TABLE `Groups` (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    creator_id  INT NOT NULL,
-    name        VARCHAR(100) NOT NULL,
-    description TEXT,
-    group_image VARCHAR(255),
-    is_private  BOOLEAN DEFAULT FALSE,
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    creator_id    INT NOT NULL,
+    name          VARCHAR(100) NOT NULL,
+    description   TEXT,
+    group_image   VARCHAR(255),
+    is_private    BOOLEAN DEFAULT FALSE,
+    academic_year ENUM('1','2','3','4') DEFAULT NULL,
+    group_type    ENUM('subject','other') DEFAULT 'other',
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (creator_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
@@ -218,7 +220,7 @@ CREATE TABLE Projects (
     creator_id       INT NOT NULL,
     title            VARCHAR(150) NOT NULL,
     description      TEXT NOT NULL,
-    category         ENUM('IT','Engineering','Business','Medicine','Other') DEFAULT 'IT',
+    category         ENUM('software','hardware') DEFAULT 'software',
     status           ENUM('idea','prototype','mvp','launched') DEFAULT 'idea',
     required_funding DECIMAL(12,2) DEFAULT 0.00,
     github_link      VARCHAR(255),
@@ -365,16 +367,52 @@ CREATE TABLE Notifications (
 CREATE TABLE Reports (
     id               INT AUTO_INCREMENT PRIMARY KEY,
     reporter_id      INT NOT NULL,
-    reported_type    ENUM('user','post','comment'),
+    reported_type    ENUM('user','post','comment','file','group'),
     reported_item_id INT NOT NULL,
-    reason           TEXT,
+    reason           ENUM('inappropriate_content','personal_harassment','false_information','other') DEFAULT 'other',
     status           ENUM('pending','resolved','dismissed') DEFAULT 'pending',
     created_at       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (reporter_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
 -- ===============================
--- 13. EVENTS
+-- 13. ADMIN / MODERATION
+-- ===============================
+CREATE TABLE Announcements (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id   INT NOT NULL,
+    title      VARCHAR(200) NOT NULL,
+    content    TEXT NOT NULL,
+    target     ENUM('students','doctors','everyone') DEFAULT 'everyone',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE Email_Logs (
+    id             INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id       INT NOT NULL,
+    recipient_id   INT DEFAULT NULL,
+    recipient_type ENUM('individual','students','doctors','everyone') DEFAULT 'individual',
+    subject        VARCHAR(200) NOT NULL,
+    message        TEXT NOT NULL,
+    type           ENUM('good_news','neutral','warning') DEFAULT 'neutral',
+    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id)     REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id) REFERENCES Users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE Activity_Logs (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id    INT NOT NULL,
+    action_type ENUM('delete','resolve','dismiss','send_email','ban_user') NOT NULL,
+    target_id   INT DEFAULT NULL,
+    details     TEXT,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES Users(id) ON DELETE CASCADE
+);
+
+-- ===============================
+-- 14. EVENTS
 -- ===============================
 CREATE TABLE Events (
     id          INT AUTO_INCREMENT PRIMARY KEY,
@@ -388,7 +426,7 @@ CREATE TABLE Events (
 );
 
 -- ===============================
--- 14. PASSWORD RESETS
+-- 15. PASSWORD RESETS
 -- ===============================
 CREATE TABLE password_resets (
     id         INT AUTO_INCREMENT PRIMARY KEY,

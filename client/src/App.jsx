@@ -33,6 +33,7 @@ import GroupsManagement from './pages/GroupsManagement'
 import postsManagement from './pages/postsManagement'
 import ReportsManagement from './pages/ReportsManagement'
 import ReviewsManagement from './pages/ReviewsManagement'
+import Announcements from './pages/Announcements'
 
 const NO_NAVBAR = [
   '/login', '/dashboard', '/home', '/homedoctor',
@@ -117,6 +118,7 @@ function AppLayout() {
         <Route path="/GroupsManagement"element={<ProtectedRoute><GroupsManagement /></ProtectedRoute>} />
         <Route path="/postsManagement" element={<ProtectedRoute><postsManagement /></ProtectedRoute>} />
         <Route path="/ReportsManagement"     element={<ProtectedRoute><ReportsManagement /></ProtectedRoute>} />
+        <Route path="/Announcements"   element={<ProtectedRoute><Announcements /></ProtectedRoute>} />
         <Route path="/ReviewsManagement"     element={<ProtectedRoute><ReviewsManagement /></ProtectedRoute>} />
         <Route path="*"                element={<NotFound />} />
       </Routes>

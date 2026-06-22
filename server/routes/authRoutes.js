@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
 const authProfileController = require('../controllers/authProfileController');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 // Forgot Password / OTP / Reset
 router.post('/forgot-password', authController.forgotPassword);

@@ -1,19 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import api from "../api/axios";
 import "../styles/ReportsManagement.css";
 
-const MOCK_REPORTS = [
-  { id: 1, content: "Post by James Carter", contentBody: "Exploring the impact of AI in modern education. What are your thoughts on how it will shape the future of learning?", contentPreview: "Exploring the impact of AI in modern education. What are your thoughts on...", type: "Post",    reason: "Inappropriate Content",  reportedBy: "Sophia Lee",    username: "@sophia.lee",    date: "May 20, 2025", time: "10:30 AM", status: "Pending",   avatar: "SL" },
-  { id: 2, content: "Comment on Post",      contentBody: "I totally agree with this! AI will definitely change the future.",                                                                        contentPreview: "I totally agree with this! AI will definitely change the future.",           type: "Comment", reason: "Personal Harassment",   reportedBy: "Aarav Patel",   username: "@aarav.patel",   date: "May 19, 2025", time: "09:15 PM", status: "Pending",   avatar: "AP" },
-  { id: 3, content: "File: Research-Paper.pdf", contentBody: 'Shared in group "Machine Learning Research"',                                                                                       contentPreview: 'Shared in group "Machine Learning Research"',                              type: "File",    reason: "False Information",     reportedBy: "Isabella Brown",username: "@isabella.brown",date: "May 19, 2025", time: "04:50 PM", status: "Resolved",  avatar: "IB" },
-  { id: 4, content: "Group: Blockchain Enthusiasts", contentBody: "Description contains misleading information.",                                                                                 contentPreview: "Description contains misleading information.",                              type: "Group",   reason: "False Information",     reportedBy: "Ethan Wilson",  username: "@ethan.wilson",  date: "May 18, 2025", time: "11:20 AM", status: "Dismissed", avatar: "EW" },
-  { id: 5, content: "Post by Olivia Martinez",  contentBody: "Check out this tool, it can hack any website easily.",                                                                              contentPreview: "Check out this tool, it can hack any website easily.",                     type: "Post",    reason: "Inappropriate Content", reportedBy: "Mia Thompson",  username: "@mia.thompson",  date: "May 17, 2025", time: "08:45 AM", status: "Pending",   avatar: "MT" },
-  { id: 6, content: "Comment on Post",       contentBody: "You are wrong and don't know anything about this topic.",                                                                              contentPreview: "You are wrong and don't know anything about this topic.",                  type: "Comment", reason: "Personal Harassment",   reportedBy: "Liam Anderson", username: "@liam.anderson", date: "May 16, 2025", time: "07:30 PM", status: "Resolved",  avatar: "LA" },
-  { id: 7, content: "Post by Ahmed Karim",   contentBody: "This is completely false news about the university exam results.",                                                                     contentPreview: "This is completely false news about the university exam results.",          type: "Post",    reason: "False Information",     reportedBy: "Sara Ahmed",    username: "@sara.ahmed",    date: "May 15, 2025", time: "03:20 PM", status: "Pending",   avatar: "SA" },
-  { id: 8, content: "Comment on Group",      contentBody: "Stop posting this garbage here, nobody cares about your opinion.",                                                                     contentPreview: "Stop posting this garbage here, nobody cares about your opinion.",         type: "Comment", reason: "Personal Harassment",   reportedBy: "Omar Hassan",   username: "@omar.hassan",   date: "May 14, 2025", time: "01:10 PM", status: "Dismissed", avatar: "OH" },
-];
-
 const STATUS_OPTIONS = ["All Statuses", "Pending", "Resolved", "Dismissed"];
-const TYPE_OPTIONS   = ["All Types",    "Post",    "Comment",  "File", "Group"];
+const TYPE_OPTIONS   = ["All Types",    "Post",    "Comment",  "File", "Group", "User"];
 const REASON_OPTIONS = ["All Reasons",  "Inappropriate Content", "Personal Harassment", "False Information", "Other"];
 const ROWS_OPTIONS   = [10, 25, 50, 100];
 
@@ -22,6 +12,7 @@ const TYPE_COLORS = {
   Comment: { bg: "rgba(0,229,255,0.1)",   border: "rgba(0,229,255,0.3)",  color: "#00e5ff" },
   File:    { bg: "rgba(34,197,94,0.1)",   border: "rgba(34,197,94,0.3)",  color: "#22c55e" },
   Group:   { bg: "rgba(255,51,204,0.1)",  border: "rgba(255,51,204,0.3)", color: "#ff33cc" },
+  User:    { bg: "rgba(245,158,11,0.1)",  border: "rgba(245,158,11,0.35)",color: "#fbbf24" },
 };
 
 const REASON_COLORS = {
@@ -31,7 +22,7 @@ const REASON_COLORS = {
   "Other":                 { bg: "rgba(107,114,128,0.12)",border: "rgba(107,114,128,0.3)", color: "#9ca3af" },
 };
 
-// ── أيقونات SVG ثابتة بدل الـ emoji ─────────────────────────────
+// ── أيقونات SVG ─────────────────────────────────────────────────
 const IconHeader = () => (
   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
     <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
@@ -74,6 +65,23 @@ const IconDismiss = () => (
     <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
   </svg>
 );
+const IconUser = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+  </svg>
+);
+
+const formatDate = (dt) =>
+  new Date(dt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const formatTime = (dt) =>
+  new Date(dt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+
+// بتحول صف الباك اند للشكل اللي الجدول شغال عليه
+const mapReport = (r) => ({
+  ...r,
+  date: formatDate(r.date),
+  time: formatTime(r.date),
+});
 
 // ── Dropdown ────────────────────────────────────────────────────
 function Dropdown({ icon, label, value, options, onChange }) {
@@ -127,20 +135,13 @@ function ReasonBadge({ reason }) {
 function Avatar({ initials, size = 36 }) {
   return (
     <div className="rm-avatar" style={{ width: size, height: size, fontSize: size * 0.33 }}>
-      {initials}
+      {initials || "?"}
     </div>
   );
 }
 
-function ReportModal({ report, onClose, onAction }) {
+function ReportModal({ report, onClose, onAction, actionLoading }) {
   if (!report) return null;
-
-  const handleAction = (action) => {
-    onAction(report.id, action);
-    if (action === "resolve")  onClose();
-    if (action === "dismiss")  onClose();
-    if (action === "delete")   onClose();
-  };
 
   return (
     <div className="rm-overlay" onClick={onClose}>
@@ -158,7 +159,7 @@ function ReportModal({ report, onClose, onAction }) {
         </div>
 
         <div className="rm-modal-reporter">
-          <Avatar initials={report.avatar} size={44} />
+          <Avatar initials={report.avatarInitials} size={44} />
           <div>
             <div className="rm-modal-reporter-name">{report.reportedBy}</div>
             <div className="rm-modal-reporter-username">{report.username}</div>
@@ -167,23 +168,23 @@ function ReportModal({ report, onClose, onAction }) {
         </div>
 
         <div className="rm-modal-content-box">
-          <p className="rm-modal-content-text">{report.contentBody}</p>
+          <p className="rm-modal-content-text">{report.contentBody || "—"}</p>
         </div>
 
         <div className="rm-modal-actions">
-          <button className="rm-action-btn delete" onClick={() => handleAction("delete")}>
+          <button className="rm-action-btn delete" disabled={actionLoading} onClick={() => onAction(report.id, "delete")}>
             <span className="rm-action-icon"><IconDelete /></span>
             Delete Content
           </button>
-          <button className="rm-action-btn warning" onClick={() => handleAction("warning")}>
+          <button className="rm-action-btn warning" disabled={actionLoading} onClick={() => onAction(report.id, "warning")}>
             <span className="rm-action-icon"><IconWarning /></span>
             Send Warning
           </button>
-          <button className="rm-action-btn resolve" onClick={() => handleAction("resolve")}>
+          <button className="rm-action-btn resolve" disabled={actionLoading} onClick={() => onAction(report.id, "resolve")}>
             <span className="rm-action-icon"><IconResolve /></span>
             Resolve
           </button>
-          <button className="rm-action-btn dismiss" onClick={() => handleAction("dismiss")}>
+          <button className="rm-action-btn dismiss" disabled={actionLoading} onClick={() => onAction(report.id, "dismiss")}>
             <span className="rm-action-icon"><IconDismiss /></span>
             Dismiss
           </button>
@@ -235,14 +236,38 @@ function Pagination({ currentPage, totalPages, rowsPerPage, onPageChange, onRows
 }
 
 function ReportsManagement() {
-  const [reports,      setReports]      = useState(MOCK_REPORTS);
-  const [loading,      setLoading]      = useState(false);
+  const [reports,      setReports]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
+  const [actionLoading,setActionLoading]= useState(false);
+  const [toast,        setToast]        = useState(null);
+
   const [statusFilter, setStatusFilter] = useState("All Statuses");
   const [typeFilter,   setTypeFilter]   = useState("All Types");
   const [reasonFilter, setReasonFilter] = useState("All Reasons");
   const [selectedRow,  setSelectedRow]  = useState(null);
   const [currentPage,  setCurrentPage]  = useState(1);
   const [rowsPerPage,  setRowsPerPage]  = useState(10);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const fetchReports = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await api.get("/reports/admin/all");
+      setReports((res.data.data || []).map(mapReport));
+    } catch (err) {
+      setError("فشل تحميل البلاغات، حاول تاني");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchReports(); }, []);
 
   const filtered = reports.filter((r) => {
     const matchStatus = statusFilter === "All Statuses" || r.status === statusFilter;
@@ -254,15 +279,32 @@ function ReportsManagement() {
   const totalPages   = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
   const paginated    = filtered.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
 
-  const handleAction = (id, action) => {
-    if (action === "resolve") {
-      setReports((prev) => prev.map((r) => r.id === id ? { ...r, status: "Resolved"  } : r));
-    } else if (action === "dismiss") {
-      setReports((prev) => prev.map((r) => r.id === id ? { ...r, status: "Dismissed" } : r));
-    } else if (action === "delete") {
-      setReports((prev) => prev.filter((r) => r.id !== id));
-    } else if (action === "warning") {
-      alert(`⚠️ Warning email sent to ${reports.find((r) => r.id === id)?.reportedBy}`);
+  const handleAction = async (id, action) => {
+    setActionLoading(true);
+    try {
+      if (action === "resolve") {
+        await api.patch(`/reports/${id}/status`, { status: "Resolved" });
+        setReports((prev) => prev.map((r) => r.id === id ? { ...r, status: "Resolved" } : r));
+        showToast("Report resolved");
+        setSelectedRow(null);
+      } else if (action === "dismiss") {
+        await api.patch(`/reports/${id}/status`, { status: "Dismissed" });
+        setReports((prev) => prev.map((r) => r.id === id ? { ...r, status: "Dismissed" } : r));
+        showToast("Report dismissed");
+        setSelectedRow(null);
+      } else if (action === "delete") {
+        await api.delete(`/reports/${id}/content`);
+        setReports((prev) => prev.map((r) => r.id === id ? { ...r, status: "Resolved" } : r));
+        showToast("Content deleted successfully");
+        setSelectedRow(null);
+      } else if (action === "warning") {
+        await api.post(`/reports/${id}/warning`);
+        showToast("Warning sent successfully");
+      }
+    } catch (err) {
+      showToast(err?.response?.data?.message || "حصل خطأ، حاول تاني");
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -273,6 +315,9 @@ function ReportsManagement() {
 
   return (
     <div className="rm-page">
+
+      {toast && <div className="rm-toast">{toast}</div>}
+
       <div className="rm-header">
         <div className="rm-header-icon"><IconHeader /></div>
         <div>
@@ -290,6 +335,8 @@ function ReportsManagement() {
       <div className="rm-table-wrap">
         {loading ? (
           <div className="rm-loading"><div className="rm-spinner" /><p>Loading reports...</p></div>
+        ) : error ? (
+          <div className="rm-empty"><span>⚠️</span><p>{error}</p></div>
         ) : filtered.length === 0 ? (
           <div className="rm-empty"><span>📭</span><p>No reports match your filters</p></div>
         ) : (
@@ -314,6 +361,7 @@ function ReportsManagement() {
                         {r.type === "Comment" && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>}
                         {r.type === "File"    && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}
                         {r.type === "Group"   && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff33cc" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+                        {r.type === "User"    && <IconUser />}
                       </div>
                       <div>
                         <div className="rm-content-title">{r.content}</div>
@@ -325,7 +373,7 @@ function ReportsManagement() {
                   <td><ReasonBadge reason={r.reason} /></td>
                   <td>
                     <div className="rm-reporter-cell">
-                      <Avatar initials={r.avatar} size={32} />
+                      <Avatar initials={r.avatarInitials} size={32} />
                       <div>
                         <div className="rm-reporter-name">{r.reportedBy}</div>
                         <div className="rm-reporter-username">{r.username}</div>
@@ -356,6 +404,7 @@ function ReportsManagement() {
         report={selectedRow}
         onClose={() => setSelectedRow(null)}
         onAction={handleAction}
+        actionLoading={actionLoading}
       />
     </div>
   );

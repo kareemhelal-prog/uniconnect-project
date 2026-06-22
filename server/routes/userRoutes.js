@@ -2,12 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 const userController = require("../controllers/userController");
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 // =======================
 // APPLY AUTH MIDDLEWARE
 // =======================
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // =======================
 // GET CURRENT USER
@@ -38,6 +38,6 @@ router.put("/:id", userController.updateUser);
 // =======================
 router.delete("/:id", userController.deleteUser);
 
-router.put("/:id/profile", authMiddleware, userController.updateProfile);
+router.put("/:id/profile", authenticateToken, userController.updateProfile);
 
 module.exports = router;

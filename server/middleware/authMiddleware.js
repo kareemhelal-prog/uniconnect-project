@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 // =======================
 // AUTH MIDDLEWARE
 // =======================
-module.exports = (req, res, next) => {
+module.exports.authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   // 1️⃣ Check if Authorization header exists
