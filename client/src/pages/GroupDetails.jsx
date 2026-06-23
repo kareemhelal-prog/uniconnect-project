@@ -1,96 +1,157 @@
-import React, { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import '../styles/GroupDetails.css';
-/* ─── Mock Data ─────────────────────────────────────────────────────────── */
-const MOCK_MEMBERS = [
-  { id: 1, name: 'Dr. Layla Hassan',    role: 'Admin',     initials: 'LH', color: '#6c47ff', online: true  },
-  { id: 2, name: 'Ahmed Karim',         role: 'Moderator', initials: 'AK', color: '#0ea5e9', online: true  },
-  { id: 3, name: 'Nour El-Din',         role: 'Member',    initials: 'ND', color: '#22c55e', online: false },
-  { id: 4, name: 'Sara Mostafa',        role: 'Member',    initials: 'SM', color: '#f59e0b', online: true  },
-  { id: 5, name: 'Omar Tawfik',         role: 'Member',    initials: 'OT', color: '#ec4899', online: false },
-  { id: 6, name: 'Yasmine Adel',        role: 'Member',    initials: 'YA', color: '#14b8a6', online: false },
-];
-
-const MOCK_MEDIA = [
-  { id: 1, type: 'file', name: 'Lecture 5 - Normalization.pdf',   size: '2.4 MB', icon: '📄', date: 'May 10' },
-  { id: 2, type: 'file', name: 'Assignment 2 Template.docx',       size: '340 KB', icon: '📝', date: 'May 12' },
-  { id: 3, type: 'file', name: 'ER Diagram Examples.pptx',         size: '5.1 MB', icon: '📊', date: 'May 14' },
-  { id: 4, type: 'file', name: 'SQL Practice Sheet.xlsx',          size: '1.2 MB', icon: '📋', date: 'May 15' },
-  { id: 5, type: 'file', name: 'Lab 3 Solutions.zip',              size: '8.7 MB', icon: '📦', date: 'May 17' },
-];
-
-const RULES = [
-  'Be respectful to all members and instructors.',
-  'No spamming or off-topic posts.',
-  'Upload only course-related files.',
-  'Credit original sources when sharing content.',
-  'Tag posts correctly (Question / Announcement / Resource).',
-];
-
-/* ─── Mock Notifications ──────────────────────────────────────────────────── */
-const MOCK_NOTIFICATIONS = [
-  { id: 1, icon: '📝', title: 'New post in your group', body: 'Ahmed Karim shared a new resource in Database Systems.', time: '2m ago' },
-  { id: 2, icon: '👥', title: 'New member joined', body: 'Sara Mostafa joined Database Systems – CS301.', time: '1h ago' },
-  { id: 3, icon: '💬', title: 'New comment', body: 'Nour El-Din commented on your post.', time: '3h ago' },
-];
+import React, { useState, useEffect, useCallback } from "react";
+import { useParams } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import "../styles/GroupDetails.css";
+import api from "../api/axios";
 
 const Avatar = ({ initials, color, size = 40, online }) => (
   <div className="gd2-avatar-wrap" style={{ width: size, height: size }}>
     <div className="gd2-avatar" style={{ background: color, width: size, height: size, fontSize: size * 0.35 }}>
       {initials}
     </div>
-    {online !== undefined && (
-      <span className={`gd2-dot ${online ? 'online' : 'offline'}`} />
-    )}
+    {online !== undefined && <span className={`gd2-dot ${online ? "online" : "offline"}`} />}
   </div>
 );
 
 const RoleBadge = ({ role }) => {
-  const map = { Admin: 'badge-admin', Moderator: 'badge-mod', Member: 'badge-member' };
-  return <span className={`gd2-badge ${map[role] || 'badge-member'}`}>{role}</span>;
+  const map = { admin: "badge-admin", moderator: "badge-mod", member: "badge-member" };
+  return <span className={`gd2-badge ${map[role?.toLowerCase()] || "badge-member"}`}>{role}</span>;
 };
 
 const SkeletonPost = () => (
   <div className="gd2-card gd2-skeleton-post">
     <div className="sk-row"><div className="sk-circle" /><div className="sk-lines"><div className="sk-line w60" /><div className="sk-line w40" /></div></div>
-    <div className="sk-line w100 mt12" />
-    <div className="sk-line w80 mt6" />
-    <div className="sk-line w90 mt6" />
+    <div className="sk-line w100 mt12" /><div className="sk-line w80 mt6" />
   </div>
 );
 
-/* ─── Main Component ─────────────────────────────────────────────────────── */
+const TABS = [
+  { id: "posts",   label: "Posts",   icon: "📝" },
+  { id: "members", label: "Members", icon: "👥" },
+  { id: "media",   label: "Media",   icon: "📎" },
+  { id: "about",   label: "About",   icon: "📖" },
+];
 
-const GroupDetails = ({
-  group = {},
-  posts = [],
-  onBack,
-  onPostClick,
-  onAuthorClick,
-  onCreatePost,
-}) => {
-  const [activeTab, setActiveTab] = useState('posts');
-  const [isJoined, setIsJoined] = useState(false);
-  const [localPosts, setLocalPosts] = useState(() => posts);
-  const [loading, setLoading] = useState(true);
-  const [postDraft, setPostDraft] = useState('');
+const RULES = [
+  "Be respectful to all members.",
+  "No spamming or off-topic posts.",
+  "Upload only course-related files.",
+  "Credit original sources when sharing content.",
+];
+
+export default function GroupDetails() {
+  const { id } = useParams();
+
+  const [group,       setGroup]       = useState(null);
+  const [posts,       setPosts]       = useState([]);
+  const [members,     setMembers]     = useState([]);
+  const [media,       setMedia]       = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [activeTab,   setActiveTab]   = useState("posts");
+  const [isJoined,    setIsJoined]    = useState(false);
+  const [postDraft,   setPostDraft]   = useState("");
   const [showPostBox, setShowPostBox] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied,      setCopied]      = useState(false);
 
-  /* Simulate loading */
+  const fetchGroup = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/groups/${id}`);
+      const data = res.data.data || res.data;
+      setGroup(data);
+      setIsJoined(data.is_member || false);
+    } catch (err) {
+      console.error("Failed to fetch group:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [id]);
+
+  const fetchPosts = useCallback(async () => {
+    if (!id) return;
+    setPostsLoading(true);
+    try {
+      const res = await api.get(`/groups/${id}/posts`);
+      setPosts(res.data.data || res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch group posts:", err);
+    } finally {
+      setPostsLoading(false);
+    }
+  }, [id]);
+
+  const fetchMembers = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/groups/${id}/members`);
+      setMembers(res.data.data || res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch members:", err);
+    }
+  }, [id]);
+
+  const fetchMedia = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await api.get(`/groups/${id}/files`);
+      setMedia(res.data.data || res.data || []);
+    } catch (err) {
+      console.error("Failed to fetch media:", err);
+    }
+  }, [id]);
+
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(t);
-  }, []);
+    fetchGroup();
+    fetchPosts();
+    fetchMembers();
+    fetchMedia();
+  }, [fetchGroup, fetchPosts, fetchMembers, fetchMedia]);
 
-  const handleLike = (postId) => {
-    setLocalPosts(prev =>
-      prev.map(p =>
-        p.id === postId
-          ? { ...p, liked: !p.liked, likes: (p.likes || 0) + (p.liked ? -1 : 1) }
-          : p,
-      ),
-    );
+  const handleJoin = async () => {
+    try {
+      if (isJoined) {
+        await api.delete("/groups/leave", { data: { group_id: id } });
+      } else {
+        await api.post("/groups/join", { group_id: id });
+      }
+      setIsJoined(!isJoined);
+    } catch (err) {
+      console.error("Join/leave failed:", err);
+    }
+  };
+
+  const handleLike = async (postId) => {
+    try {
+      const post = posts.find((p) => p.id === postId);
+      if (post?.is_liked) {
+        await api.delete(`/groups/posts/${postId}/like`);
+      } else {
+        await api.post(`/groups/posts/${postId}/like`);
+      }
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === postId
+            ? { ...p, is_liked: !p.is_liked, likes_count: (p.likes_count || 0) + (p.is_liked ? -1 : 1) }
+            : p
+        )
+      );
+    } catch (err) {
+      console.error("Like failed:", err);
+    }
+  };
+
+  const handleSubmitPost = async () => {
+    if (!postDraft.trim()) return;
+    try {
+      const res = await api.post(`/groups/${id}/posts`, { content: postDraft.trim() });
+      const newPost = res.data.data || res.data;
+      setPosts((prev) => [newPost, ...prev]);
+      setPostDraft("");
+      setShowPostBox(false);
+    } catch (err) {
+      console.error("Post failed:", err);
+    }
   };
 
   const handleShare = () => {
@@ -99,107 +160,60 @@ const GroupDetails = ({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleSubmitPost = () => {
-    if (!postDraft.trim()) return;
-    const newPost = {
-      id: Date.now(),
-      author: 'You',
-      avatar: 'Y',
-      avatarColor: '#6c47ff',
-      time: 'Just now',
-      content: postDraft.trim(),
-      likes: 0,
-      liked: false,
-    };
-    setLocalPosts(prev => [newPost, ...prev]);
-    setPostDraft('');
-    setShowPostBox(false);
-  };
+  if (loading) return <div style={{ color: "#00e5ff", padding: "2rem", textAlign: "center" }}>Loading...</div>;
+  if (!group)  return <div style={{ color: "#f87171", padding: "2rem" }}>Group not found.</div>;
 
-  const g = {
-    name:     group.name     || 'Database Systems – CS301',
-    desc:     group.desc     || 'Official group for CS301 students. Share notes, ask questions, and stay updated on assignments and exams.',
-    color:    group.color    || '#6c47ff',
-    icon:     group.icon     || '🗄️',
-    members:  group.members  || 128,
-    posts:    group.posts    || 47,
-    privacy:  group.privacy  || 'Public',
-    created:  group.created  || 'September 1, 2025',
-  };
-
-  const accentColor = g.color;
-  const coverGradient = `linear-gradient(135deg, ${accentColor}cc 0%, #0f172a 100%)`;
-
-  const TABS = [
-    { id: 'posts',   label: 'Posts',   icon: '📝' },
-    { id: 'members', label: 'Members', icon: '👥' },
-    { id: 'media',   label: 'Media',   icon: '📎' },
-    { id: 'about',   label: 'About',   icon: '📖' },
-  ];
+  const accentColor    = "#6c47ff";
+  const coverGradient  = `linear-gradient(135deg, ${accentColor}cc 0%, #0f172a 100%)`;
 
   return (
     <div className="gd2-root">
-      {/* ── Navbar ── */}
-      <Navbar
-        role="student"
-        activePage="groups"
-        notifications={MOCK_NOTIFICATIONS}
-        user={{ initials: 'YO' }}
-        onNavigate={(page) => console.log('Navigate to:', page)}
-      />
+      <Navbar role="student" activePage="groups" notifications={[]} user={{ initials: "ME" }} onNavigate={() => {}} />
 
-      {/* ── Cover + Header ── */}
       <div className="gd2-hero" style={{ background: coverGradient }}>
-        {onBack && (
-          <button className="gd2-back" onClick={onBack}>
-            ← Back
-          </button>
-        )}
         <div className="gd2-hero-noise" />
-
         <div className="gd2-hero-body">
           <div className="gd2-group-avatar" style={{ background: accentColor }}>
-            <span>{g.icon}</span>
+            <span>{group.group_image ? <img src={group.group_image} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} /> : "👥"}</span>
           </div>
 
           <div className="gd2-hero-info">
             <div className="gd2-privacy-pill">
-              {g.privacy === 'Private' ? '🔒' : '🌐'} {g.privacy}
+              {group.is_private ? "🔒 Private" : "🌐 Public"}
             </div>
-            <h1 className="gd2-title">{g.name}</h1>
-            <p className="gd2-subtitle">{g.desc}</p>
+            <h1 className="gd2-title">{group.name}</h1>
+            <p className="gd2-subtitle">{group.description}</p>
 
             <div className="gd2-stats-row">
-              <span className="gd2-stat">👥 {g.members.toLocaleString()} members</span>
+              <span className="gd2-stat">👥 {group.members_count || members.length} members</span>
               <span className="gd2-stat-sep">·</span>
-              <span className="gd2-stat">📝 {g.posts} posts</span>
+              <span className="gd2-stat">📝 {posts.length} posts</span>
             </div>
 
             <div className="gd2-cta-row">
               <button
-                className={`gd2-join-btn ${isJoined ? 'joined' : ''}`}
+                className={`gd2-join-btn ${isJoined ? "joined" : ""}`}
                 style={!isJoined ? { background: accentColor } : {}}
-                onClick={() => setIsJoined(v => !v)}
+                onClick={handleJoin}
               >
-                {isJoined ? '✓ Joined' : '+ Join Group'}
+                {isJoined ? "✓ Joined" : "+ Join Group"}
               </button>
               <button className="gd2-share-btn" onClick={handleShare}>
-                {copied ? '✓ Copied!' : '🔗'}
+                {copied ? "✓ Copied!" : "🔗"}
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Tabs ── */}
       <div className="gd2-tabs-bar">
         <div className="gd2-tabs">
-          {TABS.map(t => (
+          {TABS.map((t) => (
             <button
               key={t.id}
-              className={`gd2-tab ${activeTab === t.id ? 'active' : ''}`}
+              className={`gd2-tab ${activeTab === t.id ? "active" : ""}`}
               onClick={() => setActiveTab(t.id)}
-              style={activeTab === t.id ? { '--tab-accent': accentColor } : {}}
+              style={activeTab === t.id ? { "--tab-accent": accentColor } : {}}
             >
               <span className="gd2-tab-icon">{t.icon}</span>
               <span className="gd2-tab-label">{t.label}</span>
@@ -208,98 +222,52 @@ const GroupDetails = ({
         </div>
       </div>
 
-      {/* ── Content ── */}
       <div className="gd2-content">
-
-        {/* ── POSTS TAB ── */}
-        {activeTab === 'posts' && (
+        {/* POSTS */}
+        {activeTab === "posts" && (
           <div className="gd2-feed">
-            {/* Create post */}
             <div className="gd2-card gd2-create-post">
               {showPostBox ? (
                 <>
-                  <textarea
-                    className="gd2-draft-area"
-                    placeholder="What's on your mind? Share a question, resource, or update…"
-                    value={postDraft}
-                    onChange={e => setPostDraft(e.target.value)}
-                    autoFocus
-                    rows={4}
-                  />
+                  <textarea className="gd2-draft-area" placeholder="Share something with the group…" value={postDraft} onChange={(e) => setPostDraft(e.target.value)} autoFocus rows={4} />
                   <div className="gd2-draft-actions">
-                    <button className="gd2-cancel-btn" onClick={() => { setShowPostBox(false); setPostDraft(''); }}>Cancel</button>
-                    <button
-                      className="gd2-post-submit"
-                      style={{ background: accentColor }}
-                      onClick={handleSubmitPost}
-                      disabled={!postDraft.trim()}
-                    >
-                      Post
-                    </button>
+                    <button className="gd2-cancel-btn" onClick={() => { setShowPostBox(false); setPostDraft(""); }}>Cancel</button>
+                    <button className="gd2-post-submit" style={{ background: accentColor }} onClick={handleSubmitPost} disabled={!postDraft.trim()}>Post</button>
                   </div>
                 </>
               ) : (
-                <div className="gd2-create-prompt" onClick={() => { setShowPostBox(true); onCreatePost && onCreatePost(); }}>
-                  <div className="gd2-me-avatar" style={{ background: accentColor }}>Y</div>
+                <div className="gd2-create-prompt" onClick={() => setShowPostBox(true)}>
+                  <div className="gd2-me-avatar" style={{ background: accentColor }}>ME</div>
                   <div className="gd2-prompt-placeholder">Share something with the group…</div>
                 </div>
               )}
             </div>
 
-            {/* Posts */}
-            {loading ? (
-              [1, 2, 3].map(i => <SkeletonPost key={i} />)
-            ) : localPosts.length === 0 ? (
+            {postsLoading ? (
+              [1, 2, 3].map((i) => <SkeletonPost key={i} />)
+            ) : posts.length === 0 ? (
               <div className="gd2-empty">
                 <span className="gd2-empty-icon">📭</span>
                 <p className="gd2-empty-title">No posts yet</p>
-                <p className="gd2-empty-sub">Be the first to share something with this group.</p>
               </div>
             ) : (
-              localPosts.map(post => (
-                <article
-                  key={post.id}
-                  className="gd2-card gd2-post"
-                  onClick={() => onPostClick && onPostClick(post.id)}
-                >
+              posts.map((post) => (
+                <article key={post.id} className="gd2-card gd2-post">
                   <header className="gd2-post-header">
-                    <div
-                      className="gd2-avatar"
-                      style={{ background: post.avatarColor || '#0284c7', width: 40, height: 40, fontSize: 14, cursor: 'pointer' }}
-                      onClick={e => { e.stopPropagation(); onAuthorClick && onAuthorClick(post.author); }}
-                    >
-                      {post.avatar || post.author?.[0] || '?'}
+                    <div className="gd2-avatar" style={{ background: "#6c47ff", width: 40, height: 40, fontSize: 14 }}>
+                      {post.author_name?.[0]?.toUpperCase() || "U"}
                     </div>
                     <div>
-                      <p
-                        className="gd2-post-author"
-                        onClick={e => { e.stopPropagation(); onAuthorClick && onAuthorClick(post.author); }}
-                      >
-                        {post.author}
-                      </p>
-                      <p className="gd2-post-time">{post.time}</p>
+                      <p className="gd2-post-author">{post.author_name || "Unknown"}</p>
+                      <p className="gd2-post-time">{new Date(post.created_at).toLocaleString()}</p>
                     </div>
                   </header>
-
-                  {post.title && <h4 className="gd2-post-title">{post.title}</h4>}
                   <p className="gd2-post-body">{post.content}</p>
-
-                  <footer className="gd2-post-footer" onClick={e => e.stopPropagation()}>
-                    <button
-                      className={`gd2-action ${post.liked ? 'liked' : ''}`}
-                      onClick={() => handleLike(post.id)}
-                    >
-                      👍 {post.likes || 0}
+                  <footer className="gd2-post-footer">
+                    <button className={`gd2-action ${post.is_liked ? "liked" : ""}`} onClick={() => handleLike(post.id)}>
+                      👍 {post.likes_count || 0}
                     </button>
-                    <button className="gd2-action" onClick={() => onPostClick && onPostClick(post.id)}>
-                      💬 Comment
-                    </button>
-                    <button
-                      className="gd2-action"
-                      onClick={() => navigator.clipboard.writeText(`${post.title || ''}\n\n${post.content}`).catch(() => {})}
-                    >
-                      🔗 Share
-                    </button>
+                    <button className="gd2-action">💬 Comment</button>
                   </footer>
                 </article>
               ))
@@ -307,90 +275,57 @@ const GroupDetails = ({
           </div>
         )}
 
-        {/* ── MEMBERS TAB ── */}
-        {activeTab === 'members' && (
+        {/* MEMBERS */}
+        {activeTab === "members" && (
           <div className="gd2-members-grid">
-            {loading ? (
-              [1,2,3,4,5,6].map(i => (
-                <div key={i} className="gd2-card gd2-member-skeleton">
-                  <div className="sk-circle lg" />
-                  <div className="sk-lines center mt10">
-                    <div className="sk-line w70 center" />
-                    <div className="sk-line w40 center mt6" />
-                  </div>
-                </div>
-              ))
+            {members.length === 0 ? (
+              <div className="gd2-empty"><span className="gd2-empty-icon">👥</span><p>No members yet.</p></div>
             ) : (
-              MOCK_MEMBERS.map(m => (
+              members.map((m) => (
                 <div key={m.id} className="gd2-card gd2-member-card">
-                  <Avatar initials={m.initials} color={m.color} size={52} online={m.online} />
+                  <Avatar initials={m.name?.[0]?.toUpperCase() || "U"} color="#6c47ff" size={52} />
                   <p className="gd2-member-name">{m.name}</p>
-                  <RoleBadge role={m.role} />
-                  <button className="gd2-view-btn">View</button>
+                  <RoleBadge role={m.role || "member"} />
                 </div>
               ))
             )}
           </div>
         )}
 
-        {/* ── MEDIA TAB ── */}
-        {activeTab === 'media' && (
+        {/* MEDIA */}
+        {activeTab === "media" && (
           <div className="gd2-media-list">
-            {loading ? (
-              [1,2,3].map(i => <div key={i} className="gd2-card gd2-file-skeleton"><div className="sk-circle sm" /><div className="sk-lines ml12"><div className="sk-line w60" /><div className="sk-line w30 mt6" /></div></div>)
-            ) : MOCK_MEDIA.length === 0 ? (
-              <div className="gd2-empty">
-                <span className="gd2-empty-icon">📂</span>
-                <p className="gd2-empty-title">No files shared yet</p>
-                <p className="gd2-empty-sub">Shared files and media will appear here.</p>
-              </div>
+            {media.length === 0 ? (
+              <div className="gd2-empty"><span className="gd2-empty-icon">📂</span><p className="gd2-empty-title">No files shared yet</p></div>
             ) : (
-              MOCK_MEDIA.map(f => (
+              media.map((f) => (
                 <div key={f.id} className="gd2-card gd2-file-row">
-                  <span className="gd2-file-icon">{f.icon}</span>
+                  <span className="gd2-file-icon">📄</span>
                   <div className="gd2-file-info">
-                    <p className="gd2-file-name">{f.name}</p>
-                    <p className="gd2-file-meta">{f.size} · {f.date}</p>
+                    <p className="gd2-file-name">{f.file_name}</p>
+                    <p className="gd2-file-meta">{f.file_size ? `${(f.file_size / 1024).toFixed(1)} KB` : ""}</p>
                   </div>
-                  <button className="gd2-dl-btn" title="Download">⬇</button>
+                  <a href={f.file_url} target="_blank" rel="noreferrer">
+                    <button className="gd2-dl-btn">⬇</button>
+                  </a>
                 </div>
               ))
             )}
           </div>
         )}
 
-        {/* ── ABOUT TAB ── */}
-        {activeTab === 'about' && (
+        {/* ABOUT */}
+        {activeTab === "about" && (
           <div className="gd2-about-wrap">
             <div className="gd2-card gd2-about-card">
               <h3 className="gd2-section-title">📖 Description</h3>
-              <p className="gd2-about-text">{g.desc}</p>
-
+              <p className="gd2-about-text">{group.description}</p>
               <div className="gd2-about-meta">
-                <div className="gd2-meta-row"><span className="gd2-meta-label">Privacy</span><span className="gd2-meta-val">{g.privacy === 'Private' ? '🔒 Private' : '🌐 Public'}</span></div>
-                <div className="gd2-meta-row"><span className="gd2-meta-label">Members</span><span className="gd2-meta-val">{g.members}</span></div>
-                <div className="gd2-meta-row"><span className="gd2-meta-label">Posts</span><span className="gd2-meta-val">{g.posts}</span></div>
-                <div className="gd2-meta-row"><span className="gd2-meta-label">Created</span><span className="gd2-meta-val">{g.created}</span></div>
+                <div className="gd2-meta-row"><span className="gd2-meta-label">Privacy</span><span className="gd2-meta-val">{group.is_private ? "🔒 Private" : "🌐 Public"}</span></div>
+                <div className="gd2-meta-row"><span className="gd2-meta-label">Members</span><span className="gd2-meta-val">{group.members_count || members.length}</span></div>
+                <div className="gd2-meta-row"><span className="gd2-meta-label">Type</span><span className="gd2-meta-val">{group.group_type || "—"}</span></div>
+                <div className="gd2-meta-row"><span className="gd2-meta-label">Year</span><span className="gd2-meta-val">{group.academic_year || "All Years"}</span></div>
+                <div className="gd2-meta-row"><span className="gd2-meta-label">Created</span><span className="gd2-meta-val">{new Date(group.created_at).toLocaleDateString()}</span></div>
               </div>
             </div>
-
-            <div className="gd2-card gd2-rules-card">
-              <h3 className="gd2-section-title">📋 Group Rules</h3>
-              <ol className="gd2-rules-list">
-                {RULES.map((r, i) => (
-                  <li key={i} className="gd2-rule-item">
-                    <span className="gd2-rule-num" style={{ background: accentColor }}>{i + 1}</span>
-                    <span>{r}</span>
-                  </li>
-                ))}
-              </ol>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default GroupDetails;
- 
+            <div

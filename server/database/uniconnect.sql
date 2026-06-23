@@ -378,37 +378,43 @@ CREATE TABLE Reports (
 -- ===============================
 -- 13. ADMIN / MODERATION
 -- ===============================
-CREATE TABLE Announcements (
+CREATE TABLE IF NOT EXISTS Announcements (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     admin_id   INT NOT NULL,
     title      VARCHAR(200) NOT NULL,
     content    TEXT NOT NULL,
-    target     ENUM('students','doctors','everyone') DEFAULT 'everyone',
+    type       ENUM('exam','workshop','notice','scholarship','curriculum','recognition','instructions') DEFAULT 'notice',
+    target     ENUM('Students','Doctors','Everyone') DEFAULT 'Everyone',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (admin_id) REFERENCES Users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE Email_Logs (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    admin_id       INT NOT NULL,
-    recipient_id   INT DEFAULT NULL,
-    recipient_type ENUM('individual','students','doctors','everyone') DEFAULT 'individual',
-    subject        VARCHAR(200) NOT NULL,
-    message        TEXT NOT NULL,
-    type           ENUM('good_news','neutral','warning') DEFAULT 'neutral',
-    created_at     TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (admin_id)     REFERENCES Users(id) ON DELETE CASCADE,
-    FOREIGN KEY (recipient_id) REFERENCES Users(id) ON DELETE SET NULL
+CREATE TABLE Activity_Logs (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    admin_id     INT NOT NULL,
+    action_type  ENUM('delete','resolve','dismiss','send_email','ban_user') NOT NULL,
+    target_label VARCHAR(255),
+    details      TEXT,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (admin_id) REFERENCES Users(id) ON DELETE CASCADE,
+    INDEX (admin_id),
+    INDEX (action_type)
 );
 
-CREATE TABLE Activity_Logs (
-    id          INT AUTO_INCREMENT PRIMARY KEY,
-    admin_id    INT NOT NULL,
-    action_type ENUM('delete','resolve','dismiss','send_email','ban_user') NOT NULL,
-    target_id   INT DEFAULT NULL,
-    details     TEXT,
-    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (admin_id) REFERENCES Users(id) ON DELETE CASCADE
+CREATE TABLE Email_Logs (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id       INT NOT NULL,
+    recipient_type  ENUM('user','all_students','all_doctors','everyone') NOT NULL,
+    recipient_id    INT DEFAULT NULL,
+    recipient_count INT DEFAULT NULL,
+    subject         VARCHAR(255) NOT NULL,
+    message         TEXT NOT NULL,
+    message_type    ENUM('Good News','Neutral','Warning') DEFAULT 'Neutral',
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sender_id)    REFERENCES Users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recipient_id) REFERENCES Users(id) ON DELETE SET NULL,
+    INDEX (sender_id),
+    INDEX (recipient_id)
 );
 
 -- ===============================

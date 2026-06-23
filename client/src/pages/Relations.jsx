@@ -1,34 +1,70 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/Relations.css";
+import api from "../api/axios";
 
-const data = {
-  followers: [],
-  following: [],
-  friends: [],
-};
-
-const tabs = [
+const TABS = [
   { key: "followers", label: "Followers" },
   { key: "following", label: "Following" },
-  { key: "friends", label: "Friends" },
 ];
 
 const actionLabel = {
   followers: "Remove",
   following: "Unfollow",
-  friends: "Unfriend",
 };
 
 const Users = () => {
-  const [activeTab, setActiveTab] = useState("followers");
+  const [activeTab,    setActiveTab]    = useState("followers");
+  const [data,         setData]         = useState({ followers: [], following: [] });
+  const [loading,      setLoading]      = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [query, setQuery] = useState("");
-  const [hovered, setHovered] = useState(false);
+  const [query,        setQuery]        = useState("");
 
-  const list = data[activeTab].filter(
+  useEffect(() => {
+    fetchRelations();
+  }, []);
+
+  const fetchRelations = async () => {
+    setLoading(true);
+    try {
+      const [followersRes, followingRes] = await Promise.all([
+        api.get("/followers"),
+        api.get("/following"),
+      ]);
+      setData({
+        followers: followersRes.data.data || followersRes.data || [],
+        following: followingRes.data.data  || followingRes.data  || [],
+      });
+    } catch (err) {
+      console.error("Failed to fetch relations:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAction = async (userId) => {
+    try {
+      if (activeTab === "following") {
+        await api.delete(`/follow/${userId}`);
+        setData((prev) => ({
+          ...prev,
+          following: prev.following.filter((u) => u.id !== userId),
+        }));
+      } else {
+        await api.delete(`/followers/${userId}`);
+        setData((prev) => ({
+          ...prev,
+          followers: prev.followers.filter((u) => u.id !== userId),
+        }));
+      }
+    } catch (err) {
+      console.error("Action failed:", err);
+    }
+  };
+
+  const list = (data[activeTab] || []).filter(
     (u) =>
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.username.toLowerCase().includes(query.toLowerCase())
+      u.name?.toLowerCase().includes(query.toLowerCase()) ||
+      u.username?.toLowerCase().includes(query.toLowerCase())
   );
 
   return (
@@ -36,17 +72,14 @@ const Users = () => {
       <h1 className="admin-title">Relations</h1>
 
       <div className="tabs-row">
-        {tabs.map((tab) => (
+        {TABS.map((tab) => (
           <button
             key={tab.key}
             className={`tab-btn ${activeTab === tab.key ? "tab-active" : ""}`}
-            onClick={() => {
-              setActiveTab(tab.key);
-              setQuery("");
-            }}
+            onClick={() => { setActiveTab(tab.key); setQuery(""); }}
           >
             {tab.label}
-            <span className="tab-count">{data[tab.key].length}</span>
+            <span className="tab-count">{data[tab.key]?.length || 0}</span>
           </button>
         ))}
       </div>
@@ -58,60 +91,34 @@ const Users = () => {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
-        <button
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          className={`search-btn ${hovered ? "search-btn-hovered" : ""}`}
-        >
-          <svg
-            width="18"
-            height="18"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.35-4.35" />
-          </svg>
-          Search
-        </button>
       </div>
 
-      {/* List */}
       <div className="users-list">
-        {list.length === 0 ? (
+        {loading ? (
+          <p className="no-results">Loading...</p>
+        ) : list.length === 0 ? (
           <p className="no-results">No results found</p>
         ) : (
           list.map((user) => (
             <div key={user.id} className="user-card">
-              <div
-                className="avatar-wrap"
-                onClick={() => setSelectedUser(user)}
-              >
-                <img src={user.image} alt={user.name} className="user-avatar" />
-                <span
-                  className={`status-dot ${
-                    user.status === "Active" ? "dot-active" : "dot-inactive"
-                  }`}
-                />
+              <div className="avatar-wrap" onClick={() => setSelectedUser(user)}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#6c47ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700 }}>
+                  {user.name?.[0]?.toUpperCase() || "U"}
+                </div>
               </div>
 
               <div className="user-info" onClick={() => setSelectedUser(user)}>
                 <h3>{user.name}</h3>
                 <p>{user.username}</p>
-                <p className="user-id-label">{user.id}</p>
               </div>
 
-              <span
-                className={`role-tag ${
-                  user.role === "Doctor" ? "role-doctor" : "role-student"
-                }`}
-              >
+              <span className={`role-tag ${user.role === "doctor" ? "role-doctor" : "role-student"}`}>
                 {user.role}
               </span>
 
-              <button className="action-btn">{actionLabel[activeTab]}</button>
+              <button className="action-btn" onClick={() => handleAction(user.id)}>
+                {actionLabel[activeTab]}
+              </button>
             </div>
           ))
         )}
@@ -120,35 +127,21 @@ const Users = () => {
       {selectedUser && (
         <div className="modal-overlay" onClick={() => setSelectedUser(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="close-button"
-              onClick={() => setSelectedUser(null)}
-            >
-              ×
-            </button>
-
+            <button className="close-button" onClick={() => setSelectedUser(null)}>×</button>
             <div className="modal-header">
-              <img
-                src={selectedUser.image}
-                alt={selectedUser.name}
-                className="modal-image"
-              />
+              <div style={{ width: 64, height: 64, borderRadius: "50%", background: "#6c47ff", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 24, fontWeight: 700 }}>
+                {selectedUser.name?.[0]?.toUpperCase()}
+              </div>
               <div>
                 <h2>{selectedUser.name}</h2>
                 <p className="modal-username">{selectedUser.username}</p>
-                <p className="modal-id-label">{selectedUser.id}</p>
                 <span className="role-badge">{selectedUser.role}</span>
               </div>
             </div>
-
             <div className="info-grid">
               <div className="info-item">
                 <span>Email</span>
                 <p>{selectedUser.email}</p>
-              </div>
-              <div className="info-item">
-                <span>Phone</span>
-                <p>{selectedUser.phone}</p>
               </div>
             </div>
           </div>

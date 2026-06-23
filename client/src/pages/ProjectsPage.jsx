@@ -1,112 +1,47 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "../styles/ProjectsPage.css";
 import { FiSearch, FiX, FiUsers, FiUser, FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { MdOutlineSchool, MdOutlineCategory } from "react-icons/md";
+import api from "../api/axios";
 
-// ─── Constants ────────────────────────────────────────
-const COLLEGES = ["All Colleges","Faculty of Engineering","Faculty of Computing","Faculty of Arts"];
-const DEPARTMENTS = ["All Departments","Computer Science","Electrical Engineering","Software Engineering","Information Technology","Psychology"];
-const YEARS = ["All Academic Years","Year 1","Year 2","Year 3","Year 4"];
-const TYPES = ["All","Graduation","Research","Academic"];
-
+const TYPES   = ["All", "Graduation", "Research", "Academic"];
 const TYPE_COLORS = {
-  Graduation: { bg:"rgba(168,85,247,0.15)",  color:"#a855f7", border:"rgba(168,85,247,0.3)" },
-  Research:   { bg:"rgba(0,229,255,0.12)",    color:"#00e5ff", border:"rgba(0,229,255,0.3)" },
-  Academic:   { bg:"rgba(34,197,94,0.12)",    color:"#22c55e", border:"rgba(34,197,94,0.3)" },
+  Graduation: { bg: "rgba(168,85,247,0.15)", color: "#a855f7", border: "rgba(168,85,247,0.3)" },
+  Research:   { bg: "rgba(0,229,255,0.12)",  color: "#00e5ff", border: "rgba(0,229,255,0.3)" },
+  Academic:   { bg: "rgba(34,197,94,0.12)",  color: "#22c55e", border: "rgba(34,197,94,0.3)" },
 };
 const STATUS_COLORS = {
-  Active:    { color:"#22c55e", bg:"rgba(34,197,94,0.1)" },
-  Completed: { color:"#64748b", bg:"rgba(100,116,139,0.1)" },
+  idea:      { color: "#f59e0b", bg: "rgba(245,158,11,0.1)" },
+  prototype: { color: "#00e5ff", bg: "rgba(0,229,255,0.1)" },
+  mvp:       { color: "#a855f7", bg: "rgba(168,85,247,0.1)" },
+  launched:  { color: "#22c55e", bg: "rgba(34,197,94,0.1)" },
 };
-const AVATAR_COLORS = ["#a855f7","#00e5ff","#f87171","#fbbf24","#34d399","#60a5fa"];
 
-// ─── Current user ─────────────────────────────────────
-const CURRENT_USER_ID = 1;
-
-// ─── All available members ────────────────────────────
-const ALL_MEMBERS = [
-  { id:1, name:"Kareem Mohamed",  initials:"KM", dept:"Computer Science",       avatarColor:"#a855f7" },
-  { id:2, name:"Ayesha Khan",     initials:"AK", dept:"Computer Science",       avatarColor:"#00e5ff" },
-  { id:3, name:"Muhammad Ali",    initials:"MA", dept:"Electrical Engineering", avatarColor:"#f87171" },
-  { id:4, name:"Sara Ahmed",      initials:"SA", dept:"Software Engineering",   avatarColor:"#34d399" },
-  { id:5, name:"Usman Badar",     initials:"UB", dept:"Information Technology", avatarColor:"#fbbf24" },
-  { id:6, name:"Lina Hassan",     initials:"LH", dept:"Computer Science",       avatarColor:"#60a5fa" },
-  { id:7, name:"Omar Farouk",     initials:"OF", dept:"Software Engineering",   avatarColor:"#a78bfa" },
-];
-
-// ─── Seed projects ────────────────────────────────────
-const SEED_PROJECTS = [
-  { id:1, title:"AI-Powered Study Assistant",         type:"Graduation", college:"Faculty of Engineering",  dept:"Computer Science",       status:"Active",    memberIds:[1,2,3,4], leaderId:1, description:"An intelligent assistant that helps students manage study schedules using ML." },
-  { id:2, title:"Smart Attendance System",            type:"Research",   college:"Faculty of Engineering",  dept:"Electrical Engineering", status:"Active",    memberIds:[1,3],     leaderId:1, description:"Automated attendance tracking via facial recognition and IoT devices." },
-  { id:3, title:"Blockchain-Based Credential Verification", type:"Academic", college:"Faculty of Computing", dept:"Information Technology", status:"Completed", memberIds:[1],       leaderId:1, description:"Decentralised platform to verify academic credentials on-chain." },
-  { id:4, title:"E-Commerce Recommendation Engine",   type:"Research",   college:"Faculty of Computing",    dept:"Software Engineering",   status:"Active",    memberIds:[2,3,4,5,6,7], leaderId:2, description:"Collaborative filtering & content-based recommendations for e-commerce." },
-  { id:5, title:"IoT-Based Smart Home Automation",    type:"Graduation", college:"Faculty of Engineering",  dept:"Electrical Engineering", status:"Active",    memberIds:[3,5,6],   leaderId:3, description:"Smart home system integrating IoT sensors, voice control and mobile app." },
-  { id:6, title:"Impact of Social Media on Students", type:"Academic",   college:"Faculty of Arts",         dept:"Psychology",             status:"Completed", memberIds:[4],       leaderId:4, description:"Research study on social media effects on academic performance." },
-];
-
-// ─── Helpers ──────────────────────────────────────────
-function getMember(id) { return ALL_MEMBERS.find((m) => m.id === id); }
-
-function AvatarStack({ memberIds }) {
-  const shown = memberIds.slice(0, 3);
-  const extra = memberIds.length - 3;
-  if (memberIds.length === 1) {
-    const m = getMember(memberIds[0]);
-    return (
-      <div className="proj-avatars">
-        <div className="proj-avatar" style={{ background: m?.avatarColor }} />
-        <span className="proj-solo-label"><FiUser size={11}/> Solo</span>
-      </div>
-    );
-  }
-  return (
-    <div className="proj-avatars">
-      {shown.map((id, i) => {
-        const m = getMember(id);
-        return (
-          <div key={id} className="proj-avatar" style={{ background: m?.avatarColor || AVATAR_COLORS[i], zIndex: 3 - i }} />
-        );
-      })}
-      {extra > 0 && <div className="proj-avatar proj-avatar-more">+{extra}</div>}
-    </div>
-  );
-}
-
-// ─── Project Card ─────────────────────────────────────
-function ProjectCard({ project, onView, onEdit, onDelete }) {
-  const ts = TYPE_COLORS[project.type] || {};
-  const ss = STATUS_COLORS[project.status] || {};
-  const isOwner = project.leaderId === CURRENT_USER_ID;
-
+function ProjectCard({ project, onView, onEdit, onDelete, isOwner }) {
+  const ts = TYPE_COLORS[project.category] || TYPE_COLORS["Academic"];
+  const ss = STATUS_COLORS[project.status] || STATUS_COLORS["idea"];
   return (
     <div className="proj-card">
       <div className="proj-card-top">
         <h4 className="proj-card-title">{project.title}</h4>
-        <span className="proj-type-badge" style={{ background:ts.bg, color:ts.color, border:`1px solid ${ts.border}` }}>
-          {project.type}
+        <span className="proj-type-badge" style={{ background: ts.bg, color: ts.color, border: `1px solid ${ts.border}` }}>
+          {project.category}
         </span>
       </div>
-
-      <AvatarStack memberIds={project.memberIds} />
-
-      <div className="proj-meta">
-        <span className="proj-meta-item"><MdOutlineSchool size={13}/> {project.college}</span>
-        <span className="proj-meta-item"><MdOutlineCategory size={13}/> {project.dept}</span>
-      </div>
-
+      <p style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 10 }}>{project.description}</p>
       <div className="proj-card-footer">
-        <span className="proj-status" style={{ color:ss.color, background:ss.bg }}>
-          <span className="proj-status-dot" style={{ background:ss.color }}/>
+        <span className="proj-status" style={{ color: ss.color, background: ss.bg }}>
+          <span className="proj-status-dot" style={{ background: ss.color }} />
           {project.status}
         </span>
         <div className="proj-card-actions">
-          <button className="proj-view-btn" style={{ borderColor:ts.border, color:ts.color }} onClick={() => onView(project)}>
+          <button className="proj-view-btn" style={{ borderColor: ts.border, color: ts.color }} onClick={() => onView(project)}>
             View
           </button>
           {isOwner && (
             <>
-              <button className="proj-icon-btn edit" title="Edit" onClick={() => onEdit(project)}><FiEdit2 size={13}/></button>
-              <button className="proj-icon-btn delete" title="Delete" onClick={() => onDelete(project)}><FiTrash2 size={13}/></button>
+              <button className="proj-icon-btn edit" onClick={() => onEdit(project)}><FiEdit2 size={13} /></button>
+              <button className="proj-icon-btn delete" onClick={() => onDelete(project)}><FiTrash2 size={13} /></button>
             </>
           )}
         </div>
@@ -115,42 +50,26 @@ function ProjectCard({ project, onView, onEdit, onDelete }) {
   );
 }
 
-// ─── New / Edit Modal ─────────────────────────────────
 function ProjectFormModal({ initial, onClose, onSave }) {
   const isEdit = !!initial;
   const [form, setForm] = useState(
-    initial
-      ? { ...initial }
-      : { title:"", type:"", college:"", dept:"", description:"", memberIds:[CURRENT_USER_ID], leaderId:CURRENT_USER_ID, status:"Active", mode:"Solo" }
+    initial || { title: "", category: "software", description: "", github_link: "", demo_url: "", required_funding: "", status: "idea" }
   );
-  const [memberSearch, setMemberSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const mode = form.memberIds?.length > 1 ? "Team" : "Solo";
-
-  const setMode = (m) => {
-    if (m === "Solo") setForm((f) => ({ ...f, memberIds:[CURRENT_USER_ID], leaderId:CURRENT_USER_ID }));
-    else setForm((f) => ({ ...f }));
-  };
-
-  const toggleMember = (id) => {
-    if (id === CURRENT_USER_ID) return;
-    setForm((f) => {
-      const has = f.memberIds.includes(id);
-      return { ...f, memberIds: has ? f.memberIds.filter((x) => x !== id) : [...f.memberIds, id] };
-    });
-  };
-
-  const descLen = form.description?.length || 0;
-
-  const filtered = ALL_MEMBERS.filter(
-    (m) => m.id !== CURRENT_USER_ID &&
-      (m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
-       m.dept.toLowerCase().includes(memberSearch.toLowerCase()))
-  );
-
-  const handleSave = () => {
-    if (!form.title.trim() || !form.type) return;
-    onSave(form);
+  const handleSave = async () => {
+    if (!form.title.trim()) return setError("Title is required.");
+    setLoading(true);
+    setError("");
+    try {
+      await onSave(form);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -158,192 +77,73 @@ function ProjectFormModal({ initial, onClose, onSave }) {
       <div className="proj-modal">
         <div className="proj-modal-header">
           <h3>{isEdit ? "Edit Project" : "New Project"}</h3>
-          <button className="proj-modal-close" onClick={onClose}><FiX/></button>
+          <button className="proj-modal-close" onClick={onClose}><FiX /></button>
         </div>
-
         <div className="proj-modal-body">
-          <label className="proj-modal-label">Project Name *</label>
-          <input className="proj-modal-input" placeholder="e.g. Kareem Mohamed's AI Research" value={form.title} onChange={(e) => setForm({ ...form, title:e.target.value })}/>
+          <label className="proj-modal-label">Project Title *</label>
+          <input className="proj-modal-input" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Project name" />
 
-          <label className="proj-modal-label">Project Type *</label>
-          <select className="proj-modal-select" value={form.type} onChange={(e) => setForm({ ...form, type:e.target.value })}>
-            <option value="">Select project type</option>
-            <option>Graduation</option>
-            <option>Research</option>
-            <option>Academic</option>
+          <label className="proj-modal-label">Category</label>
+          <select className="proj-modal-select" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
+            <option value="software">Software</option>
+            <option value="hardware">Hardware</option>
           </select>
 
-          <label className="proj-modal-label">College</label>
-          <select className="proj-modal-select" value={form.college} onChange={(e) => setForm({ ...form, college:e.target.value })}>
-            <option value="">Select college</option>
-            {COLLEGES.slice(1).map((c) => <option key={c}>{c}</option>)}
-          </select>
-
-          <label className="proj-modal-label">Department</label>
-          <select className="proj-modal-select" value={form.dept} onChange={(e) => setForm({ ...form, dept:e.target.value })}>
-            <option value="">Select department</option>
-            {DEPARTMENTS.slice(1).map((d) => <option key={d}>{d}</option>)}
-          </select>
-
-          <label className="proj-modal-label">Short Description</label>
-          <textarea className="proj-modal-textarea" placeholder="Briefly describe your project..." maxLength={300} value={form.description} onChange={(e) => setForm({ ...form, description:e.target.value })}/>
-          <div className="proj-modal-char">{descLen}/300</div>
+          <label className="proj-modal-label">Description</label>
+          <textarea className="proj-modal-textarea" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe your project..." maxLength={300} />
 
           <label className="proj-modal-label">Status</label>
-          <select className="proj-modal-select" value={form.status} onChange={(e) => setForm({ ...form, status:e.target.value })}>
-            <option>Active</option>
-            <option>Completed</option>
+          <select className="proj-modal-select" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+            <option value="idea">Idea</option>
+            <option value="prototype">Prototype</option>
+            <option value="mvp">MVP</option>
+            <option value="launched">Launched</option>
           </select>
 
-          <label className="proj-modal-label">Project Mode</label>
-          <div className="proj-type-toggle">
-            {["Solo","Team"].map((t) => (
-              <button key={t} className={`proj-type-btn ${mode === t ? "active" : ""}`} onClick={() => setMode(t)}>
-                {t === "Solo" ? <FiUser size={13}/> : <FiUsers size={13}/>} {t}
-              </button>
-            ))}
-          </div>
+          <label className="proj-modal-label">GitHub Link</label>
+          <input className="proj-modal-input" value={form.github_link} onChange={(e) => setForm({ ...form, github_link: e.target.value })} placeholder="https://github.com/..." />
 
-          {mode === "Team" && (
-            <>
-              <label className="proj-modal-label">Invite Members</label>
-              <div className="proj-search-wrap">
-                <FiSearch size={13} className="proj-search-icon"/>
-                <input className="proj-modal-input proj-search-input" placeholder="Search by name or department..." value={memberSearch} onChange={(e) => setMemberSearch(e.target.value)}/>
-              </div>
-              <div className="proj-members-list">
-                {filtered.map((m) => {
-                  const added = form.memberIds.includes(m.id);
-                  return (
-                    <div key={m.id} className="proj-member-row">
-                      <div className="proj-member-avatar" style={{ background:m.avatarColor }}>{m.initials}</div>
-                      <div className="proj-member-info">
-                        <span className="proj-member-name">{m.name}</span>
-                        <span className="proj-member-dept">{m.dept}</span>
-                      </div>
-                      <button className={`proj-member-add ${added ? "added" : ""}`} onClick={() => toggleMember(m.id)}>
-                        {added ? "✓" : "+"}
-                      </button>
-                    </div>
-                  );
-                })}
-                {filtered.length === 0 && <p className="proj-members-empty">No members found</p>}
-              </div>
-            </>
-          )}
+          <label className="proj-modal-label">Demo URL</label>
+          <input className="proj-modal-input" value={form.demo_url} onChange={(e) => setForm({ ...form, demo_url: e.target.value })} placeholder="https://..." />
+
+          <label className="proj-modal-label">Required Funding ($)</label>
+          <input className="proj-modal-input" type="number" value={form.required_funding} onChange={(e) => setForm({ ...form, required_funding: e.target.value })} placeholder="0" />
+
+          {error && <p style={{ color: "#f87171", fontSize: 13, marginTop: 8 }}>{error}</p>}
         </div>
-
         <div className="proj-modal-footer">
           <button className="proj-modal-cancel" onClick={onClose}>Cancel</button>
-          <button className="proj-modal-create" onClick={handleSave}>{isEdit ? "Save Changes" : "Create"}</button>
+          <button className="proj-modal-create" onClick={handleSave} disabled={loading}>
+            {loading ? "Saving..." : isEdit ? "Save Changes" : "Create"}
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── View / Manage Members Modal ──────────────────────
-function ViewModal({ project, onClose, onEdit, onUpdate }) {
-  const ts = TYPE_COLORS[project.type] || {};
-  const ss = STATUS_COLORS[project.status] || {};
-  const isOwner = project.leaderId === CURRENT_USER_ID;
-  const [addSearch, setAddSearch] = useState("");
-
-  const notInProject = ALL_MEMBERS.filter(
-    (m) => !project.memberIds.includes(m.id) &&
-      (m.name.toLowerCase().includes(addSearch.toLowerCase()) || m.dept.toLowerCase().includes(addSearch.toLowerCase()))
-  );
-
-  const setLeader = (id) => onUpdate({ ...project, leaderId:id });
-
-  const removeMember = (id) => {
-    if (id === project.leaderId) return;
-    onUpdate({ ...project, memberIds: project.memberIds.filter((x) => x !== id) });
-  };
-
-  const addMember = (id) => {
-    if (project.memberIds.includes(id)) return;
-    onUpdate({ ...project, memberIds:[...project.memberIds, id] });
-  };
-
+function ViewModal({ project, onClose, onEdit, isOwner }) {
+  const ts = TYPE_COLORS[project.category] || TYPE_COLORS["Academic"];
   return (
     <div className="proj-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="proj-modal proj-modal-wide">
         <div className="proj-modal-header">
-          <div>
-            <h3>{project.title}</h3>
-            <span className="proj-type-badge" style={{ background:ts.bg, color:ts.color, border:`1px solid ${ts.border}`, marginTop:4, display:"inline-block" }}>{project.type}</span>
-          </div>
-          <button className="proj-modal-close" onClick={onClose}><FiX/></button>
+          <h3>{project.title}</h3>
+          <button className="proj-modal-close" onClick={onClose}><FiX /></button>
         </div>
-
         <div className="proj-modal-body">
-          {project.description && <p className="proj-view-desc">{project.description}</p>}
-
+          <p className="proj-view-desc">{project.description}</p>
           <div className="proj-view-meta">
-            <span><MdOutlineSchool size={13}/> {project.college || "—"}</span>
-            <span><MdOutlineCategory size={13}/> {project.dept || "—"}</span>
-            <span className="proj-status" style={{ color:ss.color, background:ss.bg, padding:"3px 10px", borderRadius:6 }}>
-              <span className="proj-status-dot" style={{ background:ss.color }}/>{project.status}
-            </span>
+            <span><MdOutlineCategory size={13} /> {project.category}</span>
+            <span>Status: {project.status}</span>
+            {project.github_link && <a href={project.github_link} target="_blank" rel="noreferrer" style={{ color: "#00e5ff" }}>GitHub</a>}
+            {project.demo_url && <a href={project.demo_url} target="_blank" rel="noreferrer" style={{ color: "#a855f7" }}>Demo</a>}
           </div>
-
-          <h4 className="proj-view-section-title">Members ({project.memberIds.length})</h4>
-          <div className="proj-view-members">
-            {project.memberIds.map((id) => {
-              const m = getMember(id);
-              if (!m) return null;
-              const isLeader = id === project.leaderId;
-              return (
-                <div key={id} className="proj-view-member-row">
-                  <div className="proj-member-avatar" style={{ background:m.avatarColor }}>{m.initials}</div>
-                  <div className="proj-member-info">
-                    <span className="proj-member-name">
-                      {m.name} {isLeader && <span className="proj-leader-badge">👑 Leader</span>}
-                    </span>
-                    <span className="proj-member-dept">{m.dept}</span>
-                  </div>
-                  {isOwner && !isLeader && (
-                    <div className="proj-member-actions">
-                      <button className="proj-make-leader-btn" title="Make Leader" onClick={() => setLeader(id)}>👑</button>
-                      <button className="proj-remove-btn" title="Remove" onClick={() => removeMember(id)}><FiX size={12}/></button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {isOwner && (
-            <>
-              <h4 className="proj-view-section-title" style={{ marginTop:20 }}>Add Members</h4>
-              <div className="proj-search-wrap">
-                <FiSearch size={13} className="proj-search-icon"/>
-                <input className="proj-modal-input proj-search-input" placeholder="Search members to add..." value={addSearch} onChange={(e) => setAddSearch(e.target.value)}/>
-              </div>
-              <div className="proj-members-list" style={{ marginTop:8 }}>
-                {notInProject.length === 0
-                  ? <p className="proj-members-empty">{addSearch ? "No results" : "All available members are already in this project"}</p>
-                  : notInProject.map((m) => (
-                    <div key={m.id} className="proj-member-row">
-                      <div className="proj-member-avatar" style={{ background:m.avatarColor }}>{m.initials}</div>
-                      <div className="proj-member-info">
-                        <span className="proj-member-name">{m.name}</span>
-                        <span className="proj-member-dept">{m.dept}</span>
-                      </div>
-                      <button className="proj-member-add" onClick={() => addMember(m.id)}>+</button>
-                    </div>
-                  ))
-                }
-              </div>
-            </>
-          )}
         </div>
-
         <div className="proj-modal-footer">
           {isOwner && (
             <button className="proj-modal-edit-btn" onClick={() => { onClose(); onEdit(project); }}>
-              <FiEdit2 size={13}/> Edit Project
+              <FiEdit2 size={13} /> Edit
             </button>
           )}
           <button className="proj-modal-cancel" onClick={onClose}>Close</button>
@@ -353,189 +153,148 @@ function ViewModal({ project, onClose, onEdit, onUpdate }) {
   );
 }
 
-// ─── Delete Confirm Modal ─────────────────────────────
-function DeleteModal({ project, onClose, onConfirm }) {
-  return (
-    <div className="proj-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="proj-modal proj-modal-sm">
-        <div className="proj-modal-header">
-          <h3>Delete Project</h3>
-          <button className="proj-modal-close" onClick={onClose}><FiX/></button>
-        </div>
-        <div className="proj-modal-body" style={{ textAlign:"center" }}>
-          <div style={{ fontSize:"3rem", marginBottom:12 }}>🗑️</div>
-          <p style={{ color:"var(--sub)", fontSize:14, lineHeight:1.6 }}>
-            Are you sure you want to delete <strong style={{ color:"var(--text)" }}>"{project.title}"</strong>?<br/>This cannot be undone.
-          </p>
-        </div>
-        <div className="proj-modal-footer">
-          <button className="proj-modal-cancel" onClick={onClose}>Cancel</button>
-          <button className="proj-modal-delete-btn" onClick={() => { onConfirm(project.id); onClose(); }}>Delete</button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState(SEED_PROJECTS);
-  const [activeType, setActiveType] = useState("All");
-  const [college, setCollege] = useState("All Colleges");
-  const [dept, setDept] = useState("All Departments");
-  const [year, setYear] = useState("All Academic Years");
-  const [search, setSearch] = useState("");
-  const [toast, setToast] = useState(null);
-
-  const [modal, setModal] = useState(null); // null | { type, project? }
+  const [projects,    setProjects]    = useState([]);
+  const [myProjects,  setMyProjects]  = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [activeType,  setActiveType]  = useState("All");
+  const [search,      setSearch]      = useState("");
+  const [toast,       setToast]       = useState(null);
+  const [modal,       setModal]       = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const showToast = (msg, color = "#a855f7") => {
     setToast({ msg, color });
     setTimeout(() => setToast(null), 2500);
   };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [allRes, myRes, meRes] = await Promise.all([
+          api.get("/projects"),
+          api.get("/projects/my"),
+          api.get("/profile"),
+        ]);
+        setProjects(allRes.data.data || allRes.data || []);
+        setMyProjects(myRes.data.data || myRes.data || []);
+        setCurrentUser(meRes.data.id || meRes.data.data?.id);
+      } catch (err) {
+        console.error("Failed to fetch projects:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   const filter = (list) =>
     list.filter((p) => {
-      const matchType    = activeType === "All" || p.type === activeType;
-      const matchCollege = college === "All Colleges" || p.college === college;
-      const matchDept    = dept === "All Departments" || p.dept === dept;
-      const matchSearch  = !search || p.title.toLowerCase().includes(search.toLowerCase());
-      return matchType && matchCollege && matchDept && matchSearch;
+      const matchType   = activeType === "All" || p.category?.toLowerCase() === activeType.toLowerCase();
+      const matchSearch = !search || p.title.toLowerCase().includes(search.toLowerCase());
+      return matchType && matchSearch;
     });
 
-  const myProjects  = filter(projects.filter((p) => p.memberIds.includes(CURRENT_USER_ID)));
-  const allProjects = filter(projects);
-
-  const saveProject = (form) => {
+  const saveProject = async (form) => {
     if (modal?.type === "edit") {
+      await api.put(`/projects/${form.id}`, form);
       setProjects((prev) => prev.map((p) => p.id === form.id ? { ...p, ...form } : p));
+      setMyProjects((prev) => prev.map((p) => p.id === form.id ? { ...p, ...form } : p));
       showToast("Project updated! ✏️", "#00e5ff");
     } else {
-      setProjects((prev) => [{ ...form, id: Date.now() }, ...prev]);
+      const res = await api.post("/projects", form);
+      const newProject = res.data.data || res.data;
+      setProjects((prev) => [newProject, ...prev]);
+      setMyProjects((prev) => [newProject, ...prev]);
       showToast("Project created! 🎉");
     }
-    setModal(null);
   };
 
-  const deleteProject = (id) => {
-    setProjects((prev) => prev.filter((p) => p.id !== id));
-    showToast("Project deleted.", "#f87171");
+  const deleteProject = async (id) => {
+    try {
+      await api.delete(`/projects/${id}`);
+      setProjects((prev) => prev.filter((p) => p.id !== id));
+      setMyProjects((prev) => prev.filter((p) => p.id !== id));
+      setModal(null);
+      showToast("Project deleted.", "#f87171");
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
   };
 
-  const updateProject = (updated) => {
-    setProjects((prev) => prev.map((p) => p.id === updated.id ? updated : p));
-    setModal((m) => m ? { ...m, project: updated } : m);
-  };
+  const filteredAll = filter(projects);
+  const filteredMy  = filter(myProjects);
 
-  const noResults = myProjects.length === 0 && allProjects.length === 0;
+  if (loading) return <div style={{ color: "#00e5ff", padding: "2rem", textAlign: "center" }}>Loading...</div>;
 
   return (
     <div className="projects-page">
       {toast && <div className="proj-toast" style={{ background: toast.color }}>{toast.msg}</div>}
 
-      {/* Header */}
       <div className="projects-header">
         <h1 className="projects-title">Projects</h1>
-        <button className="new-project-btn" onClick={() => setModal({ type:"new" })}>
-          <FiPlus size={16}/> New Project
+        <button className="new-project-btn" onClick={() => setModal({ type: "new" })}>
+          <FiPlus size={16} /> New Project
         </button>
       </div>
 
-      {/* Filters */}
       <div className="projects-filters">
         <div className="type-tabs">
           {TYPES.map((t) => (
             <button key={t} className={`type-tab ${activeType === t ? "active" : ""}`} onClick={() => setActiveType(t)}>{t}</button>
           ))}
         </div>
-        <select className="proj-filter-select" value={college} onChange={(e) => setCollege(e.target.value)}>
-          {COLLEGES.map((c) => <option key={c}>{c}</option>)}
-        </select>
-        <select className="proj-filter-select" value={dept} onChange={(e) => setDept(e.target.value)}>
-          {DEPARTMENTS.map((d) => <option key={d}>{d}</option>)}
-        </select>
-        <select className="proj-filter-select" value={year} onChange={(e) => setYear(e.target.value)}>
-          {YEARS.map((y) => <option key={y}>{y}</option>)}
-        </select>
         <div className="proj-search-bar">
-          <FiSearch size={13} className="proj-search-icon"/>
-          <input className="proj-search-input-bar" placeholder="Search by project or member..." value={search} onChange={(e) => setSearch(e.target.value)}/>
+          <FiSearch size={13} className="proj-search-icon" />
+          <input className="proj-search-input-bar" placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
 
-      {/* My Projects */}
-      {myProjects.length > 0 && (
+      {filteredMy.length > 0 && (
         <section className="projects-section">
-          <h2 className="projects-section-title">My Projects <span className="proj-count">({myProjects.length})</span></h2>
+          <h2 className="projects-section-title">My Projects <span className="proj-count">({filteredMy.length})</span></h2>
           <div className="projects-grid">
-            {myProjects.map((p) => (
-              <ProjectCard key={p.id} project={p}
-                onView={(proj) => setModal({ type:"view", project:proj })}
-                onEdit={(proj) => setModal({ type:"edit", project:proj })}
-                onDelete={(proj) => setModal({ type:"delete", project:proj })}
+            {filteredMy.map((p) => (
+              <ProjectCard key={p.id} project={p} isOwner={p.creator_id === currentUser}
+                onView={(proj) => setModal({ type: "view", project: proj })}
+                onEdit={(proj) => setModal({ type: "edit", project: proj })}
+                onDelete={(proj) => deleteProject(proj.id)}
               />
             ))}
           </div>
         </section>
       )}
 
-      {/* All Projects */}
-      {allProjects.length > 0 && (
+      {filteredAll.length > 0 && (
         <section className="projects-section">
-          <h2 className="projects-section-title">All Projects <span className="proj-count">({allProjects.length})</span></h2>
+          <h2 className="projects-section-title">All Projects <span className="proj-count">({filteredAll.length})</span></h2>
           <div className="projects-grid">
-            {allProjects.map((p) => (
-              <ProjectCard key={p.id} project={p}
-                onView={(proj) => setModal({ type:"view", project:proj })}
-                onEdit={(proj) => setModal({ type:"edit", project:proj })}
-                onDelete={(proj) => setModal({ type:"delete", project:proj })}
+            {filteredAll.map((p) => (
+              <ProjectCard key={p.id} project={p} isOwner={p.creator_id === currentUser}
+                onView={(proj) => setModal({ type: "view", project: proj })}
+                onEdit={(proj) => setModal({ type: "edit", project: proj })}
+                onDelete={(proj) => deleteProject(proj.id)}
               />
             ))}
           </div>
         </section>
       )}
 
-      {/* Empty */}
-      {noResults && search && (
-        <div className="proj-empty">
-          <div className="proj-empty-icon">🔍</div>
-          <p>No projects match your search</p>
-          <span>Try adjusting your filters or search query.</span>
-        </div>
-      )}
-      {noResults && !search && (
+      {filteredAll.length === 0 && (
         <div className="proj-empty">
           <div className="proj-empty-icon">📁</div>
-          <p>You haven't created or joined any projects yet</p>
-          <span>Start your first project or join with your peers.</span>
-          <button className="new-project-btn" style={{ marginTop:"1rem" }} onClick={() => setModal({ type:"new" })}>
-            <FiPlus size={14}/> New Project
+          <p>No projects found</p>
+          <button className="new-project-btn" style={{ marginTop: "1rem" }} onClick={() => setModal({ type: "new" })}>
+            <FiPlus size={14} /> New Project
           </button>
         </div>
       )}
 
-      {/* Modals */}
       {(modal?.type === "new" || modal?.type === "edit") && (
-        <ProjectFormModal
-          initial={modal.type === "edit" ? modal.project : null}
-          onClose={() => setModal(null)}
-          onSave={saveProject}
-        />
+        <ProjectFormModal initial={modal.type === "edit" ? modal.project : null} onClose={() => setModal(null)} onSave={saveProject} />
       )}
       {modal?.type === "view" && (
-        <ViewModal
-          project={modal.project}
-          onClose={() => setModal(null)}
-          onEdit={(proj) => setModal({ type:"edit", project:proj })}
-          onUpdate={updateProject}
-        />
-      )}
-      {modal?.type === "delete" && (
-        <DeleteModal
-          project={modal.project}
-          onClose={() => setModal(null)}
-          onConfirm={deleteProject}
-        />
+        <ViewModal project={modal.project} onClose={() => setModal(null)} onEdit={(proj) => setModal({ type: "edit", project: proj })} isOwner={modal.project?.creator_id === currentUser} />
       )}
     </div>
   );

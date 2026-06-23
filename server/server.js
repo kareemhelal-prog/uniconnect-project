@@ -20,7 +20,7 @@ const groupPostRoutes    = require("./routes/groupPostRoutes");
 const adminRoutes        = require("./routes/adminRoutes");
 const courseRoutes       = require("./routes/courseRoutes");
 const reviewRoutes       = require("./routes/reviewRoutes");
-const reportRoutes       = require("./routes/reportRoutes");
+const emailAlertsRoutes  = require("./routes/emailAlertsRoutes");
 
 const app = express();
 
@@ -45,8 +45,7 @@ app.use("/api/files",         fileRoutes);
 app.use("/api/admin",         adminRoutes);
 app.use("/api/courses",       courseRoutes);
 app.use("/api/reviews",       reviewRoutes);
-app.use("/api/reports",       reportRoutes);
-
+app.use("/api/admin/emails",  emailAlertsRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });
