@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import api from "../api/axios";
-import "./ActivityLogs.css";
+import "../styles/ActivityLogs.css";
 
 // إعدادات كل نوع عملية: لون الـ badge + أيقونة + الاسم المعروض
 const ACTION_CONFIG = {
