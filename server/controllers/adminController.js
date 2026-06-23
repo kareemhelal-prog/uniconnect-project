@@ -1,4 +1,5 @@
 const { promisePool } = require("../config/db");
+const { logActivity } = require("./activityLogController");
 const bcrypt = require("bcrypt");
 
 // =======================
@@ -98,47 +99,22 @@ exports.search = async (req, res) => {
 // =======================
 // USERS
 // =======================
-exports.getAllUsers = async (req, res) => {
+exports.deactivateUser = async (req, res) => {
   try {
     if (!isAdmin(req, res)) return;
 
     const [users] = await promisePool.query(
-      `SELECT id, name, email, username, role, is_active FROM Users`
+      "SELECT name FROM Users WHERE id = ?", [req.params.id]
     );
-
-    res.json({ success: true, users });
-
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
-};
-
-exports.deactivateUser = async (req, res) => {
-  try {
-    if (!isAdmin(req, res)) return;
 
     await promisePool.query(
       "UPDATE Users SET is_active = 0 WHERE id = ?",
       [req.params.id]
     );
 
+    await logActivity(req.user.id, "ban_user", users[0]?.name || `User #${req.params.id}`, "Banned account");
+
     res.json({ success: true, message: "User deactivated" });
-
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
-};
-
-exports.activateUser = async (req, res) => {
-  try {
-    if (!isAdmin(req, res)) return;
-
-    await promisePool.query(
-      "UPDATE Users SET is_active = 1 WHERE id = ?",
-      [req.params.id]
-    );
-
-    res.json({ success: true, message: "User activated" });
 
   } catch (error) {
     res.status(500).json({ success: false });
@@ -149,52 +125,18 @@ exports.deleteUser = async (req, res) => {
   try {
     if (!isAdmin(req, res)) return;
 
+    const [users] = await promisePool.query(
+      "SELECT name FROM Users WHERE id = ?", [req.params.id]
+    );
+
     await promisePool.query(
       "DELETE FROM Users WHERE id = ?",
       [req.params.id]
     );
 
+    await logActivity(req.user.id, "delete", users[0]?.name || `User #${req.params.id}`, "Deleted user account");
+
     res.json({ success: true, message: "User deleted" });
-
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
-};
-
-exports.changeUserRole = async (req, res) => {
-  try {
-    if (!isAdmin(req, res)) return;
-
-    const { role } = req.body;
-
-    await promisePool.query(
-      "UPDATE Users SET role = ? WHERE id = ?",
-      [role, req.params.id]
-    );
-
-    res.json({ success: true, message: "Role updated" });
-
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
-};
-
-exports.resetUserPassword = async (req, res) => {
-  try {
-    if (!isAdmin(req, res)) return;
-
-    const newPassword = Math.random().toString(36).slice(-8);
-    const hashed = await bcrypt.hash(newPassword, 10);
-
-    await promisePool.query(
-      "UPDATE Users SET password = ? WHERE id = ?",
-      [hashed, req.params.id]
-    );
-
-    res.json({
-      success: true,
-      newPassword
-    });
 
   } catch (error) {
     res.status(500).json({ success: false });
@@ -204,21 +146,6 @@ exports.resetUserPassword = async (req, res) => {
 // =======================
 // REPORTS
 // =======================
-exports.getAllReports = async (req, res) => {
-  try {
-    if (!isAdmin(req, res)) return;
-
-    const [reports] = await promisePool.query(
-      `SELECT * FROM Reports ORDER BY created_at DESC`
-    );
-
-    res.json({ success: true, reports });
-
-  } catch (error) {
-    res.status(500).json({ success: false });
-  }
-};
-
 exports.resolveReport = async (req, res) => {
   try {
     if (!isAdmin(req, res)) return;
@@ -227,6 +154,8 @@ exports.resolveReport = async (req, res) => {
       "UPDATE Reports SET status='resolved' WHERE id=?",
       [req.params.id]
     );
+
+    await logActivity(req.user.id, "resolve", `Report #${req.params.id}`, "Resolved report");
 
     res.json({ success: true });
 
@@ -244,6 +173,8 @@ exports.dismissReport = async (req, res) => {
       [req.params.id]
     );
 
+    await logActivity(req.user.id, "dismiss", `Report #${req.params.id}`, "Dismissed report as invalid");
+
     res.json({ success: true });
 
   } catch (error) {
@@ -260,6 +191,8 @@ exports.deleteReportedContent = async (req, res) => {
     if (content_type === "post") {
       await promisePool.query("DELETE FROM Posts WHERE id=?", [content_id]);
     }
+
+    await logActivity(req.user.id, "delete", `${content_type} #${content_id}`, `Deleted ${content_type}`);
 
     res.json({ success: true });
 

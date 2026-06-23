@@ -4,12 +4,14 @@ const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware');
 const roleMiddleware = require('../middleware/roleMiddleware');
 const adminController = require('../controllers/adminController');
+const { getActivityLogs } = require('../controllers/activityLogController');
 
 router.use(authMiddleware);
 router.use(roleMiddleware('admin'));
 
 router.get('/stats',                        adminController.getStats);
 router.get('/search',                       adminController.search);
+router.get('/activity-logs',                getActivityLogs);
 
 router.get('/users',                        adminController.getAllUsers);
 router.put('/users/:id/deactivate',         adminController.deactivateUser);
@@ -22,9 +24,5 @@ router.get('/reports',                      adminController.getAllReports);
 router.put('/reports/:id/resolve',          adminController.resolveReport);
 router.put('/reports/:id/dismiss',          adminController.dismissReport);
 router.delete('/reports/:id/content',       adminController.deleteReportedContent);
-
-router.get('/announcements',                adminController.getAllAnnouncements);
-router.post('/announcements',               adminController.createAnnouncement);
-router.delete('/announcements/:id',         adminController.deleteAnnouncement);
 
 module.exports = router;
