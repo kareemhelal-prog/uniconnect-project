@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
@@ -68,6 +69,7 @@ function renderPage(page, user, setUser) {
 // PostCard
 // ══════════════════════════════════════════════
 function PostCard({ post, onUpdate, onDelete, currentUserId }) {
+  const navigate = useNavigate();
   const [liked,          setLiked]          = useState(post.liked  ?? false);
   const [shared,         setShared]         = useState(post.shared ?? false);
   const [showComments,   setShowComments]   = useState(false);
@@ -208,7 +210,13 @@ function PostCard({ post, onUpdate, onDelete, currentUserId }) {
           {post.avatar}
         </div>
         <div className="post-meta-info">
-          <h4 className="post-author">{post.author}</h4>
+          <h4
+            className="post-author"
+            style={{ cursor: post.user_id ? "pointer" : "default" }}
+            onClick={() => post.user_id && navigate(`/profile/${post.user_id}`)}
+          >
+            {post.author}
+          </h4>
           <span className="post-role">{post.role}</span>
           <span className="post-time">{post.time}</span>
         </div>

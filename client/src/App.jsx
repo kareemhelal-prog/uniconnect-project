@@ -55,13 +55,17 @@ function App() {
 
         {/* Protected Routes */}
         <Route path="/home"              element={<PrivateRoute><Home /></PrivateRoute>} />
+        <Route path="/Home"              element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/HomeDoctor"        element={<PrivateRoute><HomeDoctor /></PrivateRoute>} />
+        <Route path="/HomeInvestor"      element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/dashboard"         element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+        <Route path="/Dashboard"         element={<PrivateRoute><Dashboard /></PrivateRoute>} />
 
         {/* Profile */}
         <Route path="/profile"           element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/profile/:id"       element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/profile/edit"      element={<PrivateRoute><ProfileEdit /></PrivateRoute>} />
+        <Route path="/edit-profile"      element={<PrivateRoute><ProfileEdit /></PrivateRoute>} />
 
         {/* Groups */}
         <Route path="/groups"            element={<PrivateRoute><GroupsList /></PrivateRoute>} />

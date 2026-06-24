@@ -16,6 +16,10 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 const fileRoutes = require("./routes/fileRoutes");
 const groupPostRoutes = require("./routes/groupPostRoutes");
+const profileRoutes   = require("./routes/profileRoutes");
+const projectRoutes   = require("./routes/projectRoutes");
+const reviewRoutes    = require("./routes/reviewRoutes");
+const courseRoutes    = require("./routes/courseRoutes");
 const app = express();
 const adminRoutes = require("./routes/adminRoutes");
 
@@ -35,8 +39,12 @@ app.use("/api/follow",        followRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/groups", groupRoutes);
 app.use("/api/group-posts", groupPostRoutes);
-app.use("/api/files", fileRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/files",    fileRoutes);
+app.use("/api/profile",  profileRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/reviews",  reviewRoutes);
+app.use("/api/courses",  courseRoutes);
+app.use("/api/admin",    adminRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });
