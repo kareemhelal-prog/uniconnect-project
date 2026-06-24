@@ -118,18 +118,31 @@ export default function ProfilePage() {
 
     const fetchAll = async () => {
       try {
-        const profileUrl = profileId
-          ? `${BASE}/profile/${profileId}`
+        // If no profileId (own profile), try to get it from current user data
+        let resolvedProfileId = profileId;
+
+        // If visiting own profile via /profile/:id but we can also try /profile
+        const profileUrl = resolvedProfileId
+          ? `${BASE}/profile/${resolvedProfileId}`
           : `${BASE}/profile`;
 
         const res = await fetch(profileUrl, { headers: authH });
 
-        // Handle errors with descriptive messages
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          if (res.status === 401) throw new Error("انتهت جلسة تسجيل الدخول — سجل دخولك مرة أخرى");
-          if (res.status === 404) throw new Error("المستخدم غير موجود");
-          throw new Error(errData.detail || errData.message || "فشل تحميل الملف الشخصي");
+          // If own profile returns 404, token is stale → force re-login
+          if (res.status === 404 && !profileId) {
+            localStorage.removeItem("token");
+            navigate("/login");
+            return;
+          }
+          if (res.status === 401) {
+            localStorage.removeItem("token");
+            navigate("/login");
+            return;
+          }
+          if (res.status === 404) throw new Error("هذا المستخدم غير موجود أو تم حذف حسابه");
+          throw new Error(errData.detail || errData.message || "فشل تحميل الملف الشخصي — تأكد أن السيرفر شغال");
         }
 
         const data = await res.json();

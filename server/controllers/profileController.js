@@ -1,23 +1,18 @@
 const { promisePool } = require("../config/db");
 
-// Safe count helper — returns 0 if table/column issue
+// Returns 0 on any DB error — never throws
 async function safeCount(query, params) {
   try {
     const [[row]] = await promisePool.query(query, params);
-    return typeof row?.count === "number" ? row.count :
-           typeof row?.followers === "number" ? row.followers :
-           typeof row?.groups === "number" ? row.groups :
-           typeof row?.uploadedFiles === "number" ? row.uploadedFiles : 0;
+    const val = row?.count ?? row?.followers ?? row?.groups ?? row?.uploadedFiles ?? 0;
+    return typeof val === "number" ? val : Number(val) || 0;
   } catch { return 0; }
 }
 
-// =======================
-// GET MY PROFILE
-// =======================
-exports.getProfile = async (req, res) => {
+// Fetch user with a minimal safe query (no optional columns)
+async function fetchUserSafe(userId) {
   try {
-    const userId = req.user.id;
-
+    // Try full query first
     const [[user]] = await promisePool.query(
       `SELECT u.id, u.name, u.role,
               COALESCE(u.bio, '') AS bio,
@@ -28,19 +23,50 @@ exports.getProfile = async (req, res) => {
        WHERE u.id = ?`,
       [userId]
     );
+    return user || null;
+  } catch (fullErr) {
+    console.warn("⚠ Full profile query failed, trying minimal:", fullErr.message);
+    // Fallback: minimal query without optional columns
+    try {
+      const [[user]] = await promisePool.query(
+        `SELECT id, name, role FROM Users WHERE id = ?`,
+        [userId]
+      );
+      if (user) {
+        return { ...user, bio: "", profile_picture: "", faculty: null, major: null, academic_year: null };
+      }
+    } catch (minErr) {
+      console.error("❌ Minimal query also failed:", minErr.message);
+    }
+    return null;
+  }
+}
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+// =======================
+// GET MY PROFILE
+// =======================
+exports.getProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await fetchUserSafe(userId);
+
+    if (!user) {
+      console.error(`❌ User ${userId} not found in DB (token may be stale)`);
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const [posts] = await promisePool.query(
       `SELECT id, content AS text, created_at AS date
        FROM Posts WHERE user_id = ?
        ORDER BY created_at DESC`,
       [userId]
-    );
+    ).catch(() => [[]]);
 
-    const followers    = await safeCount("SELECT COUNT(*) AS count FROM Followers WHERE following_id = ?", [userId]);
-    const groups       = await safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?", [userId]);
-    const uploadedFiles= await safeCount("SELECT COUNT(*) AS count FROM Files WHERE uploader_id = ?", [userId]);
+    const [followers, groups, uploadedFiles] = await Promise.all([
+      safeCount("SELECT COUNT(*) AS count FROM Followers WHERE following_id = ?", [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?", [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Files WHERE uploader_id = ?", [userId]),
+    ]);
 
     res.json({ ...user, followers, groups, uploadedFiles, posts });
 
@@ -57,29 +83,29 @@ exports.getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const [[user]] = await promisePool.query(
-      `SELECT u.id, u.name, u.role,
-              COALESCE(u.bio, '') AS bio,
-              COALESCE(u.profile_picture, '') AS profile_picture,
-              ps.faculty, ps.major, ps.academic_year
-       FROM Users u
-       LEFT JOIN Profile_Studies ps ON ps.user_id = u.id
-       WHERE u.id = ?`,
-      [userId]
-    );
+    if (!userId || isNaN(Number(userId))) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
 
-    if (!user) return res.status(404).json({ message: "User not found" });
+    const user = await fetchUserSafe(userId);
+
+    if (!user) {
+      console.error(`❌ User ${userId} not found in DB`);
+      return res.status(404).json({ message: "User not found" });
+    }
 
     const [posts] = await promisePool.query(
       `SELECT id, content AS text, created_at AS date
        FROM Posts WHERE user_id = ?
        ORDER BY created_at DESC`,
       [userId]
-    );
+    ).catch(() => [[]]);
 
-    const followers    = await safeCount("SELECT COUNT(*) AS count FROM Followers WHERE following_id = ?", [userId]);
-    const groups       = await safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?", [userId]);
-    const uploadedFiles= await safeCount("SELECT COUNT(*) AS count FROM Files WHERE uploader_id = ?", [userId]);
+    const [followers, groups, uploadedFiles] = await Promise.all([
+      safeCount("SELECT COUNT(*) AS count FROM Followers WHERE following_id = ?", [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?", [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Files WHERE uploader_id = ?", [userId]),
+    ]);
 
     res.json({ ...user, followers, groups, uploadedFiles, posts });
 
