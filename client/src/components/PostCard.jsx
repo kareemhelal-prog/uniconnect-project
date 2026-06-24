@@ -20,11 +20,34 @@ function VerifiedBadge() {
   return <span className="verified-badge" title="Verified account">✓</span>;
 }
 
-function CommentItem({ comment, postId, navigate }) {
+function CommentItem({ comment, postId, onReply, navigate, depth = 0 }) {
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sending, setSending] = useState(false);
+
   const pic = resolveImg(comment.user?.profile_picture || "");
   const isVerified = comment.user?.role === "doctor" || comment.user?.role === "admin";
+
+  const submitReply = async () => {
+    if (!replyText.trim() || sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`${API_BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ post_id: postId, content: replyText.trim(), parent_id: comment.id }),
+      });
+      const data = await res.json();
+      onReply(comment.id, data);
+      setReplyText("");
+      setShowReplyInput(false);
+    } catch {} finally {
+      setSending(false);
+    }
+  };
+
   return (
-    <div className="comment-item">
+    <div className={`comment-item${depth > 0 ? " comment-reply" : ""}`}>
       <div
         className="comment-avatar-wrap"
         onClick={() => comment.user?.id && navigate(`/profile/${comment.user.id}`)}
@@ -37,6 +60,7 @@ function CommentItem({ comment, postId, navigate }) {
           {(comment.user?.name || "U").slice(0, 2).toUpperCase()}
         </span>
       </div>
+
       <div className="comment-bubble">
         <span
           className="comment-author clickable-name"
@@ -46,10 +70,48 @@ function CommentItem({ comment, postId, navigate }) {
           {isVerified && <VerifiedBadge />}
         </span>
         <p className="comment-text">{comment.content}</p>
-        <span className="comment-time">{new Date(comment.created_at).toLocaleString()}</span>
-        {comment.replies && comment.replies.map(r => (
-          <CommentItem key={r.id} comment={r} postId={postId} navigate={navigate} />
-        ))}
+        <div className="comment-footer">
+          <span className="comment-time">{new Date(comment.created_at).toLocaleString()}</span>
+          {depth === 0 && (
+            <button
+              className="reply-toggle-btn"
+              onClick={() => setShowReplyInput(s => !s)}
+            >
+              Reply
+            </button>
+          )}
+        </div>
+
+        {showReplyInput && (
+          <div className="reply-input-row">
+            <input
+              className="comment-input reply-input"
+              placeholder={`Reply to ${comment.user?.name || "comment"}...`}
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && submitReply()}
+              autoFocus
+            />
+            <button className="comment-send-btn" onClick={submitReply} disabled={sending}>
+              {sending ? "..." : "Send"}
+            </button>
+          </div>
+        )}
+
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="replies-list">
+            {comment.replies.map(r => (
+              <CommentItem
+                key={r.id}
+                comment={r}
+                postId={postId}
+                onReply={onReply}
+                navigate={navigate}
+                depth={depth + 1}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -106,9 +168,20 @@ const PostCard = ({ post, onUpdate }) => {
         body: JSON.stringify({ post_id: post.id, content: commentText.trim() }),
       });
       const data = await res.json();
-      setComments(prev => [...prev, data]);
+      setComments(prev => [...prev, { ...data, replies: data.replies || [] }]);
       setCommentText("");
     } catch {}
+  };
+
+  // Adds a reply to a specific parent comment by ID
+  const handleReply = (parentId, newReply) => {
+    setComments(prev =>
+      prev.map(c =>
+        c.id === parentId
+          ? { ...c, replies: [...(c.replies || []), { ...newReply, replies: [] }] }
+          : c
+      )
+    );
   };
 
   const handleFollow = async () => {
@@ -161,7 +234,7 @@ const PostCard = ({ post, onUpdate }) => {
           {postPic && !imgError
             ? <img src={postPic} alt="" className="post-avatar-img" onError={() => setImgError(true)} />
             : <span className="post-avatar-fallback" style={{ background: post.avatarColor || "#6c47ff" }}>
-                {(post.author || "U").slice(0, 2).toUpperCase()}
+                {(post.author || post.name || "U").slice(0, 2).toUpperCase()}
               </span>
           }
         </div>
@@ -235,7 +308,14 @@ const PostCard = ({ post, onUpdate }) => {
       {showComments && (
         <div className="comments-section">
           {comments.map(c => (
-            <CommentItem key={c.id} comment={c} postId={post.id} navigate={navigate} />
+            <CommentItem
+              key={c.id}
+              comment={c}
+              postId={post.id}
+              onReply={handleReply}
+              navigate={navigate}
+              depth={0}
+            />
           ))}
           <div className="comment-input-row">
             <input

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PostCard from "../components/PostCard";
 import "../styles/ProfilePage.css";
 
 const API = "http://localhost:5000/api";
@@ -98,58 +99,6 @@ function CoursesTab({ courses }) {
   );
 }
 
-function ProfilePostCard({ post }) {
-  const [liked, setLiked]   = useState(!!post.liked);
-  const [count, setCount]   = useState(Number(post.likes) || 0);
-  const pic = resolveImg(post.profile_picture || "");
-  const formattedDate = post.created_at
-    ? new Date(post.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
-    : "Unknown date";
-
-  const handleLike = async () => {
-    try {
-      await fetch(`${API}/likes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ post_id: post.id }),
-      });
-      setLiked(l => !l);
-      setCount(c => liked ? c - 1 : c + 1);
-    } catch {}
-  };
-
-  return (
-    <div className="pp-post-card">
-      <div className="pp-post-header">
-        <div className="pp-post-avatar-wrap">
-          {pic
-            ? <img src={pic} alt="" className="pp-post-avatar-img" onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
-            : null}
-          <span className="pp-post-avatar-fallback" style={{ display: pic ? "none" : "flex" }}>
-            {(post.name || "U").slice(0, 2).toUpperCase()}
-          </span>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <p className="pp-post-name">{post.name}</p>
-          <p className="pp-post-date" style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>
-            {post.role && <span style={{ textTransform: "capitalize", marginRight: 4 }}>{post.role}</span>}
-            · {formattedDate}
-          </p>
-        </div>
-        <button className="pp-post-menu" aria-label="Post options">⋯</button>
-      </div>
-      {post.title && <h4 className="pp-post-title">{post.title}</h4>}
-      <p className="pp-post-text">{post.content}</p>
-      <div className="pp-post-actions">
-        <button className={`pp-action-btn${liked ? " active" : ""}`} onClick={handleLike}>
-          <span>{liked ? "❤️" : "👍"}</span> Like ({count})
-        </button>
-        <button className="pp-action-btn"><span>💬</span> Comment ({post.comments_count || 0})</button>
-        <button className="pp-action-btn"><span>↗</span> Share</button>
-      </div>
-    </div>
-  );
-}
 
 export default function ProfilePage() {
   const { id } = useParams();
@@ -367,7 +316,16 @@ export default function ProfilePage() {
             <div className="pp-tab-content">
               {activeTab === "Posts" &&
                 (posts.length > 0
-                  ? posts.map(p => <ProfilePostCard key={p.id} post={p} />)
+                  ? posts.map(p => (
+                      <PostCard
+                        key={p.id}
+                        post={{ ...p, author: p.name, time: new Date(p.created_at).toLocaleString() }}
+                        onUpdate={updated => {
+                          if (updated._deleted) setPosts(prev => prev.filter(x => x.id !== updated.id));
+                          else setPosts(prev => prev.map(x => x.id === updated.id ? updated : x));
+                        }}
+                      />
+                    ))
                   : <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No posts yet.</p>
                 )}
               {activeTab === "Files"   && <FilesTab   files={files} />}

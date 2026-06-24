@@ -25,26 +25,17 @@ const authFetch = (url, options = {}) =>
     },
   });
 
-// ── حوّل بيانات البوست — يتعامل مع الشكل الجديد (name/role مباشرة) والقديم (user object) ──
+// Keep all raw fields so PostCard can use user_id, profile_picture, role, liked, nested comments
 const mapPost = (p) => ({
-  id: p.id,
+  ...p,
   author: p.name || p.user?.name || p.author_name || "Unknown",
   avatar: (p.name || p.user?.name || "U").slice(0, 2).toUpperCase(),
   avatarColor: "#a855f7",
-  role: p.role || p.user?.role || "",
   time: new Date(p.created_at).toLocaleString(),
   title: p.title || "",
   content: p.content || p.body || "",
-  likes: p.likes_count || 0,
+  likes: Number(p.likes || p.likes_count || 0),
   shares: 0,
-  comments: (p.comments || []).map((c) => ({
-    id: c.id,
-    author: c.user?.name || "Unknown",
-    avatar: (c.user?.name || "U").slice(0, 2).toUpperCase(),
-    avatarColor: "#00e5ff",
-    text: c.content || c.text || "",
-    time: new Date(c.created_at).toLocaleString(),
-  })),
 });
 
 function renderPage(page, user, setUser) {

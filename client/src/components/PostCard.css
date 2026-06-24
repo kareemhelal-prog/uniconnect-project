@@ -456,6 +456,62 @@
   opacity: 0.85;
 }
 
+/* ─── Reply UI ───────────────────────────── */
+.comment-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.reply-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.7;
+  transition: opacity 0.15s;
+}
+.reply-toggle-btn:hover {
+  opacity: 1;
+}
+
+.reply-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.reply-input {
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+}
+
+.replies-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 2px solid rgba(0, 229, 255, 0.15);
+  padding-left: 10px;
+}
+
+.comment-reply {
+  margin-top: 0;
+}
+
+.comment-reply .comment-avatar-wrap {
+  width: 28px;
+  height: 28px;
+}
+
+.comment-reply .comment-avatar-fallback {
+  font-size: 10px;
+}
+
 /* Animation */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(12px); }
