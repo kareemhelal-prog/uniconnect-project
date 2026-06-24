@@ -26,8 +26,8 @@ exports.createReview = async (req, res) => {
     }
 
     const [existing] = await promisePool.query(
-      SELECT * FROM Academic_Reviews
-       WHERE doctor_id = ? AND student_id = ?,
+      `SELECT * FROM Academic_Reviews
+       WHERE doctor_id = ? AND student_id = ?`,
       [doctor_id, req.user.id]
     );
 
@@ -38,9 +38,9 @@ exports.createReview = async (req, res) => {
     }
 
     const [result] = await promisePool.query(
-      INSERT INTO Academic_Reviews
+      `INSERT INTO Academic_Reviews
        (doctor_id, student_id, rating, comment, is_anonymous)
-       VALUES (?, ?, ?, ?, ?),
+       VALUES (?, ?, ?, ?, ?)`,
       [doctor_id, req.user.id, rating, comment, is_anonymous]
     );
 
@@ -64,7 +64,7 @@ exports.getReviewsByDoctor = async (req, res) => {
   try {
 
     const [reviews] = await promisePool.query(
-      SELECT
+      `SELECT
         Academic_Reviews.id,
         Academic_Reviews.rating,
         Academic_Reviews.comment,
@@ -78,7 +78,7 @@ exports.getReviewsByDoctor = async (req, res) => {
        FROM Academic_Reviews
        JOIN Users ON Academic_Reviews.student_id = Users.id
        WHERE Academic_Reviews.doctor_id = ?
-       ORDER BY Academic_Reviews.created_at DESC,
+       ORDER BY Academic_Reviews.created_at DESC`,
       [req.params.doctorId]
     );
 
@@ -102,7 +102,7 @@ exports.getAllReviewsAdmin = async (req, res) => {
   try {
 
     const [reviews] = await promisePool.query(
-      SELECT
+      `SELECT
         ar.id,
         ar.rating,
         ar.comment,
@@ -127,7 +127,7 @@ exports.getAllReviewsAdmin = async (req, res) => {
        LEFT JOIN Doctor_Profiles dp ON dp.user_id = d.id
        JOIN Users s ON ar.student_id = s.id
        LEFT JOIN Profile_Studies ps ON ps.user_id = s.id
-       ORDER BY ar.created_at DESC
+       ORDER BY ar.created_at DESC`
     );
 
     res.json({
@@ -150,7 +150,7 @@ exports.deleteReview = async (req, res) => {
   try {
 
     const [reviews] = await promisePool.query(
-      SELECT * FROM Academic_Reviews WHERE id = ?,
+      `SELECT * FROM Academic_Reviews WHERE id = ?`,
       [req.params.id]
     );
 
@@ -172,7 +172,7 @@ exports.deleteReview = async (req, res) => {
     }
 
     await promisePool.query(
-      DELETE FROM Academic_Reviews WHERE id = ?,
+      `DELETE FROM Academic_Reviews WHERE id = ?`,
       [req.params.id]
     );
 
