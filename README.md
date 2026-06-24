@@ -323,13 +323,7 @@ PUT    /api/admin/reports/:id
 
 | Name | Role |
 |---|---|
-| Alaa Samir | Lead Developer — Backend, Frontend, Database Design |
-
----
-
-## 📄 License
-
-This project was developed as an academic graduation project.
+| UniConnect | Lead Developer — Backend, Frontend, Database Design |
 
 ---
 
