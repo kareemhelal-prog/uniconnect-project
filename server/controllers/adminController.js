@@ -99,6 +99,60 @@ exports.search = async (req, res) => {
 // =======================
 // USERS
 // =======================
+exports.getAllUsers = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const page   = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit  = Math.max(parseInt(req.query.limit) || 10, 1);
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || "").trim();
+    const role   = (req.query.role || "").trim();
+
+    const where  = [];
+    const params = [];
+
+    if (search) {
+      where.push("(name LIKE ? OR username LIKE ? OR email LIKE ?)");
+      const term = `%${search}%`;
+      params.push(term, term, term);
+    }
+    if (role && role !== "all") {
+      where.push("role = ?");
+      params.push(role);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    const [[{ total }]] = await promisePool.query(
+      `SELECT COUNT(*) AS total FROM Users ${whereSql}`,
+      params
+    );
+
+    const [users] = await promisePool.query(
+      `SELECT id, name, email, username, role, is_active, profile_picture, created_at
+       FROM Users ${whereSql}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({
+      success: true,
+      users,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 exports.deactivateUser = async (req, res) => {
   try {
     if (!isAdmin(req, res)) return;
@@ -143,9 +197,100 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+exports.activateUser = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const [users] = await promisePool.query(
+      "SELECT name FROM Users WHERE id = ?", [req.params.id]
+    );
+
+    await promisePool.query(
+      "UPDATE Users SET is_active = 1 WHERE id = ?",
+      [req.params.id]
+    );
+
+    await logActivity(req.user.id, "unban_user", users[0]?.name || `User #${req.params.id}`, "Activated account");
+
+    res.json({ success: true, message: "User activated" });
+
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
+exports.changeUserRole = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const { role } = req.body;
+    const allowed = ["student", "doctor", "investor", "admin"];
+
+    if (!allowed.includes(role)) {
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
+
+    const [users] = await promisePool.query(
+      "SELECT name FROM Users WHERE id = ?", [req.params.id]
+    );
+
+    await promisePool.query(
+      "UPDATE Users SET role = ? WHERE id = ?",
+      [role, req.params.id]
+    );
+
+    await logActivity(req.user.id, "edit", users[0]?.name || `User #${req.params.id}`, `Changed role to ${role}`);
+
+    res.json({ success: true, message: "Role updated" });
+
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
+exports.resetUserPassword = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const newPassword = Math.random().toString(36).slice(-8);
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    const [users] = await promisePool.query(
+      "SELECT name FROM Users WHERE id = ?", [req.params.id]
+    );
+
+    await promisePool.query(
+      "UPDATE Users SET password = ? WHERE id = ?",
+      [hashed, req.params.id]
+    );
+
+    await logActivity(req.user.id, "edit", users[0]?.name || `User #${req.params.id}`, "Reset password");
+
+    res.json({ success: true, newPassword });
+
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
 // =======================
 // REPORTS
 // =======================
+exports.getAllReports = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const [reports] = await promisePool.query(
+      `SELECT * FROM Reports ORDER BY created_at DESC`
+    );
+
+    res.json({ success: true, reports });
+
+  } catch (error) {
+    res.status(500).json({ success: false });
+  }
+};
+
 exports.resolveReport = async (req, res) => {
   try {
     if (!isAdmin(req, res)) return;
