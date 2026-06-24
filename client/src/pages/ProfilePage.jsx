@@ -1,242 +1,195 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import "../styles/ProfilePage.css";
 
-const TABS = ["Posts", "Files", "Groups", "Courses"];
-
-function VerifiedBadge() {
-  return <span className="pp-verified" title="Verified">✓</span>;
-}
-
-function StatItem({ icon, value, label }) {
-  return (
-    <div className="pp-stat">
-      <span className="pp-stat-icon">{icon}</span>
-      <div>
-        <span className="pp-stat-value">
-          {typeof value === "number" ? value.toLocaleString() : value}
-        </span>
-        <span className="pp-stat-label">{label}</span>
-      </div>
-    </div>
-  );
-}
-
-function PostCard({ post, userName }) {
-  const [liked, setLiked] = useState(false);
-  return (
-    <div className="pp-post-card">
-      <div className="pp-post-header">
-        <div className="pp-post-avatar">
-          {userName ? userName.charAt(0).toUpperCase() : "?"}
-        </div>
-        <div>
-          <p className="pp-post-name">{userName}</p>
-          <p className="pp-post-date">
-            {new Date(post.date).toLocaleDateString("en-US", {
-              month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"
-            })}
-          </p>
-        </div>
-        <button className="pp-post-menu">⋯</button>
-      </div>
-      <p className="pp-post-text">{post.text}</p>
-      <div className="pp-post-actions">
-        <button
-          className={`pp-action-btn${liked ? " active" : ""}`}
-          onClick={() => setLiked(!liked)}
-        >
-          <span>👍</span> Like
-        </button>
-        <button className="pp-action-btn"><span>💬</span> Comment</button>
-        <button className="pp-action-btn"><span>↗</span> Share</button>
-        <button className="pp-action-btn pp-save-btn">🔖 Save</button>
-      </div>
-    </div>
-  );
-}
-
-function FilesTab({ files }) {
-  if (!files || files.length === 0)
-    return <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No files uploaded yet.</p>;
-
-  const colors = ["#ef4444", "#f97316", "#3b82f6", "#22c55e", "#a855f7"];
-
-  return (
-    <div className="pp-files-list">
-      {files.map((f, i) => (
-        <div className="pp-file-row" key={i}>
-          <span className="pp-file-type" style={{ background: colors[i % colors.length] }}>
-            {f.file_type?.toUpperCase().slice(0, 3) || "FILE"}
-          </span>
-          <div className="pp-file-info">
-            <p className="pp-file-name">{f.file_name}</p>
-            <p className="pp-file-meta">{f.file_size ? `${(f.file_size / 1024).toFixed(1)} KB` : ""}</p>
-          </div>
-          <a href={f.file_url} target="_blank" rel="noreferrer">
-            <button className="pp-download-btn">⬇ Download</button>
-          </a>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function GroupsTab({ groups }) {
-  const colors = ["#6c47ff", "#22c55e", "#f59e0b", "#3b82f6", "#ec4899"];
-  if (!groups || groups.length === 0)
-    return <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No groups joined yet.</p>;
-
-  return (
-    <div className="pp-groups-grid">
-      {groups.map((g, i) => (
-        <div className="pp-group-card" key={i}>
-          <span className="pp-group-icon" style={{ background: colors[i % colors.length] }}>◈</span>
-          <div>
-            <p className="pp-group-name">{g.name}</p>
-            <p className="pp-group-members">{g.member_count || 0} members</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CoursesTab({ courses }) {
-  const colors = ["#6c47ff", "#22c55e", "#f59e0b", "#3b82f6"];
-  const icons = ["</>", "↑", "✦", "{}"];
-  if (!courses || courses.length === 0)
-    return <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No courses enrolled yet.</p>;
-
-  return (
-    <div className="pp-courses-grid">
-      {courses.map((c, i) => (
-        <div className="pp-course-card" key={i}>
-          <span className="pp-course-icon" style={{ background: colors[i % colors.length] }}>
-            {icons[i % icons.length]}
-          </span>
-          <div className="pp-course-info">
-            <p className="pp-course-name">{c.title}</p>
-            <p className="pp-course-code">{c.doctor_name}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// Helper: decode JWT payload to get current user id
 function getCurrentUserId() {
   try {
     const token = localStorage.getItem("token");
     if (!token) return null;
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.id;
-  } catch {
-    return null;
+    return JSON.parse(atob(token.split(".")[1])).id;
+  } catch { return null; }
+}
+
+function Avatar({ src, name, size = 120 }) {
+  const [err, setErr] = useState(false);
+  const letter = name ? name.trim().charAt(0).toUpperCase() : "?";
+  if (src && !err) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="pp-avatar"
+        style={{ width: size, height: size }}
+        onError={() => setErr(true)}
+      />
+    );
   }
+  return (
+    <div className="pp-avatar-fallback" style={{ width: size, height: size, fontSize: size * 0.4 }}>
+      {letter}
+    </div>
+  );
+}
+
+function PostCard({ post, profile, currentUserId, onDelete }) {
+  const [liked, setLiked] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const token = localStorage.getItem("token");
+  const BASE = "http://localhost:5000/api";
+  const isOwner = String(currentUserId) === String(profile?.id);
+
+  const handleDelete = async () => {
+    if (!window.confirm("هل تريد حذف هذا المنشور؟")) return;
+    try {
+      await fetch(`${BASE}/posts/${post.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      onDelete(post.id);
+    } catch { alert("فشل الحذف، حاول مرة أخرى"); }
+    setShowMenu(false);
+  };
+
+  const dateStr = post.date
+    ? new Date(post.date).toLocaleDateString("ar-EG", {
+        year: "numeric", month: "short", day: "numeric",
+      })
+    : "";
+
+  return (
+    <div className="pp-post-card">
+      <div className="pp-post-header">
+        <Avatar src={profile?.profile_picture} name={profile?.name} size={44} />
+        <div className="pp-post-meta">
+          <span className="pp-post-author">{profile?.name || "مستخدم"}</span>
+          <span className="pp-post-date">{dateStr}</span>
+        </div>
+        {isOwner && (
+          <div className="pp-post-menu-wrap">
+            <button className="pp-post-menu-btn" onClick={() => setShowMenu(!showMenu)}>⋯</button>
+            {showMenu && (
+              <div className="pp-post-dropdown">
+                <button onClick={handleDelete}>🗑 حذف المنشور</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+      <p className="pp-post-text">{post.text}</p>
+      <div className="pp-post-actions">
+        <button className={`pp-action-btn${liked ? " liked" : ""}`} onClick={() => setLiked(!liked)}>
+          <span>👍</span> إعجاب
+        </button>
+        <button className="pp-action-btn"><span>💬</span> تعليق</button>
+        <button className="pp-action-btn"><span>↗</span> مشاركة</button>
+      </div>
+    </div>
+  );
 }
 
 export default function ProfilePage() {
   const { id } = useParams();
-  const [profile,    setProfile]    = useState(null);
-  const [files,      setFiles]      = useState([]);
-  const [groups,     setGroups]     = useState([]);
-  const [courses,    setCourses]    = useState([]);
-  const [activeTab,  setActiveTab]  = useState("Posts");
-  const [following,  setFollowing]  = useState(false);
-  const [followers,  setFollowers]  = useState(0);
-  const [followLoad, setFollowLoad] = useState(false);
-  const [loading,    setLoading]    = useState(true);
-
-  const token      = localStorage.getItem("token");
-  const currentUid = getCurrentUserId();
-  const profileId  = id || null;
-  const isOwnProfile = !profileId || String(currentUid) === String(profileId);
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+  const currentUserId = getCurrentUserId();
+  const profileId = id || null;
+  const isOwnProfile = !profileId || String(currentUserId) === String(profileId);
 
   const BASE = "http://localhost:5000/api";
   const authH = { Authorization: `Bearer ${token}` };
 
+  const [profile, setProfile] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [files, setFiles] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [following, setFollowing] = useState(false);
+  const [followers, setFollowers] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
+  const [followLoad, setFollowLoad] = useState(false);
+  const [activeTab, setActiveTab] = useState("posts");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
-    const fetchProfile = async () => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const fetchAll = async () => {
       try {
-        const url = profileId ? `${BASE}/profile/${profileId}` : `${BASE}/profile`;
-        const res = await fetch(url, { headers: authH });
+        const profileUrl = profileId
+          ? `${BASE}/profile/${profileId}`
+          : `${BASE}/profile`;
+
+        const res = await fetch(profileUrl, { headers: authH });
+        if (!res.ok) throw new Error("فشل تحميل الملف الشخصي");
         const data = await res.json();
+        if (cancelled) return;
+
+        const uid = profileId || data.id;
         setProfile(data);
-        setFollowers(data.followers || 0);
+        setPosts(data.posts || []);
+        setFollowers(typeof data.followers === "number" ? data.followers : 0);
+
+        // Parallel: follow-state + following-count + files + groups + courses
+        const [isFollowRes, followingCntRes, filesRes, groupsRes, coursesRes] = await Promise.all([
+          (!isOwnProfile && uid)
+            ? fetch(`${BASE}/follow/is-following/${uid}`, { headers: authH }).catch(() => null)
+            : null,
+          uid
+            ? fetch(`${BASE}/follow/following/${uid}`, { headers: authH }).catch(() => null)
+            : null,
+          fetch(`${BASE}/files`, { headers: authH }).catch(() => null),
+          fetch(`${BASE}/groups/my-groups`, { headers: authH }).catch(() => null),
+          fetch(`${BASE}/courses/my`, { headers: authH }).catch(() => null),
+        ]);
+
+        if (cancelled) return;
+
+        if (isFollowRes?.ok) {
+          const d = await isFollowRes.json();
+          setFollowing(d.isFollowing || false);
+        }
+        if (followingCntRes?.ok) {
+          const d = await followingCntRes.json();
+          setFollowingCount(typeof d.following === "number" ? d.following : 0);
+        }
+        if (filesRes?.ok) { const d = await filesRes.json(); setFiles(d.data || []); }
+        if (groupsRes?.ok) { const d = await groupsRes.json(); setGroups(d.data || []); }
+        if (coursesRes?.ok) { const d = await coursesRes.json(); setCourses(d.data || []); }
+
       } catch (err) {
-        console.error("Failed to fetch profile:", err);
+        if (!cancelled) setError(err.message);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
-    const fetchFollowState = async () => {
-      if (!profileId || isOwnProfile) return;
-      try {
-        const res = await fetch(`${BASE}/follow/is-following/${profileId}`, { headers: authH });
-        const data = await res.json();
-        setFollowing(data.isFollowing || false);
-      } catch {}
-    };
-
-    const fetchFiles = async () => {
-      try {
-        const res = await fetch(`${BASE}/files`, { headers: authH });
-        const data = await res.json();
-        setFiles(data.data || []);
-      } catch (err) {
-        console.error("Failed to fetch files:", err);
-      }
-    };
-
-    const fetchGroups = async () => {
-      try {
-        const res = await fetch(`${BASE}/groups/my-groups`, { headers: authH });
-        const data = await res.json();
-        setGroups(data.data || []);
-      } catch (err) {
-        console.error("Failed to fetch groups:", err);
-      }
-    };
-
-    const fetchCourses = async () => {
-      try {
-        const res = await fetch(`${BASE}/courses/my`, { headers: authH });
-        const data = await res.json();
-        setCourses(data.data || []);
-      } catch (err) {
-        console.error("Failed to fetch courses:", err);
-      }
-    };
-
-    fetchProfile();
-    fetchFollowState();
-    fetchFiles();
-    fetchGroups();
-    fetchCourses();
+    fetchAll();
+    return () => { cancelled = true; };
   }, [id]);
 
   const handleFollow = async () => {
     if (!profileId || followLoad) return;
     setFollowLoad(true);
-    const wasFollowing = following;
-    // تحديث فوري للزرار بدون تغيير العدد لحد ما السيرفر يرد
-    setFollowing(!wasFollowing);
+    const prev = following;
+    setFollowing(!prev);
     try {
-      await fetch(`${BASE}/follow`, {
+      const res = await fetch(`${BASE}/follow`, {
         method: "POST",
         headers: { ...authH, "Content-Type": "application/json" },
         body: JSON.stringify({ following_id: parseInt(profileId) }),
       });
-      // جيب العدد الحقيقي من السيرفر بعد الـ follow/unfollow
+      if (!res.ok) throw new Error();
+      // Fetch verified count from server
       const r = await fetch(`${BASE}/follow/followers/${profileId}`, { headers: authH });
-      const d = await r.json();
-      setFollowers(typeof d.followers === "number" ? d.followers : 0);
+      if (r.ok) {
+        const d = await r.json();
+        setFollowers(typeof d.followers === "number" ? d.followers : 0);
+      }
     } catch {
-      // rollback الزرار لو فشل
-      setFollowing(wasFollowing);
+      setFollowing(prev); // rollback on error
     } finally {
       setFollowLoad(false);
     }
@@ -244,164 +197,294 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "#00e5ff" }}>
-        Loading...
+      <div className="pp-loading">
+        <div className="pp-spinner" />
+        <span>جارٍ التحميل...</span>
       </div>
     );
   }
 
-  if (!profile) {
+  if (error || !profile) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", color: "rgba(255,255,255,0.5)" }}>
-        User not found.
+      <div className="pp-error">
+        <span className="pp-error-icon">⚠</span>
+        <p>{error || "المستخدم غير موجود"}</p>
+        <button onClick={() => navigate(-1)}>عودة</button>
       </div>
     );
   }
+
+  const displayName = profile.name || "مستخدم";
+  const roleLabel =
+    profile.role === "doctor" ? "دكتور" :
+    profile.role === "investor" ? "مستثمر" : "طالب";
+
+  const TABS = [
+    { key: "posts",   label: "المنشورات",    icon: "📝" },
+    { key: "about",   label: "نبذة عني",     icon: "ℹ" },
+    { key: "files",   label: "الملفات",      icon: "📁" },
+    { key: "groups",  label: "المجموعات",    icon: "👥" },
+    { key: "courses", label: "الكورسات",     icon: "📚" },
+  ];
 
   return (
     <div className="pp-root">
-      {/* Cover */}
+
+      {/* ═══ COVER ═══ */}
       <div className="pp-cover">
-        <div className="pp-cover-overlay" />
+        <div className="pp-cover-grid" />
+        <div className="pp-cover-glow" />
+        <div className="pp-cover-bottom-fade" />
+        {isOwnProfile && (
+          <button className="pp-cover-edit-btn" onClick={() => navigate("/edit-profile")}>
+            ✏ تعديل الغلاف
+          </button>
+        )}
       </div>
 
-      {/* Header */}
-      <div className="pp-header-wrap">
-        <div className="pp-header">
-          <div className="pp-avatar-wrap">
-            {profile.profile_picture ? (
-              <img
-                src={profile.profile_picture}
-                alt={profile.name}
-                className="pp-avatar"
-                onError={(e) => {
-                  e.target.style.display = "none";
-                  e.target.parentNode.querySelector(".pp-avatar-fallback").style.display = "flex";
-                }}
-              />
-            ) : null}
-            <div className="pp-avatar-fallback" style={{ display: profile.profile_picture ? "none" : "flex" }}>
-              👤
+      {/* ═══ HEADER ═══ */}
+      <div className="pp-header-section">
+        <div className="pp-header-inner">
+
+          {/* Top row: avatar + identity + actions */}
+          <div className="pp-top-row">
+            <div className="pp-avatar-wrap">
+              <Avatar src={profile.profile_picture} name={displayName} size={130} />
+              <span className="pp-online-dot" />
             </div>
-            <span className="pp-active-dot" />
-          </div>
 
-          <div className="pp-identity">
-            <h1 className="pp-name">{profile.name}</h1>
-            <p className="pp-title">{profile.role}</p>
-            <div className="pp-meta-row">
-              {profile.faculty && <span>🏛 {profile.faculty}</span>}
-              {profile.major && <span>💻 {profile.major}</span>}
-              {profile.academic_year && <span>📅 Year {profile.academic_year}</span>}
+            <div className="pp-identity">
+              <div className="pp-name-row">
+                <h1 className="pp-name">{displayName}</h1>
+                <span className={`pp-role-badge role-${profile.role}`}>{roleLabel}</span>
+              </div>
+              <div className="pp-meta-chips">
+                {profile.faculty && <span className="pp-chip">🏛 {profile.faculty}</span>}
+                {profile.major && <span className="pp-chip">💻 {profile.major}</span>}
+                {profile.academic_year && <span className="pp-chip">📅 السنة {profile.academic_year}</span>}
+              </div>
+              {profile.bio && <p className="pp-bio-preview">{profile.bio}</p>}
+            </div>
+
+            <div className="pp-action-group">
+              {isOwnProfile ? (
+                <button className="pp-btn pp-btn-edit" onClick={() => navigate("/edit-profile")}>
+                  ✏ تعديل الملف الشخصي
+                </button>
+              ) : (
+                <>
+                  <button
+                    className={`pp-btn pp-btn-follow${following ? " following" : ""}`}
+                    onClick={handleFollow}
+                    disabled={followLoad}
+                  >
+                    {followLoad ? "..." : following ? "✓ تتابعه" : "+ متابعة"}
+                  </button>
+                  <button className="pp-btn pp-btn-msg">💬 رسالة</button>
+                </>
+              )}
             </div>
           </div>
 
-          <div className="pp-cta-group">
-            {!isOwnProfile && (
-              <button
-                className={`pp-btn-follow${following ? " followed" : ""}`}
-                onClick={handleFollow}
-                disabled={followLoad}
-              >
-                {following ? "✓ Following" : "+ Follow"}
-              </button>
-            )}
+          {/* Stats row */}
+          <div className="pp-stats-bar">
+            <div className="pp-stat">
+              <span className="pp-stat-num">{followers.toLocaleString()}</span>
+              <span className="pp-stat-lbl">متابِع</span>
+            </div>
+            <div className="pp-stat-divider" />
+            <div className="pp-stat">
+              <span className="pp-stat-num">{followingCount.toLocaleString()}</span>
+              <span className="pp-stat-lbl">يتابع</span>
+            </div>
+            <div className="pp-stat-divider" />
+            <div className="pp-stat">
+              <span className="pp-stat-num">{posts.length}</span>
+              <span className="pp-stat-lbl">منشور</span>
+            </div>
+            <div className="pp-stat-divider" />
+            <div className="pp-stat">
+              <span className="pp-stat-num">{courses.length}</span>
+              <span className="pp-stat-lbl">كورس</span>
+            </div>
+            <div className="pp-stat-divider" />
+            <div className="pp-stat">
+              <span className="pp-stat-num">{files.length}</span>
+              <span className="pp-stat-lbl">ملف</span>
+            </div>
           </div>
-        </div>
 
-        {/* Stats */}
-        <div className="pp-stats-row">
-          <StatItem icon="👥" value={followers} label="Followers" />
-          <div className="pp-stats-divider" />
-          <StatItem icon="📚" value={courses.length} label="Courses" />
-          <div className="pp-stats-divider" />
-          <StatItem icon="🗂" value={profile.groups || 0} label="Groups" />
-          <div className="pp-stats-divider" />
-          <StatItem icon="📄" value={profile.uploadedFiles || 0} label="Files" />
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="pp-body">
-        <div className="pp-main">
+          {/* Tabs */}
           <nav className="pp-tabs">
             {TABS.map((t) => (
               <button
-                key={t}
-                className={`pp-tab${activeTab === t ? " active" : ""}`}
-                onClick={() => setActiveTab(t)}
+                key={t.key}
+                className={`pp-tab${activeTab === t.key ? " active" : ""}`}
+                onClick={() => setActiveTab(t.key)}
               >
-                {t}
+                <span className="pp-tab-icon">{t.icon}</span>
+                <span>{t.label}</span>
               </button>
             ))}
           </nav>
+        </div>
+      </div>
 
-          <div className="pp-tab-content">
-            {activeTab === "Posts" &&
-              (profile.posts?.length > 0
-                ? profile.posts.map((p) => <PostCard key={p.id} post={p} userName={profile.name} />)
-                : <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No posts yet.</p>
-              )}
-            {activeTab === "Files" && <FilesTab files={files} />}
-            {activeTab === "Groups" && <GroupsTab groups={groups} />}
-            {activeTab === "Courses" && <CoursesTab courses={courses} />}
-          </div>
+      {/* ═══ BODY ═══ */}
+      <div className="pp-body">
+
+        {/* Main content */}
+        <div className="pp-main">
+
+          {/* Posts tab */}
+          {activeTab === "posts" && (
+            posts.length === 0 ? (
+              <div className="pp-empty">
+                <span>📭</span>
+                <p>لا توجد منشورات بعد</p>
+                {isOwnProfile && (
+                  <small>انشر أول منشور لك من الصفحة الرئيسية</small>
+                )}
+              </div>
+            ) : (
+              posts.map((p) => (
+                <PostCard
+                  key={p.id}
+                  post={p}
+                  profile={profile}
+                  currentUserId={currentUserId}
+                  onDelete={(deletedId) => setPosts((prev) => prev.filter((x) => x.id !== deletedId))}
+                />
+              ))
+            )
+          )}
+
+          {/* About tab */}
+          {activeTab === "about" && (
+            <div className="pp-about-section">
+              <div className="pp-info-card">
+                <h3>نبذة عني</h3>
+                <p className="pp-about-bio">{profile.bio || "لم تتم إضافة نبذة شخصية بعد."}</p>
+              </div>
+              <div className="pp-info-card">
+                <h3>المعلومات الأكاديمية</h3>
+                <div className="pp-info-rows">
+                  <div className="pp-info-row"><span>🎓</span><b>الدور:</b><span>{roleLabel}</span></div>
+                  {profile.faculty && <div className="pp-info-row"><span>🏛</span><b>الكلية:</b><span>{profile.faculty}</span></div>}
+                  {profile.major && <div className="pp-info-row"><span>💻</span><b>التخصص:</b><span>{profile.major}</span></div>}
+                  {profile.academic_year && <div className="pp-info-row"><span>📅</span><b>السنة:</b><span>السنة {profile.academic_year}</span></div>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Files tab */}
+          {activeTab === "files" && (
+            files.length === 0 ? (
+              <div className="pp-empty"><span>📂</span><p>لا توجد ملفات</p></div>
+            ) : (
+              <div className="pp-files-list">
+                {files.map((f, i) => (
+                  <div className="pp-file-row" key={i}>
+                    <span className="pp-file-badge">{(f.file_type || "FILE").slice(0, 3).toUpperCase()}</span>
+                    <div className="pp-file-info">
+                      <p className="pp-file-name">{f.file_name}</p>
+                      <p className="pp-file-size">{f.file_size ? `${(f.file_size / 1024).toFixed(1)} KB` : ""}</p>
+                    </div>
+                    <a href={f.file_url} target="_blank" rel="noreferrer">
+                      <button className="pp-download-btn">⬇ تحميل</button>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* Groups tab */}
+          {activeTab === "groups" && (
+            groups.length === 0 ? (
+              <div className="pp-empty"><span>👥</span><p>لم ينضم لأي مجموعة بعد</p></div>
+            ) : (
+              <div className="pp-grid-2">
+                {groups.map((g, i) => (
+                  <div className="pp-group-card" key={i}>
+                    <div className="pp-group-icon">◈</div>
+                    <p className="pp-group-name">{g.name}</p>
+                    <p className="pp-group-members">{g.member_count || 0} عضو</p>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+
+          {/* Courses tab */}
+          {activeTab === "courses" && (
+            courses.length === 0 ? (
+              <div className="pp-empty"><span>📚</span><p>لا توجد كورسات مسجلة</p></div>
+            ) : (
+              <div className="pp-grid-2">
+                {courses.map((c, i) => (
+                  <div className="pp-course-card" key={i}>
+                    <div className="pp-course-icon">{["</>", "↑", "✦", "{}"][i % 4]}</div>
+                    <p className="pp-course-name">{c.title}</p>
+                    <p className="pp-course-doctor">{c.doctor_name}</p>
+                  </div>
+                ))}
+              </div>
+            )
+          )}
         </div>
 
         {/* Sidebar */}
         <aside className="pp-sidebar">
-          <section className="pp-sidebar-card">
-            <h3 className="pp-sidebar-title">ℹ About</h3>
-            <p className="pp-about-text">{profile.bio || "No bio added yet."}</p>
-            <div className="pp-about-grid">
-              <span className="pp-about-key">Role</span>
-              <span className="pp-about-val">{profile.role}</span>
-              {profile.faculty && <>
-                <span className="pp-about-key">Faculty</span>
-                <span className="pp-about-val">{profile.faculty}</span>
-              </>}
-              {profile.major && <>
-                <span className="pp-about-key">Major</span>
-                <span className="pp-about-val">{profile.major}</span>
-              </>}
-              {profile.academic_year && <>
-                <span className="pp-about-key">Year</span>
-                <span className="pp-about-val">Year {profile.academic_year}</span>
-              </>}
+          {/* About card */}
+          <div className="pp-sc">
+            <h3 className="pp-sc-title">ℹ نبذة</h3>
+            <p className="pp-sc-bio">{profile.bio || "لم تتم إضافة نبذة بعد."}</p>
+            <div className="pp-sc-details">
+              {profile.faculty && <p><span>🏛</span> {profile.faculty}</p>}
+              {profile.major && <p><span>💻</span> {profile.major}</p>}
+              {profile.academic_year && <p><span>📅</span> السنة {profile.academic_year}</p>}
+              <p><span>🎓</span> {roleLabel}</p>
             </div>
-          </section>
+            {isOwnProfile && (
+              <button className="pp-sc-edit-btn" onClick={() => navigate("/edit-profile")}>
+                ✏ تعديل الملف الشخصي
+              </button>
+            )}
+          </div>
 
-          <section className="pp-sidebar-card">
-            <div className="pp-sidebar-row-head">
-              <h3 className="pp-sidebar-title">👥 Groups</h3>
-            </div>
-            {groups.slice(0, 3).map((g, i) => (
-              <div className="pp-sg-item" key={i}>
-                <span className="pp-sg-icon" style={{ background: "#6c47ff" }}>◈</span>
-                <div>
-                  <p className="pp-sg-name">{g.name}</p>
-                  <p className="pp-sg-members">{g.member_count || 0} members</p>
-                </div>
-              </div>
-            ))}
-          </section>
-
-          <section className="pp-sidebar-card">
-            <div className="pp-sidebar-row-head">
-              <h3 className="pp-sidebar-title">📖 Courses</h3>
-            </div>
-            <div className="pp-sidebar-courses">
-              {courses.slice(0, 4).map((c, i) => (
-                <div className="pp-sc-item" key={i}>
-                  <span className="pp-sc-icon" style={{ background: "#6c47ff" }}>{"/>"}</span>
+          {/* Groups mini */}
+          {groups.length > 0 && (
+            <div className="pp-sc">
+              <h3 className="pp-sc-title">👥 المجموعات</h3>
+              {groups.slice(0, 4).map((g, i) => (
+                <div className="pp-sc-row" key={i}>
+                  <span className="pp-sc-icon">◈</span>
                   <div>
-                    <p className="pp-sc-name">{c.title}</p>
-                    <p className="pp-sc-code">{c.doctor_name}</p>
+                    <p className="pp-sc-name">{g.name}</p>
+                    <p className="pp-sc-sub">{g.member_count || 0} عضو</p>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          )}
+
+          {/* Courses mini */}
+          {courses.length > 0 && (
+            <div className="pp-sc">
+              <h3 className="pp-sc-title">📚 الكورسات</h3>
+              {courses.slice(0, 4).map((c, i) => (
+                <div className="pp-sc-row" key={i}>
+                  <span className="pp-sc-icon">{["</>", "↑", "✦", "{}"][i % 4]}</span>
+                  <div>
+                    <p className="pp-sc-name">{c.title}</p>
+                    <p className="pp-sc-sub">{c.doctor_name}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </aside>
       </div>
     </div>
