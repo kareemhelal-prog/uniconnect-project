@@ -103,7 +103,7 @@ function ProfilePostCard({ post }) {
   const [count, setCount]   = useState(Number(post.likes) || 0);
   const pic = resolveImg(post.profile_picture || "");
   const formattedDate = post.created_at
-    ? new Date(post.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
+    ? new Date(post.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })
     : "Unknown date";
 
   const handleLike = async () => {
@@ -129,9 +129,12 @@ function ProfilePostCard({ post }) {
             {(post.name || "U").slice(0, 2).toUpperCase()}
           </span>
         </div>
-        <div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <p className="pp-post-name">{post.name}</p>
-          <p className="pp-post-date">{formattedDate}</p>
+          <p className="pp-post-date" style={{ color: "rgba(255,255,255,0.35)", fontSize: 11 }}>
+            {post.role && <span style={{ textTransform: "capitalize", marginRight: 4 }}>{post.role}</span>}
+            · {formattedDate}
+          </p>
         </div>
         <button className="pp-post-menu" aria-label="Post options">⋯</button>
       </div>
