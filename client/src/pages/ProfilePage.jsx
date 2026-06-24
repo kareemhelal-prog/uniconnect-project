@@ -130,19 +130,9 @@ export default function ProfilePage() {
 
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
-          // If own profile returns 404, token is stale → force re-login
-          if (res.status === 404 && !profileId) {
-            localStorage.removeItem("token");
-            navigate("/login");
-            return;
-          }
-          if (res.status === 401) {
-            localStorage.removeItem("token");
-            navigate("/login");
-            return;
-          }
-          if (res.status === 404) throw new Error("هذا المستخدم غير موجود أو تم حذف حسابه");
-          throw new Error(errData.detail || errData.message || "فشل تحميل الملف الشخصي — تأكد أن السيرفر شغال");
+          if (res.status === 401) throw new Error("انتهت الجلسة — سجل دخولك مرة أخرى");
+          if (res.status === 404) throw new Error(profileId ? "هذا المستخدم غير موجود" : "تعذر تحميل ملفك الشخصي");
+          throw new Error(errData.detail || errData.message || "خطأ في السيرفر — تأكد أن السيرفر شغال");
         }
 
         const data = await res.json();
@@ -226,23 +216,22 @@ export default function ProfilePage() {
   }
 
   if (error || !profile) {
-    const isAuthError = error?.includes("جلسة");
+    const isAuth  = error?.includes("جلسة");
+    const isNotFound = error?.includes("غير موجود");
     return (
       <div className="pp-error">
-        <span className="pp-error-icon">{isAuthError ? "🔒" : "⚠"}</span>
-        <p>{error || "المستخدم غير موجود"}</p>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={() => navigate(-1)}>← عودة</button>
-          {isAuthError ? (
-            <button onClick={() => navigate("/login")} style={{ borderColor: "#00e5ff", color: "#00e5ff" }}>
-              تسجيل الدخول
-            </button>
-          ) : (
-            <button onClick={() => window.location.reload()} style={{ borderColor: "#00e5ff", color: "#00e5ff" }}>
-              إعادة المحاولة
-            </button>
-          )}
+        <span className="pp-error-icon">{isAuth ? "🔒" : isNotFound ? "👤" : "⚠"}</span>
+        <p className="pp-error-msg">{error || "تعذر تحميل الملف الشخصي"}</p>
+        <div className="pp-error-btns">
+          <button className="pp-err-btn" onClick={() => navigate(-1)}>← عودة</button>
+          {isAuth
+            ? <button className="pp-err-btn pp-err-btn-primary" onClick={() => navigate("/login")}>تسجيل الدخول</button>
+            : <button className="pp-err-btn pp-err-btn-primary" onClick={() => { setLoading(true); setError(null); window.location.reload(); }}>إعادة المحاولة</button>
+          }
         </div>
+        {!isAuth && !isNotFound && (
+          <p className="pp-error-hint">تأكد أن السيرفر شغال على port 5000</p>
+        )}
       </div>
     );
   }

@@ -9,10 +9,9 @@ async function safeCount(query, params) {
   } catch { return 0; }
 }
 
-// Fetch user with a minimal safe query (no optional columns)
+// Two-tier user fetch: full query → minimal query → null
 async function fetchUserSafe(userId) {
   try {
-    // Try full query first
     const [[user]] = await promisePool.query(
       `SELECT u.id, u.name, u.role,
               COALESCE(u.bio, '') AS bio,
@@ -23,23 +22,23 @@ async function fetchUserSafe(userId) {
        WHERE u.id = ?`,
       [userId]
     );
-    return user || null;
-  } catch (fullErr) {
-    console.warn("⚠ Full profile query failed, trying minimal:", fullErr.message);
-    // Fallback: minimal query without optional columns
-    try {
-      const [[user]] = await promisePool.query(
-        `SELECT id, name, role FROM Users WHERE id = ?`,
-        [userId]
-      );
-      if (user) {
-        return { ...user, bio: "", profile_picture: "", faculty: null, major: null, academic_year: null };
-      }
-    } catch (minErr) {
-      console.error("❌ Minimal query also failed:", minErr.message);
-    }
-    return null;
+    if (user) return user;
+  } catch (e1) {
+    console.warn("⚠ Full profile query failed:", e1.message);
   }
+
+  // Fallback: minimal query
+  try {
+    const [[user]] = await promisePool.query(
+      `SELECT id, name, role FROM Users WHERE id = ?`,
+      [userId]
+    );
+    if (user) return { ...user, bio: "", profile_picture: "", faculty: null, major: null, academic_year: null };
+  } catch (e2) {
+    console.error("❌ Minimal query failed:", e2.message);
+  }
+
+  return null;
 }
 
 // =======================
@@ -48,14 +47,32 @@ async function fetchUserSafe(userId) {
 exports.getProfile = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log(`📋 getProfile called for userId=${userId}`);
+
     const user = await fetchUserSafe(userId);
 
     if (!user) {
-      console.error(`❌ User ${userId} not found in DB (token may be stale)`);
-      return res.status(404).json({ message: "User not found" });
+      // Last resort: build a profile from the JWT data itself
+      // This prevents 404 loops when DB is inconsistent
+      console.warn(`⚠ User ${userId} not in DB — using JWT data as fallback`);
+      const fallback = {
+        id:              userId,
+        name:            req.user.email?.split("@")[0] || "مستخدم",
+        role:            req.user.role || "student",
+        bio:             "",
+        profile_picture: "",
+        faculty:         null,
+        major:           null,
+        academic_year:   null,
+        followers:       0,
+        groups:          0,
+        uploadedFiles:   0,
+        posts:           [],
+      };
+      return res.json(fallback);
     }
 
-    const [posts] = await promisePool.query(
+    const [postsResult] = await promisePool.query(
       `SELECT id, content AS text, created_at AS date
        FROM Posts WHERE user_id = ?
        ORDER BY created_at DESC`,
@@ -68,7 +85,7 @@ exports.getProfile = async (req, res) => {
       safeCount("SELECT COUNT(*) AS count FROM Files WHERE uploader_id = ?", [userId]),
     ]);
 
-    res.json({ ...user, followers, groups, uploadedFiles, posts });
+    res.json({ ...user, followers, groups, uploadedFiles, posts: postsResult });
 
   } catch (err) {
     console.error("❌ getProfile error:", err.message);
@@ -82,6 +99,7 @@ exports.getProfile = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
+    console.log(`📋 getUserById called for userId=${userId}`);
 
     if (!userId || isNaN(Number(userId))) {
       return res.status(400).json({ message: "Invalid user ID" });
@@ -90,11 +108,10 @@ exports.getUserById = async (req, res) => {
     const user = await fetchUserSafe(userId);
 
     if (!user) {
-      console.error(`❌ User ${userId} not found in DB`);
       return res.status(404).json({ message: "User not found" });
     }
 
-    const [posts] = await promisePool.query(
+    const [postsResult] = await promisePool.query(
       `SELECT id, content AS text, created_at AS date
        FROM Posts WHERE user_id = ?
        ORDER BY created_at DESC`,
@@ -107,7 +124,7 @@ exports.getUserById = async (req, res) => {
       safeCount("SELECT COUNT(*) AS count FROM Files WHERE uploader_id = ?", [userId]),
     ]);
 
-    res.json({ ...user, followers, groups, uploadedFiles, posts });
+    res.json({ ...user, followers, groups, uploadedFiles, posts: postsResult });
 
   } catch (err) {
     console.error("❌ getUserById error:", err.message);
