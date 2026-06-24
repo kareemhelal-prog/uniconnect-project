@@ -301,14 +301,20 @@ const Home = () => {
       .then((r) => r.json())
       .then((data) => {
         const u = data.user || data;
+        const pic = u.profile_picture || "";
         setUser({
           id: u.id,
           name: u.name || "User",
+          email: u.email || "",
           initials: (u.name || "U").slice(0, 2).toUpperCase(),
           role: u.role || "",
           dept: u.department || "",
           faculty: u.faculty || "",
           status: "online",
+          profile_picture: pic,
+          profilePic: pic.startsWith("data:") || pic.startsWith("http")
+            ? pic
+            : pic ? `http://localhost:5000/${pic.replace(/^\//, "")}` : "",
           stats: [
             { label: "Projects", value: 0 },
             { label: "Friends",  value: 0 },

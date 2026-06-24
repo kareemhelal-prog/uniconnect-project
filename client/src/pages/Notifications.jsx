@@ -58,7 +58,8 @@ export default function Notifications() {
       filter === "all" ||
       (filter === "unread" && !n.is_read) ||
       (filter === "read" && n.is_read);
-    const matchesSearch = n.message?.toLowerCase().includes(search.toLowerCase());
+    const fullText = `${n.sender_name || ""} ${n.message || ""}`.toLowerCase();
+    const matchesSearch = fullText.includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Navbar.css";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -33,14 +33,43 @@ const LAUNCHER_PAGES_DOCTOR = [
   { id: "reviews",   label: "Reviews",    icon: FiStar,  path: "/reviews" },
 ];
 
-function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) {
+function Navbar({ notifications = [], user: userProp = {}, searchValue, onSearchChange }) {
   const navigate = useNavigate();
   const location = useLocation();
 
   const token = localStorage.getItem("token");
   const role = token
-    ? JSON.parse(atob(token.split(".")[1])).role
+    ? (() => { try { return JSON.parse(atob(token.split(".")[1])).role; } catch { return "student"; } })()
     : "student";
+
+  const [selfUser, setSelfUser] = useState({});
+
+  useEffect(() => {
+    if (!token) return;
+    fetch("http://localhost:5000/api/users/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => {
+        const u = d.user || d;
+        const pic = u.profile_picture || "";
+        setSelfUser({
+          name:      u.name  || "",
+          email:     u.email || "",
+          initials:  (u.name || "U").slice(0, 2).toUpperCase(),
+          profilePic: pic.startsWith("data:") || pic.startsWith("http")
+            ? pic
+            : pic ? `http://localhost:5000/${pic.replace(/^\//, "")}` : "",
+        });
+      })
+      .catch(() => {});
+  }, [token]);
+
+  // Merge: selfUser base, then any non-empty userProp fields override
+  const user = {
+    ...selfUser,
+    ...Object.fromEntries(Object.entries(userProp).filter(([, v]) => v != null && v !== "")),
+  };
 
   const [bellRing,        setBellRing]        = useState(false);
   const [notifOpen,       setNotifOpen]       = useState(false);

@@ -22,6 +22,38 @@
   margin-bottom: 14px;
 }
 
+/* Avatar with image support */
+.post-avatar-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(0, 229, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+.post-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.post-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  color: white;
+  border-radius: 50%;
+}
+
+/* Keep old .post-avatar for any legacy usage */
 .post-avatar {
   width: 46px;
   height: 46px;
@@ -36,17 +68,193 @@
   border: 2px solid rgba(0, 229, 255, 0.2);
 }
 
+.post-meta-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.post-author-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.clickable-name {
+  cursor: pointer;
+}
+.clickable-name:hover {
+  color: var(--cyan);
+  text-decoration: underline;
+}
+
+.post-role {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
+.post-time {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Verified badge */
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00e5ff;
+  color: #0a0a1a;
+  font-size: 10px;
+  font-weight: 900;
+  margin-left: 3px;
+  flex-shrink: 0;
+}
+
+/* Post header right section */
+.post-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.post-follow-btn {
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--cyan);
+  background: transparent;
+  color: var(--cyan);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.post-follow-btn:hover {
+  background: rgba(0,229,255,0.1);
+}
+.post-follow-btn.following {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+.post-follow-btn.following:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239,68,68,0.08);
+}
+
+/* Post menu */
+.post-menu-wrap {
+  position: relative;
+}
+.post-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 130px;
+  z-index: 50;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.post-menu-dropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.post-menu-dropdown button:hover {
+  background: var(--bg3);
+}
+
+/* Edit area */
+.post-edit-textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 10px;
+  resize: vertical;
+  margin-top: 6px;
+}
+.post-edit-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.post-edit-save {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--cyan);
+  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.post-edit-cancel {
+  padding: 6px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* Stats row */
+.post-stats-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px 0 0;
+}
+.post-stat {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.post-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.post-content {
+  font-size: 13px;
+  color: var(--sub);
+  line-height: 1.65;
+}
+
+/* Legacy .post-meta */
 .post-meta {
   flex: 1;
 }
-
 .post-meta h4 {
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
   margin-bottom: 2px;
 }
-
 .post-meta span {
   font-size: 12px;
   color: var(--muted);
@@ -135,4 +343,121 @@
   background: rgba(34, 197, 94, 0.1);
   border-color: rgba(34, 197, 94, 0.3);
   color: var(--green);
+}
+
+/* ─── Comments ───────────────────────────── */
+.comments-section {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.comment-avatar-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: #6c47ff;
+}
+
+.comment-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.comment-avatar-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: white;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.comment-bubble {
+  background: var(--bg3);
+  border-radius: 12px;
+  padding: 8px 12px;
+  flex: 1;
+}
+
+.comment-author {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 4px;
+}
+
+.comment-text {
+  font-size: 13px;
+  color: var(--sub);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.comment-time {
+  font-size: 11px;
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.comment-input-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.comment-input {
+  flex: 1;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text);
+  font-size: 13px;
+  padding: 8px 14px;
+  outline: none;
+}
+.comment-input:focus {
+  border-color: var(--cyan);
+}
+
+.comment-send-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: none;
+  background: var(--cyan);
+  color: #000;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.comment-send-btn:hover {
+  opacity: 0.85;
+}
+
+/* Animation */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
