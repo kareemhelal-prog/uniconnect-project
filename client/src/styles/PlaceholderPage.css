@@ -1,0 +1,61 @@
+/* ===== Placeholder Page — UniConnect Dark Theme ===== */
+.placeholder-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 1.2rem;
+  animation: fadeInUp 0.5s ease both;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.placeholder-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 229, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #00e5ff;
+  font-size: 2rem;
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.15);
+  animation: pulse 3s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(0, 229, 255, 0.35);
+  }
+}
+
+.placeholder-title {
+  font-family: "Orbitron", monospace;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #00e5ff;
+  text-shadow: 0 0 30px rgba(0, 229, 255, 0.4);
+  letter-spacing: 2px;
+}
+
+.placeholder-sub {
+  font-family: "Rajdhani", sans-serif;
+  color: #4dd0e1;
+  font-size: 1rem;
+  letter-spacing: 1px;
+}

@@ -1,0 +1,342 @@
+.ar-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", sans-serif;
+  padding: 100px 32px 40px;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.ar-toast {
+  position: fixed; top: 100px; right: 28px; z-index: 9999;
+  color: #fff; font-weight: 700; font-size: 13px;
+  padding: 10px 20px; border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  animation: arToastIn 0.25s ease;
+  font-family: "Segoe UI", sans-serif;
+}
+@keyframes arToastIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.ar-title {
+  font-size: 28px; font-weight: 700;
+  margin-bottom: 28px; color: var(--text);
+}
+
+.ar-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+/* ── Sidebar ── */
+.ar-subjects { display: flex; flex-direction: column; gap: 6px; }
+
+.ar-subj-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--bg2);
+  cursor: pointer; transition: all 0.2s; text-align: left;
+  font-family: "Segoe UI", sans-serif;
+}
+.ar-subj-btn:hover { border-color: var(--sc, #a855f7); box-shadow: 0 0 10px rgba(0,0,0,0.15); }
+.ar-subj-active    { border-color: var(--sc, #a855f7) !important; background: rgba(168,85,247,0.08) !important; }
+
+.ar-doc-avatar-sm {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #fff;
+}
+.ar-doc-info { display: flex; flex-direction: column; gap: 1px; flex: 1; overflow: hidden; }
+.ar-subj-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ar-subj-code { font-size: 10px; color: var(--muted); }
+
+/* ── Skeleton ── */
+.ar-skeleton {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--border) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: arShimmer 1.4s infinite;
+  border-radius: 6px;
+}
+@keyframes arShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.ar-skeleton-btn    { pointer-events: none; opacity: 0.6; }
+.ar-skeleton-icon   { width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0; }
+.ar-skeleton-text   { height: 12px; width: 80%; margin-bottom: 4px; }
+.ar-skeleton-text-sm{ height: 10px; width: 50%; }
+.ar-skeleton-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; }
+.ar-skeleton-para   { height: 14px; width: 90%; margin-top: 8px; }
+
+/* ── Error Box ── */
+.ar-error-box {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.3);
+  border-radius: 10px; padding: 14px 16px; font-size: 13px; color: #f87171;
+}
+.ar-error-box p { margin: 0; }
+
+/* ── Main ── */
+.ar-main { display: flex; flex-direction: column; gap: 18px; }
+
+.ar-main-header { display: flex; align-items: flex-start; justify-content: space-between; }
+.ar-subj-title  { font-size: 20px; font-weight: 700; }
+.ar-avg         { font-size: 13px; color: var(--sub); margin-top: 4px; display: block; }
+
+/* ── Add Review ── */
+.ar-add-review {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.ar-add-footer {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ar-anon-label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 12px; color: var(--muted); cursor: pointer; user-select: none;
+}
+.ar-anon-check { accent-color: #a855f7; cursor: pointer; }
+
+/* ── Stars ── */
+.ar-stars { display: flex; gap: 3px; }
+.ar-star {
+  background: none; border: none; font-size: 22px;
+  cursor: pointer; color: var(--border); transition: color 0.15s;
+  padding: 0; line-height: 1;
+}
+.ar-star.filled { color: #fbbf24; }
+.ar-star:hover  { color: #fbbf24; }
+
+/* ── Textarea ── */
+.ar-textarea {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 13px; padding: 10px 12px; outline: none;
+  resize: vertical; font-family: "Segoe UI", sans-serif; transition: border-color 0.2s;
+  width: 100%; box-sizing: border-box;
+}
+.ar-textarea:focus { border-color: var(--cyan); }
+.ar-textarea::placeholder { color: var(--muted); }
+
+/* ── Submit ── */
+.ar-submit-btn {
+  background: var(--purple); border: none; border-radius: 8px;
+  color: #fff; font-size: 13px; font-weight: 700; padding: 9px 22px;
+  cursor: pointer; font-family: "Segoe UI", sans-serif; transition: all 0.2s;
+  box-shadow: 0 0 14px rgba(168,85,247,0.3);
+}
+.ar-submit-btn:hover:not(:disabled) { background: #9333ea; box-shadow: 0 0 20px rgba(168,85,247,0.5); }
+.ar-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+/* ── Reviews List ── */
+.ar-reviews-list { display: flex; flex-direction: column; gap: 12px; }
+.ar-empty {
+  text-align: center; color: var(--muted);
+  font-size: 13px; padding: 28px 0;
+}
+
+.ar-review-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; transition: border-color 0.2s;
+}
+.ar-review-card:hover { border-color: rgba(168,85,247,0.25); }
+
+.ar-review-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.ar-review-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.ar-review-meta  { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.ar-review-author{ font-size: 13px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.ar-review-date  { font-size: 11px; color: var(--muted); }
+.ar-review-text  { font-size: 13px; color: var(--sub); line-height: 1.6; margin: 0; }
+
+.ar-anon-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  background: rgba(100,116,139,0.2); color: #94a3b8;
+  border-radius: 20px;
+}
+
+.ar-review-actions { display: flex; gap: 5px; }
+.ar-action-btn {
+  width: 28px; height: 28px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg3);
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 13px; transition: all 0.2s;
+}
+.ar-action-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.ar-action-btn.del:hover:not(:disabled) {
+  background: rgba(248,113,113,0.1);
+  border-color: rgba(248,113,113,0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .ar-layout   { grid-template-columns: 1fr; }
+  .ar-subjects { flex-direction: row; overflow-x: auto; flex-wrap: nowrap; }
+  .ar-subj-btn { min-width: 160px; }
+  .ar-add-footer { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .ar-submit-btn { align-self: flex-end; }
+}
+/* ── Author link (name clickable) ── */
+.ar-author-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.ar-author-link:hover { color: #a855f7; text-decoration: underline; }
+
+/* ── Add review label ── */
+.ar-add-label { font-size: 13px; font-weight: 600; color: var(--text); margin: 0; }
+
+/* ── Edit form ── */
+.ar-edit-form {
+  display: flex; flex-direction: column; gap: 10px;
+  margin-top: 8px;
+}
+.ar-edit-btns {
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* ── Cancel button ── */
+.ar-cancel-btn {
+  background: var(--bg3); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-size: 13px; font-weight: 600; padding: 9px 18px;
+  cursor: pointer; font-family: "Segoe UI", sans-serif; transition: all 0.2s;
+}
+.ar-cancel-btn:hover { border-color: #a855f7; }
+
+/* ── Confirm dialog ── */
+.ar-confirm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 99999;
+}
+.ar-confirm-box {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 32px; max-width: 360px; width: 90%;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+  display: flex; flex-direction: column; gap: 20px;
+}
+.ar-confirm-msg {
+  font-size: 14px; color: var(--text); margin: 0; line-height: 1.6; text-align: center;
+}
+.ar-confirm-btns {
+  display: flex; gap: 10px; justify-content: center;
+}
+.ar-confirm-yes {
+  background: #f87171; border: none; border-radius: 8px;
+  color: #fff; font-size: 13px; font-weight: 700; padding: 9px 22px;
+  cursor: pointer; font-family: "Segoe UI", sans-serif; transition: all 0.2s;
+}
+.ar-confirm-yes:hover { background: #ef4444; }
+
+/* ── Fake / Sample badge ── */
+.ar-fake-card { opacity: 0.7; }
+.ar-fake-badge {
+  font-size: 10px; font-weight: 600; padding: 2px 7px;
+  background: rgba(251,191,36,0.15); color: #fbbf24;
+  border-radius: 20px;
+}
+
+/* ── Edit action button ── */
+.ar-action-btn.edit:hover:not(:disabled) {
+  background: rgba(168,85,247,0.1);
+  border-color: rgba(168,85,247,0.3);
+}
+/* ── Search Bar ── */
+.ar-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 10px;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.ar-search-wrap:focus-within {
+  border-color: #a855f7;
+  box-shadow: 0 0 0 3px rgba(168,85,247,0.15);
+}
+.ar-search-icon {
+  font-size: 13px;
+  margin-right: 6px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.ar-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+  padding: 9px 0;
+}
+.ar-search-input::placeholder { color: var(--muted); }
+.ar-search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+  line-height: 1;
+}
+.ar-search-clear:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+/* ── Toast Animation ── */
+.ar-toast-animated {
+  animation: arToastIn 0.3s cubic-bezier(0.34,1.56,0.64,1),
+             arToastOut 0.4s ease 2.1s forwards;
+}
+@keyframes arToastIn {
+  from { opacity: 0; transform: translateX(60px) scale(0.85); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+@keyframes arToastOut {
+  0%   { opacity: 1; transform: translateX(0) scale(1); }
+  60%  { opacity: 0.3; transform: translateX(20px) scale(1.05); }
+  100% { opacity: 0; transform: translateX(80px) scale(0.8); }
+}
+
+/* ── Confirm Dialog Animation ── */
+.ar-confirm-overlay-animated {
+  animation: arOverlayIn 0.25s ease forwards;
+}
+@keyframes arOverlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.ar-confirm-box-animated {
+  animation: arBoxIn 0.3s cubic-bezier(0.34,1.56,0.64,1) forwards;
+}
+@keyframes arBoxIn {
+  from { opacity: 0; transform: scale(0.75) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Button Hover Effects ── */
+.ar-btn-hover {
+  transition: transform 0.15s, box-shadow 0.15s !important;
+}
+.ar-btn-hover:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.2);
+}
+.ar-btn-hover:active:not(:disabled) {
+  transform: scale(0.95) translateY(0px);
+}

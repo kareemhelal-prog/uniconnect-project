@@ -1,0 +1,141 @@
+.create-group-page {
+  min-height: 100vh;
+  background: #0a0d1a;
+  background-image:
+    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(6, 182, 212, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 80% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 60%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 20px;
+  font-family: "Inter", sans-serif;
+}
+
+.create-group-card {
+  width: 100%;
+  max-width: 600px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 40px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+
+.create-group-card h1 {
+  font-size: 34px;
+  font-weight: 800;
+  margin-bottom: 10px;
+  color: #ffffff;
+}
+
+.create-group-card p {
+  color: rgba(255,255,255,0.55);
+  margin-bottom: 24px;
+  line-height: 1.7;
+}
+
+.form-error {
+  background: rgba(244,63,94,0.1);
+  border: 1px solid rgba(244,63,94,0.35);
+  color: #fca5a5;
+  font-size: 14px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.form-group {
+  margin-bottom: 22px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 10px;
+  color: #f1f5f9;
+  font-weight: 600;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.05);
+  color: white;
+  outline: none;
+  font-size: 15px;
+  font-family: inherit;
+  transition: 0.3s ease;
+}
+
+.form-group select {
+  cursor: pointer;
+}
+
+.form-group select option {
+  background: #0a0d1a;
+  color: white;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 3px rgba(6,182,212,0.15);
+}
+
+.form-group textarea {
+  resize: none;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+  color: rgba(255,255,255,0.75);
+}
+
+.create-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #06b6d4, #8b5cf6);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.create-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(6,182,212,0.35);
+}
+
+.create-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 480px) {
+  .form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}

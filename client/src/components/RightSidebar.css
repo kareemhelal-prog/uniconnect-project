@@ -1,0 +1,239 @@
+/* ─── Layout ────────────────────────────── */
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: sticky;
+  top: 88px;
+  height: fit-content;
+}
+
+/* ─── Section Title ─────────────────────── */
+.section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--sub);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* ─── Subjects ──────────────────────────── */
+.subjects-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.subject-card {
+  border-radius: 8px;
+  padding: 18px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: none;
+  border: 1px solid var(--card-color, #1e1e3a);
+  color: #888;
+}
+
+.subject-icon {
+  font-size: 22px;
+  color: var(--card-color, #888);
+}
+
+.subject-name {
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  color: inherit;
+  line-height: 1.4;
+  letter-spacing: 0.3px;
+}
+
+/* ─── Calendar ──────────────────────────── */
+.calendar-section {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.cal-arrow {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.cal-arrow:hover {
+  color: var(--cyan);
+}
+
+.cal-day-names {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 6px;
+}
+
+.cal-dname {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 2px 0;
+}
+
+/* ─── Calendar Grid ─────────────────────── */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+
+.cal-day {
+  text-align: center;
+  font-size: 12px;
+  color: var(--sub);
+  padding: 7px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.cal-day:hover:not(.muted):not(.selected) {
+  background: rgba(0, 229, 255, 0.1);
+  color: var(--cyan);
+}
+
+/* today — cyan ring */
+.cal-day.today {
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  color: var(--cyan);
+  font-weight: 700;
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.25);
+}
+
+/* important — red highlight (set by الجمعة) */
+.cal-day.important {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #f87171;
+  font-weight: 700;
+}
+
+/* selected — solid blue */
+.cal-day.selected {
+  background: #0ea5e9;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* muted — prev/next month days */
+.cal-day.muted {
+  color: var(--muted);
+  cursor: default;
+}
+
+/* ─── Table Controls ────────────────────── */
+.table-controls {
+  padding: 1.2rem 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.show-entries {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.show-entries select {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-family: "Rajdhani", sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.export-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: "Rajdhani", sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+.export-btn:hover {
+  background: var(--cyan-dim);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+}
+
+.export-btn.primary {
+  background: var(--cyan-dim);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.search-label {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-right: 8px;
+}
+
+.search-input {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-family: "Rajdhani", sans-serif;
+  font-size: 0.9rem;
+  outline: none;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.search-input:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.1);
+}

@@ -1,0 +1,227 @@
+:root {
+  --bg-color: #05070a;
+  --card-bg: #0d1117;
+  --primary-purple: #6236ff;
+  --text-main: #ffffff;
+  --text-muted: #8b949e;
+  --accent-blue: #4cc9f0;
+  --unread-dot: #8a2be2;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.notif-page {
+  background: #0a0d14;
+  color: var(--text-main);
+  font-family: "Inter", sans-serif;
+  min-height: 100vh;
+}
+
+/* Main Content */
+.main-content {
+  max-width: 850px;
+  margin: 40px auto;
+  padding: 0 20px;
+}
+
+.notif-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.page-title {
+  color: #6236ff;
+  margin: 0;
+}
+
+.mark-all-btn {
+  background: none;
+  border: 1px solid #6236ff;
+  color: #6236ff;
+  padding: 8px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  font-size: 13px;
+  transition: var(--transition);
+}
+
+.mark-all-btn:hover {
+  background: rgba(98, 54, 255, 0.1);
+}
+
+/* Filters */
+.filters {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 30px;
+}
+
+.filter-btn {
+  background: #161b22;
+  border: 1px solid #30363d;
+  color: var(--text-muted);
+  padding: 10px 25px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  font-family: "Inter", sans-serif;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-btn:hover {
+  border-color: #6236ff;
+  color: #fff;
+}
+
+.filter-btn.active {
+  background: var(--primary-purple);
+  color: white;
+  border-color: var(--primary-purple);
+  box-shadow: 0 10px 20px rgba(98, 54, 255, 0.2);
+}
+
+.filter-count {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* Notification Cards */
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notification-card {
+  background: var(--card-bg);
+  border: 1px solid #21262d;
+  border-radius: 16px;
+  padding: 18px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  cursor: pointer;
+  transition: var(--transition);
+  animation: slideIn 0.4s ease-out backwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-card:hover {
+  background: #1c2128;
+  transform: scale(1.01) translateX(5px);
+  border-color: #30363d;
+}
+
+.notification-card.unread {
+  border-left: 4px solid var(--primary-purple);
+  background: linear-gradient(
+    90deg,
+    rgba(98, 54, 255, 0.03) 0%,
+    rgba(13, 17, 23, 1) 100%
+  );
+}
+
+/* Avatar placeholder (initials) */
+.avatar-placeholder {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6236ff, #4cc9f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  border: 1px solid #30363d;
+}
+
+/* Action icons */
+.action-icon {
+  font-size: 20px;
+  min-width: 22px;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.notification-card:hover .action-icon {
+  transform: scale(1.3) rotate(10deg);
+}
+
+.icon-heart {
+  color: #ff4d6d;
+}
+.icon-comment {
+  color: #4cc9f0;
+}
+.icon-follow {
+  color: #6236ff;
+}
+
+/* Content */
+.content {
+  flex-grow: 1;
+}
+
+.content p {
+  margin: 0;
+  font-size: 15px;
+}
+
+.content p strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+.sub-text {
+  display: block;
+  color: var(--text-muted);
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.time-text {
+  color: #6e7681;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+}
+
+/* Unread dot */
+.unread-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--unread-dot);
+  border-radius: 50%;
+  box-shadow: 0 0 15px var(--unread-dot);
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+/* Empty State */
+.no-results {
+  text-align: center;
+  padding: 50px;
+  color: var(--text-muted);
+  font-size: 15px;
+}

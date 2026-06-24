@@ -1,0 +1,151 @@
+/* ── Background animation (bgBreath) ─────────────────── */
+.page-bg {
+  position: fixed;
+  inset: 0;
+  background: url("../assets/bg.png") center/cover;
+  animation: bgBreath 8s ease-in-out infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+.page-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.62);
+  z-index: 1;
+  pointer-events: none;
+}
+@keyframes bgBreath {
+  0%, 100% { opacity: 0.12; transform: scale(1); }
+  50%       { opacity: 0.78; transform: scale(1.05); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.otp-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    animation: fadeIn 0.6s ease forwards;
+    position: relative;
+    z-index: 2;
+}
+
+.otp-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to right, #050816, #12001f);
+    overflow: hidden;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+.otp-page .logo-container {
+    text-align: center;
+}
+
+.otp-page .logo {
+    width: 110px;
+    height: auto;
+    margin-bottom: 10px;
+    filter: drop-shadow(0 0 15px rgba(188, 58, 255, 0.6));
+}
+
+.otp-page .brand-name {
+    font-size: 28px;
+    font-weight: bold;
+    margin-top: 5px;
+    background: linear-gradient(to right, #00c6ff, #ff4ecd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.otp-page .card {
+    width: 400px;
+    padding: 40px;
+    border-radius: 25px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 20px rgba(0,198,255,0.2), 0 0 40px rgba(123,47,247,0.2);
+    text-align: center;
+    margin-top: 15px;
+}
+
+.otp-page h2 {
+    color: white;
+    margin-bottom: 10px;
+}
+
+.otp-page .subtitle {
+    color: #b8b8b8;
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+
+.otp-page input {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 20px;
+    border: none;
+    outline: none;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.08);
+    color: white;
+}
+
+.otp-page input::placeholder {
+    color: #aaa;
+}
+
+.otp-page button {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 30px;
+    background: linear-gradient(to right, #00c6ff, #ff4ecd);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.otp-page button:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 15px #00c6ff, 0 0 25px #ff4ecd;
+}
+
+.otp-page a {
+    display: block;
+    margin-top: 20px;
+    color: #ccc;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.otp-page a:hover {
+    color: white;
+}
+
+.otp-page .otp-boxes {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.otp-page .otp-boxes input {
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    font-size: 20px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: white;
+}
