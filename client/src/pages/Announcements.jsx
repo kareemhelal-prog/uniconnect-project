@@ -522,5 +522,3 @@ function ViewModal({ item, onClose }) {
     </Modal>
   );
 }
-
-      <div

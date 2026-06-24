@@ -6,6 +6,10 @@ const authController = require('../controllers/authController');
 const authProfileController = require('../controllers/authProfileController');
 const { authenticateToken } = require('../middleware/authMiddleware');
 
+// Auth
+router.post('/register', authController.register);
+router.post('/login',    authController.login);
+
 // Forgot Password / OTP / Reset
 router.post('/forgot-password', authController.forgotPassword);
 router.post('/verify-otp',      authController.verifyOtp);
