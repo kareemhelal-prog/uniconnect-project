@@ -1,4 +1,4 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
 
 const {
@@ -7,19 +7,19 @@ const {
   joinCourse
 } = require("../controllers/courseController");
 
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 // =======================
 // COURSES ROUTES
 // =======================
 
 // Create Course (Doctor only)
-router.post("/", authMiddleware, createCourse);
+router.post("/", authenticateToken, createCourse);
 
 // Get My Courses
-router.get("/my", authMiddleware, getMyCourses);
+router.get("/my", authenticateToken, getMyCourses);
 
 // Join Course (Student only)
-router.post("/:id/join", authMiddleware, joinCourse);
+router.post("/:id/join", authenticateToken, joinCourse);
 
 module.exports = router;
