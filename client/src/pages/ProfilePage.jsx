@@ -123,7 +123,15 @@ export default function ProfilePage() {
           : `${BASE}/profile`;
 
         const res = await fetch(profileUrl, { headers: authH });
-        if (!res.ok) throw new Error("فشل تحميل الملف الشخصي");
+
+        // Handle errors with descriptive messages
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          if (res.status === 401) throw new Error("انتهت جلسة تسجيل الدخول — سجل دخولك مرة أخرى");
+          if (res.status === 404) throw new Error("المستخدم غير موجود");
+          throw new Error(errData.detail || errData.message || "فشل تحميل الملف الشخصي");
+        }
+
         const data = await res.json();
         if (cancelled) return;
 
@@ -205,11 +213,23 @@ export default function ProfilePage() {
   }
 
   if (error || !profile) {
+    const isAuthError = error?.includes("جلسة");
     return (
       <div className="pp-error">
-        <span className="pp-error-icon">⚠</span>
+        <span className="pp-error-icon">{isAuthError ? "🔒" : "⚠"}</span>
         <p>{error || "المستخدم غير موجود"}</p>
-        <button onClick={() => navigate(-1)}>عودة</button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => navigate(-1)}>← عودة</button>
+          {isAuthError ? (
+            <button onClick={() => navigate("/login")} style={{ borderColor: "#00e5ff", color: "#00e5ff" }}>
+              تسجيل الدخول
+            </button>
+          ) : (
+            <button onClick={() => window.location.reload()} style={{ borderColor: "#00e5ff", color: "#00e5ff" }}>
+              إعادة المحاولة
+            </button>
+          )}
+        </div>
       </div>
     );
   }
