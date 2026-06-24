@@ -23,8 +23,9 @@ export default function Notifications() {
 
   const fetchNotifications = async () => {
     try {
-      const res = await axios.get("/api/notifications");
-      setNotifications(res.data);
+      const res = await axios.get("/notifications");
+      const list = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setNotifications(list);
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
     } finally {
@@ -34,7 +35,7 @@ export default function Notifications() {
 
   const handleCardClick = async (id) => {
     try {
-      await axios.put(`/api/notifications/${id}/read`);
+      await axios.patch(`/notifications/${id}/read`);
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
       );
@@ -45,7 +46,7 @@ export default function Notifications() {
 
   const markAllRead = async () => {
     try {
-      await axios.put("/api/notifications/read-all");
+      await axios.patch("/notifications/read-all");
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (err) {
       console.error("Failed to mark all as read:", err);

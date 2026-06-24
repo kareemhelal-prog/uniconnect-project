@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
@@ -11,7 +11,7 @@ import NotificationsPage from "./Notifications";
 
 import "../styles/Home.css";
 
-// ── Base URL — غيّرها لو السيرفر على port تاني ──
+// ── Base URL ──
 const API_BASE = "http://localhost:5000/api";
 
 // ── Helper: جيب الـ token من localStorage ──
@@ -30,102 +30,146 @@ const authFetch = (url, options = {}) =>
 
 // ── Helper: حوّل بيانات post من الـ API للشكل اللي الـ UI بيتوقعه ──
 const mapPost = (p) => ({
-  id: p.id,
-  author: p.user?.name || p.author_name || "Unknown",
-  avatar: (p.user?.name || "U").slice(0, 2).toUpperCase(),
+  id:          p.id,
+  author:      p.name || p.user?.name || p.author_name || "Unknown",
+  avatar:      (p.name || p.user?.name || "U").slice(0, 2).toUpperCase(),
   avatarColor: "#a855f7",
-  role: p.user?.role || "",
-  time: new Date(p.created_at).toLocaleString(),
-  title: p.title || "",
-  content: p.content || p.body || "",
-  likes: p.likes_count || 0,
-  shares: 0,
-  comments: (p.comments || []).map((c) => ({
-    id: c.id,
-    author: c.user?.name || "Unknown",
-    avatar: (c.user?.name || "U").slice(0, 2).toUpperCase(),
+  role:        p.user?.role || "",
+  time:        new Date(p.created_at).toLocaleString(),
+  title:       p.title || "",
+  content:     p.content || p.body || "",
+  // ✅ likes و liked بييجوا من الـ API بعد تعديل postController
+  likes:       p.likes       ?? p.likes_count ?? 0,
+  liked:       p.liked       ?? false,
+  shares:      p.shares      ?? 0,
+  shared:      p.shared      ?? false,
+  comments:    (p.comments   || []).map((c) => ({
+    id:          c.id,
+    author:      c.user?.name || "Unknown",
+    avatar:      (c.user?.name || "U").slice(0, 2).toUpperCase(),
     avatarColor: "#00e5ff",
-    text: c.content || c.text || "",
-    time: new Date(c.created_at).toLocaleString(),
+    text:        c.content || c.text || "",
+    time:        new Date(c.created_at).toLocaleString(),
   })),
 });
 
 // ── render الصفحات الفرعية ──
 function renderPage(page, user, setUser) {
   switch (page) {
-    case "profile":           return <ProfilePage user={user} setUser={setUser} />;
-    case "projects":          return <ProjectsPage />;
-    case "academic-reviews":  return <AcademicReviewsPage />;
-    case "notifications":     return <NotificationsPage />;
-    default:                  return null;
+    case "profile":          return <ProfilePage user={user} setUser={setUser} />;
+    case "projects":         return <ProjectsPage />;
+    case "academic-reviews": return <AcademicReviewsPage />;
+    case "notifications":    return <NotificationsPage />;
+    default:                 return null;
   }
 }
 
 // ══════════════════════════════════════════════
-// Post Card
+// PostCard
 // ══════════════════════════════════════════════
 function PostCard({ post, onUpdate }) {
-  const [liked, setLiked]               = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText]   = useState("");
-  const [showShareToast, setShowShareToast] = useState(false);
-  const [loading, setLoading]           = useState(false);
+  // ✅ FIX 1: بتبدأ بالقيمة الصح من الـ post (مش false دايمًا)
+  const [liked,          setLiked]          = useState(post.liked  ?? false);
+  // ✅ FIX 3: shared state عشان نمنع التكرار
+  const [shared,         setShared]         = useState(post.shared ?? false);
+  const [showComments,   setShowComments]   = useState(false);
+  const [commentText,    setCommentText]    = useState("");
+  const [likeLoading,    setLikeLoading]    = useState(false);
+  const [commentLoading, setCommentLoading] = useState(false);
+  // ✅ FIX 4: error state بدل console.error بس
+  const [error,          setError]          = useState(null);
 
   // ── Like / Unlike ──
-  const handleLike = async () => {
+  const handleLike = useCallback(async () => {
+    if (likeLoading) return; // منع double-click
+
+    const newLiked = !liked;
+    const newLikes = newLiked
+      ? (post.likes || 0) + 1
+      : Math.max((post.likes || 1) - 1, 0);
+
+    // ✅ FIX 2a: Optimistic update — الـ UI يتغير فورًا
+    setLiked(newLiked);
+    onUpdate?.({ ...post, liked: newLiked, likes: newLikes });
+    setLikeLoading(true);
+    setError(null);
+
     try {
+      // ✅ FIX 2b: السيرفر عنده toggleLike — POST دايمًا
       await authFetch(`${API_BASE}/likes`, {
         method: "POST",
         body: JSON.stringify({ post_id: post.id }),
       });
-      const newLiked = !liked;
-      setLiked(newLiked);
-      onUpdate({ ...post, likes: newLiked ? post.likes + 1 : post.likes - 1 });
     } catch (err) {
-      console.error("Like error:", err);
+      // ✅ FIX 2c: Rollback لو السيرفر فشل
+      setLiked(!newLiked);
+      onUpdate?.({ ...post, liked: !newLiked, likes: post.likes });
+      setError("تعذّر تنفيذ الإعجاب، حاول مجدداً.");
+    } finally {
+      setLikeLoading(false);
     }
-  };
+  }, [liked, likeLoading, post, onUpdate]);
 
   // ── Add Comment ──
-  const handleComment = async () => {
-    if (!commentText.trim()) return;
-    setLoading(true);
+  const handleComment = useCallback(async () => {
+    const trimmed = commentText.trim();
+    if (!trimmed || commentLoading) return;
+
+    setCommentLoading(true);
+    setError(null);
+
     try {
       const res = await authFetch(`${API_BASE}/comments`, {
         method: "POST",
-        body: JSON.stringify({ post_id: post.id, content: commentText.trim() }),
+        body: JSON.stringify({ post_id: post.id, content: trimmed }),
       });
+
+      if (!res.ok) throw new Error(`Server error: ${res.status}`);
+
       const data = await res.json();
+
       const newComment = {
-        id: data.id || Date.now(),
-        author: data.user?.name || "Me",
-        avatar: (data.user?.name || "Me").slice(0, 2).toUpperCase(),
+        id:          data.id,
+        author:      data.user?.name || "Me",
+        avatar:      (data.user?.name || "Me").slice(0, 2).toUpperCase(),
         avatarColor: "#a855f7",
-        text: commentText.trim(),
-        time: "Just now",
+        text:        data.content || trimmed,
+        time:        data.created_at ? new Date(data.created_at).toLocaleString() : "Just now",
       };
-      onUpdate({ ...post, comments: [...post.comments, newComment] });
+
+      // ✅ FIX 4b: بنمسح الـ input بس بعد ما ينجح
+      onUpdate?.({ ...post, comments: [...(post.comments || []), newComment] });
       setCommentText("");
     } catch (err) {
-      console.error("Comment error:", err);
+      // ✅ FIX 4c: error واضح للـ user والـ input مش بيتمسح
+      setError("تعذّر إضافة التعليق، حاول مجدداً.");
     } finally {
-      setLoading(false);
+      setCommentLoading(false);
     }
-  };
+  }, [commentText, commentLoading, post, onUpdate]);
 
-  // ── Share (local فقط — مفيش endpoint للـ share في الـ API) ──
-  const handleShare = () => {
-    setShowShareToast(true);
-    onUpdate({ ...post, shares: post.shares + 1 });
-    setTimeout(() => setShowShareToast(false), 2000);
-  };
+  // ── Share ──
+  // ✅ FIX 3: share مرة واحدة بس
+  const handleShare = useCallback(() => {
+    if (shared) return;
+    setShared(true);
+    onUpdate?.({ ...post, shares: (post.shares || 0) + 1 });
+  }, [shared, post, onUpdate]);
 
   return (
-    <div className="post-card">
-      {showShareToast && <div className="share-toast">🔗 Post shared!</div>}
+    <div className="post-card" data-post-id={post.id}>
 
+      {/* Error Banner */}
+      {error && (
+        <div className="post-error-banner" role="alert">
+          ⚠️ {error}
+          <button className="error-dismiss" onClick={() => setError(null)}>✕</button>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="post-header">
-        <div className="post-avatar-wrap" style={{ background: post.avatarColor }}>
+        <div className="post-avatar-wrap" style={{ background: post.avatarColor || "#a855f7" }}>
           {post.avatar}
         </div>
         <div className="post-meta-info">
@@ -133,45 +177,71 @@ function PostCard({ post, onUpdate }) {
           <span className="post-role">{post.role}</span>
           <span className="post-time">{post.time}</span>
         </div>
+        <button className="more-btn" aria-label="More options">•••</button>
       </div>
 
+      {/* Body */}
       <div className="post-body">
-        <h3 className="post-title">{post.title}</h3>
-        <p className="post-content">{post.content}</p>
+        {post.title   && <h3 className="post-title">{post.title}</h3>}
+        {post.content && <p className="post-content">{post.content}</p>}
       </div>
 
-      <div className="post-stats-row">
-        <span className="post-stat">{post.likes} likes</span>
-        <span className="post-stat">
-          {post.comments.length} comments · {post.shares} shares
-        </span>
-      </div>
+      {/* Stats */}
+      {((post.likes > 0) || (post.comments?.length > 0) || (post.shares > 0)) && (
+        <div className="post-stats-row">
+          {post.likes > 0 && (
+            <span className="post-stat">{post.likes} likes</span>
+          )}
+          {post.comments?.length > 0 && (
+            <span className="post-stat">{post.comments.length} comments</span>
+          )}
+          {post.shares > 0 && (
+            <span className="post-stat">{post.shares} shares</span>
+          )}
+        </div>
+      )}
 
       <div className="post-divider" />
 
+      {/* Actions */}
       <div className="post-actions">
         <button
           className={`action-btn like-btn ${liked ? "liked" : ""}`}
           onClick={handleLike}
+          disabled={likeLoading}
+          aria-label={liked ? "Unlike" : "Like"}
         >
-          {liked ? "❤️" : "🤍"} Like
+          {likeLoading ? "⏳" : liked ? "❤️" : "🤍"} Like
         </button>
+
         <button
           className="action-btn comment-btn"
-          onClick={() => setShowComments(!showComments)}
+          onClick={() => setShowComments((v) => !v)}
+          aria-expanded={showComments}
         >
           💬 Comment
         </button>
-        <button className="action-btn share-btn" onClick={handleShare}>
-          ↗ Share
+
+        {/* ✅ FIX 3: onClick موجود + بيتعطل بعد أول share */}
+        <button
+          className={`action-btn share-btn ${shared ? "shared" : ""}`}
+          onClick={handleShare}
+          disabled={shared}
+          aria-label={shared ? "Already shared" : "Share"}
+        >
+          {shared ? "✅ Shared" : "↗ Share"}
         </button>
       </div>
 
+      {/* Comments Section */}
       {showComments && (
         <div className="comments-section">
-          {post.comments.map((c) => (
+          {(post.comments || []).map((c) => (
             <div key={c.id} className="comment-item">
-              <div className="comment-avatar" style={{ background: c.avatarColor }}>
+              <div
+                className="comment-avatar"
+                style={{ background: c.avatarColor || "#a855f7" }}
+              >
                 {c.avatar}
               </div>
               <div className="comment-bubble">
@@ -181,24 +251,24 @@ function PostCard({ post, onUpdate }) {
               </div>
             </div>
           ))}
+
           <div className="comment-input-row">
-            <div className="comment-avatar" style={{ background: "#a855f7" }}>
-              Me
-            </div>
+            <div className="comment-avatar" style={{ background: "#a855f7" }}>Me</div>
             <input
               className="comment-input"
               placeholder="Write a comment..."
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleComment()}
-              disabled={loading}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
+              disabled={commentLoading}
+              aria-label="Comment input"
             />
             <button
               className="comment-send-btn"
               onClick={handleComment}
-              disabled={loading}
+              disabled={commentLoading || !commentText.trim()}
             >
-              {loading ? "..." : "Send"}
+              {commentLoading ? "..." : "Send"}
             </button>
           </div>
         </div>
@@ -211,10 +281,10 @@ function PostCard({ post, onUpdate }) {
 // Create Post Modal
 // ══════════════════════════════════════════════
 function CreatePostModal({ onClose, onPost }) {
-  const [title, setTitle]     = useState("");
+  const [title,   setTitle]   = useState("");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [error,   setError]   = useState("");
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -224,7 +294,7 @@ function CreatePostModal({ onClose, onPost }) {
       const res = await authFetch(`${API_BASE}/posts`, {
         method: "POST",
         body: JSON.stringify({
-          title: title.trim() || "New Post",
+          title:   title.trim() || "New Post",
           content: content.trim(),
         }),
       });
@@ -295,13 +365,13 @@ function CreatePostModal({ onClose, onPost }) {
 // Home Component
 // ══════════════════════════════════════════════
 const Home = () => {
-  const [activePage, setActivePage]       = useState("home");
-  const [user, setUser]                   = useState(null);
-  const [posts, setPosts]                 = useState([]);
-  const [notifications, setNotifications] = useState([]);
+  const [activePage,     setActivePage]     = useState("home");
+  const [user,           setUser]           = useState(null);
+  const [posts,          setPosts]          = useState([]);
+  const [notifications,  setNotifications]  = useState([]);
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [loadingUser, setLoadingUser]     = useState(true);
-  const [loadingPosts, setLoadingPosts]   = useState(true);
+  const [loadingUser,    setLoadingUser]    = useState(true);
+  const [loadingPosts,   setLoadingPosts]   = useState(true);
 
   const isHome = activePage === "home";
 
@@ -310,16 +380,15 @@ const Home = () => {
     authFetch(`${API_BASE}/users/me`)
       .then((r) => r.json())
       .then((data) => {
-        // الـ API بيرجع { user: {...} }
         const u = data.user || data;
         setUser({
-          id: u.id,
-          name: u.name || u.full_name || "User",
+          id:       u.id,
+          name:     u.name || u.full_name || "User",
           initials: (u.name || "U").slice(0, 2).toUpperCase(),
-          role: u.role || "",
-          dept: u.department || "",
-          faculty: u.faculty || "",
-          status: "online",
+          role:     u.role       || "",
+          dept:     u.department || "",
+          faculty:  u.faculty    || "",
+          status:   "online",
           stats: [
             { label: "Projects", value: 0 },
             { label: "Friends",  value: 0 },
@@ -336,8 +405,8 @@ const Home = () => {
     authFetch(`${API_BASE}/posts`)
       .then((r) => r.json())
       .then((data) => {
-        // الـ API ممكن يرجع array أو { posts: [...] }
-        const list = Array.isArray(data) ? data : data.posts || [];
+        // ✅ الـ API بيرجع { message, data: [...] } بعد تعديل postController
+        const list = Array.isArray(data) ? data : data.data || data.posts || [];
         setPosts(list.map(mapPost));
       })
       .catch((err) => console.error("Fetch posts error:", err))
@@ -352,11 +421,11 @@ const Home = () => {
         const list = Array.isArray(data) ? data : data.notifications || [];
         setNotifications(
           list.map((n) => ({
-            id: n.id,
-            icon: "🔔",
-            title: n.title || n.message || "Notification",
-            body: n.body || "",
-            time: n.created_at ? new Date(n.created_at).toLocaleString() : "",
+            id:    n.id,
+            icon:  "🔔",
+            title: n.title   || n.message || "Notification",
+            body:  n.body    || "",
+            time:  n.created_at ? new Date(n.created_at).toLocaleString() : "",
           }))
         );
       })
@@ -368,7 +437,6 @@ const Home = () => {
 
   const addPost = (newPost) => setPosts((prev) => [newPost, ...prev]);
 
-  // ── Loading state ──
   if (loadingUser) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#00e5ff" }}>

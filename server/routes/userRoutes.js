@@ -12,10 +12,26 @@ router.use(authMiddleware);
 // =======================
 // GET CURRENT USER
 // =======================
-router.get("/me", (req, res) => {
-  res.json({
-    user: req.user
-  });
+router.get("/me", async (req, res) => {
+  try {
+    const { promisePool } = require("../config/db");
+    const [[user]] = await promisePool.query(
+      `SELECT u.id, u.name, u.username, u.email, u.role,
+              u.profile_picture, u.bio,
+              ps.faculty, ps.major, ps.academic_year,
+              dp.specialization AS doctor_specialization,
+              dp.faculty AS doctor_faculty
+       FROM Users u
+       LEFT JOIN Profile_Studies ps ON ps.user_id = u.id
+       LEFT JOIN Doctor_Profiles dp ON dp.user_id = u.id
+       WHERE u.id = ?`,
+      [req.user.id]
+    );
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ user });
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // =======================

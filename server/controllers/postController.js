@@ -18,10 +18,15 @@ exports.createPost = async (req, res) => {
       [req.user.id, title, content]
     );
 
-    res.status(201).json({
-      message: "Post created successfully",
-      postId: result.insertId
-    });
+    const [[newPost]] = await promisePool.query(
+      `SELECT Posts.*, Users.name, Users.username,
+        0 AS likes, 0 AS comments_count, FALSE AS liked
+       FROM Posts JOIN Users ON Posts.user_id = Users.id
+       WHERE Posts.id = ?`,
+      [result.insertId]
+    );
+
+    res.status(201).json(newPost);
 
   } catch (error) {
     res.status(500).json({
@@ -36,16 +41,66 @@ exports.createPost = async (req, res) => {
 // =======================
 exports.getAllPosts = async (req, res) => {
   try {
+    const userId = req.user.id; // ✅ عشان نعرف اليوزر ده عمل like ولا لأ
+
     const [posts] = await promisePool.query(
-      `SELECT Posts.*, Users.username, Users.name
+      `SELECT 
+        Posts.*,
+        Users.username,
+        Users.name,
+
+        -- ✅ عدد الـ likes
+        (SELECT COUNT(*) FROM Likes WHERE Likes.post_id = Posts.id) AS likes,
+
+        -- ✅ عدد الـ comments
+        (SELECT COUNT(*) FROM Comments WHERE Comments.post_id = Posts.id) AS comments_count,
+
+        -- ✅ هل اليوزر ده عمل like ولا لأ
+        EXISTS(
+          SELECT 1 FROM Likes
+          WHERE Likes.post_id = Posts.id AND Likes.user_id = ?
+        ) AS liked
+
        FROM Posts
        JOIN Users ON Posts.user_id = Users.id
-       ORDER BY Posts.created_at DESC`
+       ORDER BY Posts.created_at DESC`,
+      [userId]
     );
+
+    const formatted = posts.map(p => ({ ...p, liked: !!p.liked }));
+
+    // جيب الكومنتات لكل الـ posts دفعة واحدة
+    if (formatted.length > 0) {
+      const postIdList = formatted.map(p => p.id);
+      const [comments] = await promisePool.query(
+        `SELECT c.id, c.post_id, c.content, c.created_at,
+                u.id AS user_id, u.name AS user_name
+         FROM Comments c
+         JOIN Users u ON c.user_id = u.id
+         WHERE c.post_id IN (?)
+         ORDER BY c.created_at ASC`,
+        [postIdList]
+      );
+
+      const byPost = {};
+      for (const c of comments) {
+        if (!byPost[c.post_id]) byPost[c.post_id] = [];
+        byPost[c.post_id].push({
+          id:         c.id,
+          content:    c.content,
+          created_at: c.created_at,
+          user: { id: c.user_id, name: c.user_name },
+        });
+      }
+
+      for (const p of formatted) {
+        p.comments = byPost[p.id] || [];
+      }
+    }
 
     res.json({
       message: "Posts fetched successfully",
-      data: posts
+      data: formatted
     });
 
   } catch (error) {

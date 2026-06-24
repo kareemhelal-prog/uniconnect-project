@@ -137,10 +137,12 @@ export default function ProfilePage() {
 
   const token = localStorage.getItem("token");
 
+  const BASE = "http://localhost:5000/api";
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const url = id ? `/api/profile/${id}` : "/api/profile";
+        const url = id ? `${BASE}/profile/${id}` : `${BASE}/profile`;
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` }
         });
@@ -155,8 +157,7 @@ export default function ProfilePage() {
 
     const fetchFiles = async () => {
       try {
-        const userId = id || "me";
-        const res = await fetch(`/api/files?user=${userId}`, {
+        const res = await fetch(`${BASE}/files`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -168,7 +169,7 @@ export default function ProfilePage() {
 
     const fetchGroups = async () => {
       try {
-        const res = await fetch(`/api/groups/my`, {
+        const res = await fetch(`${BASE}/groups/my-groups`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();
@@ -180,7 +181,7 @@ export default function ProfilePage() {
 
     const fetchCourses = async () => {
       try {
-        const res = await fetch(`/api/courses/my`, {
+        const res = await fetch(`${BASE}/courses/my`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = await res.json();

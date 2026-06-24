@@ -18,9 +18,19 @@ exports.addComment = async (req, res) => {
       [post_id, req.user.id, content]
     );
 
+    const [[newComment]] = await promisePool.query(
+      `SELECT c.id, c.post_id, c.content, c.created_at,
+              u.id AS user_id, u.name AS user_name
+       FROM Comments c JOIN Users u ON c.user_id = u.id
+       WHERE c.id = ?`,
+      [result.insertId]
+    );
+
     res.status(201).json({
-      message: "Comment added successfully",
-      commentId: result.insertId
+      id:         newComment.id,
+      content:    newComment.content,
+      created_at: newComment.created_at,
+      user: { id: newComment.user_id, name: newComment.user_name },
     });
 
   } catch (error) {
