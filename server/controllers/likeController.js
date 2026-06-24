@@ -37,6 +37,17 @@ exports.toggleLike = async (req, res) => {
       [req.user.id, post_id]
     );
 
+    // إشعار لصاحب البوست (لو مش نفس اليوزر)
+    const [[likedPost]] = await promisePool.query(
+      "SELECT user_id FROM Posts WHERE id = ?", [post_id]
+    );
+    if (likedPost && likedPost.user_id !== req.user.id) {
+      await promisePool.query(
+        "INSERT INTO Notifications (user_id, sender_id, type, message, reference_id) VALUES (?, ?, 'like', 'liked your post', ?)",
+        [likedPost.user_id, req.user.id, post_id]
+      );
+    }
+
     res.json({
       message: "Liked"
     });

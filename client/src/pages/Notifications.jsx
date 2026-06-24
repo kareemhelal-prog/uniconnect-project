@@ -21,36 +21,37 @@ export default function Notifications() {
     fetchNotifications();
   }, []);
 
-const fetchNotifications = async () => {
-  try {
-    const res = await axios.get("/notifications");
-    setNotifications(res.data.data || res.data || []);
-  } catch (err) {
-    console.error("Failed to fetch notifications:", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  const fetchNotifications = async () => {
+    try {
+      const res = await axios.get("/notifications");
+      const list = Array.isArray(res.data) ? res.data : res.data.data || [];
+      setNotifications(list);
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-const handleCardClick = async (id) => {
-  try {
-    await axios.patch(`/notifications/${id}/read`);
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    );
-  } catch (err) {
-    console.error("Failed to mark as read:", err);
-  }
-};
+  const handleCardClick = async (id) => {
+    try {
+      await axios.patch(`/notifications/${id}/read`);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+    } catch (err) {
+      console.error("Failed to mark as read:", err);
+    }
+  };
 
-const markAllRead = async () => {
-  try {
-    await axios.patch("/notifications/read-all");
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-  } catch (err) {
-    console.error("Failed to mark all as read:", err);
-  }
-};
+  const markAllRead = async () => {
+    try {
+      await axios.patch("/notifications/read-all");
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    } catch (err) {
+      console.error("Failed to mark all as read:", err);
+    }
+  };
 
   const filtered = notifications.filter((n) => {
     const matchesFilter =

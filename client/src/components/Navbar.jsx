@@ -209,8 +209,14 @@ function Navbar({ notifications = [], user = {}, searchValue, onSearchChange }) 
 
       {/* Avatar */}
       <div className="tooltip-wrap">
-        <div className="nav-avatar" onClick={handleAvatarMenu}>
-          {user.initials || "U"}
+        <div
+          className="nav-avatar"
+          onClick={handleAvatarMenu}
+          style={user.profilePic ? { background: "transparent", padding: 0, overflow: "hidden", position: "relative" } : { position: "relative" }}
+        >
+          {user.profilePic
+            ? <img src={user.profilePic} alt={user.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => { e.target.style.display = "none"; }} />
+            : (user.initials || "U")}
           <span className="avatar-dot" />
           <span className="avatar-ring" />
         </div>

@@ -44,6 +44,12 @@ exports.toggleFollow = async (req, res) => {
       [req.user.id, following_id]
     );
 
+    // إشعار للشخص المتابَع
+    await promisePool.query(
+      "INSERT INTO Notifications (user_id, sender_id, type, message) VALUES (?, ?, 'follow', 'started following you')",
+      [following_id, req.user.id]
+    );
+
     res.json({
       message: "Followed"
     });
@@ -76,6 +82,21 @@ exports.getFollowersCount = async (req, res) => {
       message: "Server error",
       error: error.message
     });
+  }
+};
+
+// =======================
+// IS FOLLOWING CHECK
+// =======================
+exports.isFollowing = async (req, res) => {
+  try {
+    const [result] = await promisePool.query(
+      "SELECT id FROM Followers WHERE follower_id = ? AND following_id = ?",
+      [req.user.id, req.params.userId]
+    );
+    res.json({ isFollowing: result.length > 0 });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

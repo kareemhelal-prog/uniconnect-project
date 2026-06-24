@@ -9,6 +9,9 @@ router.use(authMiddleware);
 // follow / unfollow
 router.post("/", followController.toggleFollow);
 
+// is following check
+router.get("/is-following/:userId", followController.isFollowing);
+
 // followers count
 router.get("/followers/:userId", followController.getFollowersCount);
 

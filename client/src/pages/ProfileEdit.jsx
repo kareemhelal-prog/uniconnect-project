@@ -1,486 +1,396 @@
-// client/src/pages/EditProfile.jsx
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "../styles/ProfileEdit.css";
 
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from "../api/axios.js";
-import '../styles/ProfileEdit.css';
+const API_BASE = "http://localhost:5000/api";
+const getToken = () => localStorage.getItem("token");
 
-function EditProfile() {
+const authFetch = (url, options = {}) =>
+  fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      ...(options.headers || {}),
+    },
+  });
+
+// ضغط الصورة وتحويلها لـ base64 بحد أقصى 800px وجودة 80%
+function compressAndEncodeImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 800;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round((h * MAX) / w); w = MAX; }
+          else       { w = Math.round((w * MAX) / h); h = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export default function ProfileEdit() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [message, setMessage] = useState({ text: '', type: '' });
-  const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [skillInput, setSkillInput] = useState('');
+  const fileRef = useRef();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    username: '',
-    email: '',
-    bio: '',
-    phone: '',
-    profile_picture: '',
-    faculty: '',
-    year: '',
-    skills: []
-  });
-
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: ''
-  });
+  const [userId,      setUserId]      = useState(null);
+  const [avatar,      setAvatar]      = useState(null);
+  const [avatarFile,  setAvatarFile]  = useState(null);
+  const [name,        setName]        = useState("");
+  const [bio,         setBio]         = useState("");
+  const [phone,       setPhone]       = useState("");
+  const [faculty,     setFaculty]     = useState("");
+  const [year,        setYear]        = useState("Year 1");
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass,     setNewPass]     = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew,     setShowNew]     = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [msg,         setMsg]         = useState(null);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await API.get('/auth/profile');
-        if (response.data.success) {
-          const u = response.data.user;
-          setFormData({
-            name: u.name || '',
-            username: u.username || '',
-            email: u.email || '',
-            bio: u.bio || '',
-            phone: u.phone || '',
-            profile_picture: u.profile_picture || '',
-            faculty: u.faculty || '',
-            year: u.year || '',
-            skills: u.skills
-              ? (Array.isArray(u.skills) ? u.skills : u.skills.split(',').map(s => s.trim()))
-              : []
-          });
-        }
-      } catch (error) {
-        if (error.response?.status === 401) {
-          navigate('/login');
-        } else {
-          setMessage({ text: 'Failed to load profile data', type: 'error' });
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchProfile();
-  }, [navigate]);
+    document.title = "Edit Profile | UniConnect";
+    authFetch(`${API_BASE}/users/me`)
+      .then((r) => r.json())
+      .then((data) => {
+        const u = data.user || data;
+        setUserId(u.id);
+        setName(u.name || "");
+        setBio(u.bio || "");
+        setPhone(u.phone_number || "");
+        setFaculty(u.faculty || "");
+        setYear(u.academic_year ? `Year ${u.academic_year}` : "Year 1");
+        if (u.profile_picture) setAvatar(u.profile_picture);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleAvatar = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatar(URL.createObjectURL(file));
   };
 
-  const handleAddSkill = (e) => {
-    if (e.key === 'Enter' && skillInput.trim()) {
-      e.preventDefault();
-      const skill = skillInput.trim();
-      if (!formData.skills.includes(skill)) {
-        setFormData(prev => ({ ...prev, skills: [...prev.skills, skill] }));
-      }
-      setSkillInput('');
-    }
+  const showMsg = (text, type) => {
+    setMsg({ text, type });
+    setTimeout(() => setMsg(null), 3000);
   };
 
-  const handleRemoveSkill = (skill) => {
-    setFormData(prev => ({
-      ...prev,
-      skills: prev.skills.filter(s => s !== skill)
-    }));
-  };
-
-  const handleSubmit = async () => {
+  const handleSave = async () => {
+    if (!userId) return;
     setSaving(true);
-    setMessage({ text: '', type: '' });
+
     try {
-      const response = await API.put('/auth/profile', formData);
-      if (response.data.success) {
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2500);
+      let pictureData = null;
+      if (avatarFile) {
+        pictureData = await compressAndEncodeImage(avatarFile);
       }
-    } catch (error) {
-      setMessage({
-        text: error.response?.data?.message || 'Failed to save changes',
-        type: 'error'
+
+      const yearNum = year.replace("Year ", "").replace("Graduate", "5");
+
+      const res = await authFetch(`${API_BASE}/users/${userId}/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          bio,
+          phone_number: phone,
+          profile_picture: pictureData,
+          faculty,
+          major: faculty,
+          academic_year: yearNum,
+        }),
       });
+
+      if (!res.ok) throw new Error("Save failed");
+
+      if (newPass) {
+        if (newPass !== confirmPass) {
+          showMsg("Passwords do not match", "error");
+          setSaving(false);
+          return;
+        }
+        if (newPass.length < 7) {
+          showMsg("Password must be at least 7 characters", "error");
+          setSaving(false);
+          return;
+        }
+        // password change via auth reset flow — show message
+        showMsg("Profile saved! Password change requires email verification.", "success");
+      } else {
+        showMsg("Profile saved successfully!", "success");
+      }
+    } catch {
+      showMsg("Failed to save. Please try again.", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const handleChangePassword = async () => {
-    if (!passwordData.currentPassword || !passwordData.newPassword) {
-      setMessage({ text: 'Please enter current and new password', type: 'error' });
-      return;
-    }
-    try {
-      await API.put('/auth/profile/change-password', passwordData);
-      setMessage({ text: 'Password changed successfully', type: 'success' });
-      setPasswordData({ currentPassword: '', newPassword: '' });
-    } catch (error) {
-      setMessage({
-        text: error.response?.data?.message || 'Failed to change password',
-        type: 'error'
-      });
-    }
-  };
-
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  };
-
   if (loading) {
     return (
-      <div className="ep-page">
-        <div style={{ textAlign: 'center', padding: '80px', color: 'var(--text-muted)' }}>
-          Loading...
-        </div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#00e5ff" }}>
+        Loading...
       </div>
     );
   }
 
+  const initials = name ? name.slice(0, 2).toUpperCase() : "ME";
+
   return (
     <div className="ep-page">
-
       {/* NAV */}
       <nav className="ep-nav">
         <div className="ep-logo">
-          <div className="ep-logo-icon">U</div>
-          <span className="ep-logo-text">Uni<span className="ep-logo-accent">Connect</span></span>
+          <div className="ep-logo-icon">
+            <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%" }} />
+          </div>
+          <span className="ep-logo-text">
+            Uni<span className="ep-logo-accent">Connect</span>
+          </span>
         </div>
-        <button className="ep-back-btn" onClick={() => navigate('/profile')}>
-          <span className="ep-back-arrow">←</span>
-          Back to Profile
+        <button className="ep-back-btn" onClick={() => navigate(-1)}>
+          <span className="ep-back-arrow">←</span> Back
         </button>
       </nav>
 
       <div className="ep-container">
-
-        {/* HEADER */}
         <div className="ep-header">
           <div>
             <h1 className="ep-title">Edit Profile</h1>
-            <p className="ep-subtitle">Update your personal and academic information</p>
+            <p className="ep-subtitle">Update your information and manage your account</p>
           </div>
-          <span className="ep-header-icon">✏️</span>
+          <div className="ep-header-icon">🎓</div>
         </div>
 
-        {/* MESSAGE */}
-        {message.text && (
+        {msg && (
           <div style={{
-            padding: '12px 16px',
-            borderRadius: '10px',
-            fontSize: '14px',
-            fontWeight: '600',
-            background: message.type === 'success' ? 'rgba(16,185,129,0.12)' : 'rgba(248,113,113,0.12)',
-            border: `1px solid ${message.type === 'success' ? 'rgba(16,185,129,0.3)' : 'rgba(248,113,113,0.3)'}`,
-            color: message.type === 'success' ? '#10b981' : '#f87171'
+            padding: "12px 16px", borderRadius: "8px", marginBottom: "16px",
+            background: msg.type === "success" ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+            color: msg.type === "success" ? "#22c55e" : "#ef4444",
+            border: `1px solid ${msg.type === "success" ? "#22c55e" : "#ef4444"}`,
           }}>
-            {message.text}
+            {msg.text}
           </div>
         )}
 
-        {/* PERSONAL INFO */}
-        <div className="ep-section">
+        {/* SECTION 1: Personal Information */}
+        <section className="ep-section">
           <div className="ep-section-header">
-            <div className="ep-section-icon">👤</div>
+            <div className="ep-section-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+            </div>
             <div>
-              <div className="ep-section-title">Personal Information</div>
-              <div className="ep-section-desc">Name, photo, and contact details</div>
+              <h2 className="ep-section-title">Personal Information</h2>
+              <p className="ep-section-desc">Update your personal details and how others see you.</p>
             </div>
           </div>
 
           <div className="ep-personal-grid">
-
-            {/* AVATAR */}
+            {/* Avatar */}
             <div className="ep-avatar-col">
               <div className="ep-avatar-wrap">
                 <div className="ep-avatar-ring">
-                  {formData.profile_picture ? (
-                    <img
-                      src={formData.profile_picture}
-                      alt="avatar"
-                      className="ep-avatar-img"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <div className="ep-avatar-placeholder">
-                      {getInitials(formData.name)}
-                    </div>
-                  )}
+                  {avatar
+                    ? <img src={avatar} alt="avatar" className="ep-avatar-img" onError={() => setAvatar(null)} />
+                    : <div className="ep-avatar-placeholder">{initials}</div>
+                  }
                 </div>
+                <button className="ep-avatar-edit-btn" onClick={() => fileRef.current.click()}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+                <input ref={fileRef} type="file" accept="image/*" className="ep-hidden" onChange={handleAvatar} />
               </div>
-              <span className="ep-avatar-label">Profile Photo</span>
-              <span className="ep-avatar-hint">Paste an image URL below</span>
+              <p className="ep-avatar-label">Profile Photo</p>
+              <p className="ep-avatar-hint">JPG, PNG or GIF. Max 5MB.</p>
+              <button className="ep-change-photo" onClick={() => fileRef.current.click()}>Change Photo</button>
             </div>
 
-            {/* FIELDS */}
+            {/* Fields */}
             <div className="ep-fields-col">
-
-              <div className="ep-row">
-                <div className="ep-field ep-field--half">
-                  <label className="ep-label">Full Name</label>
-                  <div className="ep-input-wrap">
-                    <span className="ep-input-icon">👤</span>
-                    <input
-                      className="ep-input"
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      placeholder="Your full name"
-                    />
-                  </div>
-                </div>
-
-                <div className="ep-field ep-field--half">
-                  <label className="ep-label">Username</label>
-                  <div className="ep-input-wrap">
-                    <span className="ep-input-icon">@</span>
-                    <input
-                      className="ep-input"
-                      type="text"
-                      name="username"
-                      value={formData.username}
-                      onChange={handleChange}
-                      placeholder="username"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
               <div className="ep-field">
-                <label className="ep-label">Email</label>
+                <label className="ep-label">Full Name</label>
                 <div className="ep-input-wrap">
-                  <span className="ep-input-icon">✉️</span>
-                  <input
-                    className="ep-input"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="email@example.com"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="ep-field">
-                <label className="ep-label">Phone Number</label>
-                <div className="ep-input-wrap">
-                  <span className="ep-input-icon">📱</span>
-                  <input
-                    className="ep-input"
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="01xxxxxxxxx"
-                  />
-                </div>
-              </div>
-
-              <div className="ep-field">
-                <label className="ep-label">Profile Picture URL</label>
-                <div className="ep-input-wrap">
-                  <span className="ep-input-icon">🖼️</span>
-                  <input
-                    className="ep-input"
-                    type="text"
-                    name="profile_picture"
-                    value={formData.profile_picture}
-                    onChange={handleChange}
-                    placeholder="https://example.com/photo.jpg"
-                  />
+                  <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <input className="ep-input" value={name} onChange={e => setName(e.target.value)} placeholder="Full Name" />
                 </div>
               </div>
 
               <div className="ep-field">
                 <label className="ep-label">Bio</label>
                 <div className="ep-textarea-wrap">
-                  <span className="ep-input-icon ep-input-icon--top">📝</span>
-                  <textarea
-                    className="ep-textarea"
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    placeholder="Write a short bio about yourself..."
-                    rows="3"
-                    maxLength={200}
-                  />
+                  <svg className="ep-input-icon ep-input-icon--top" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                  </svg>
+                  <textarea className="ep-textarea" value={bio} onChange={e => setBio(e.target.value)} maxLength={200} rows={4} />
                 </div>
-                <span className="ep-char-count">{formData.bio.length} / 200</span>
+                <span className="ep-char-count">{bio.length}/200</span>
               </div>
 
+              <div className="ep-row">
+                <div className="ep-field ep-field--half">
+                  <label className="ep-label">Phone Number</label>
+                  <div className="ep-input-wrap">
+                    <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                    </svg>
+                    <input className="ep-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+20 1xx xxx xxxx" />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* ACADEMIC INFO */}
-        <div className="ep-section ep-section--academic">
+        {/* SECTION 2: Academic Information */}
+        <section className="ep-section ep-section--academic">
           <div className="ep-section-header">
-            <div className="ep-section-icon ep-section-icon--academic">🎓</div>
+            <div className="ep-section-icon ep-section-icon--academic">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+              </svg>
+            </div>
             <div>
-              <div className="ep-section-title">Academic Information</div>
-              <div className="ep-section-desc">Faculty, study year, and skills</div>
+              <h2 className="ep-section-title">Academic Information</h2>
+              <p className="ep-section-desc">Tell us about your academic background.</p>
             </div>
           </div>
 
           <div className="ep-row">
             <div className="ep-field ep-field--grow">
-              <label className="ep-label">Faculty / Major</label>
+              <label className="ep-label">Faculty &amp; Department</label>
               <div className="ep-input-wrap">
-                <span className="ep-input-icon">🏛️</span>
-                <input
-                  className="ep-input"
-                  type="text"
-                  name="faculty"
-                  value={formData.faculty}
-                  onChange={handleChange}
-                  placeholder="e.g. Information Technology"
-                />
+                <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+                </svg>
+                <input className="ep-input" value={faculty} onChange={e => setFaculty(e.target.value)} placeholder="Faculty & Department" />
               </div>
             </div>
 
             <div className="ep-field ep-field--year">
-              <label className="ep-label">Study Year</label>
+              <label className="ep-label">Academic Year</label>
               <div className="ep-select-wrap">
-                <span className="ep-input-icon">📅</span>
-                <select
-                  className="ep-select"
-                  name="year"
-                  value={formData.year}
-                  onChange={handleChange}
-                >
-                  <option value="">Select year</option>
-                  <option value="1">Year 1</option>
-                  <option value="2">Year 2</option>
-                  <option value="3">Year 3</option>
-                  <option value="4">Year 4</option>
-                  <option value="5">Year 5</option>
+                <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                <select className="ep-select" value={year} onChange={e => setYear(e.target.value)}>
+                  <option>Year 1</option>
+                  <option>Year 2</option>
+                  <option>Year 3</option>
+                  <option>Year 4</option>
+                  <option>Graduate</option>
                 </select>
-                <span className="ep-select-arrow">▾</span>
+                <svg className="ep-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
               </div>
             </div>
           </div>
+        </section>
 
-          <div className="ep-field">
-            <label className="ep-label">Skills</label>
-            <div className="ep-skills-box">
-              {formData.skills.length > 0 && (
-                <div className="ep-tags">
-                  {formData.skills.map(skill => (
-                    <span key={skill} className="ep-tag">
-                      {skill}
-                      <button
-                        className="ep-tag-remove"
-                        onClick={() => handleRemoveSkill(skill)}
-                        type="button"
-                      >×</button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <input
-                className="ep-skills-input"
-                type="text"
-                value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={handleAddSkill}
-                placeholder="Type a skill and press Enter — e.g. React"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* SECURITY */}
-        <div className="ep-section ep-section--security">
+        {/* SECTION 3: Security */}
+        <section className="ep-section ep-section--security">
           <div className="ep-section-header">
-            <div className="ep-section-icon ep-section-icon--security">🔐</div>
-            <div>
-              <div className="ep-section-title">Security</div>
-              <div className="ep-section-desc">Change your account password</div>
+            <div className="ep-section-icon ep-section-icon--security">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
             </div>
-          </div>
-
-          <div className="ep-field">
-            <label className="ep-label">Current Password</label>
-            <div className="ep-input-wrap">
-              <span className="ep-input-icon">🔒</span>
-              <input
-                className="ep-input"
-                type={showPassword ? 'text' : 'password'}
-                value={passwordData.currentPassword}
-                onChange={e => setPasswordData(prev => ({ ...prev, currentPassword: e.target.value }))}
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                className="ep-eye-btn"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? '🙈' : '👁️'}
-              </button>
+            <div>
+              <h2 className="ep-section-title">Security</h2>
+              <p className="ep-section-desc">Update your password to keep your account secure.</p>
             </div>
           </div>
 
           <div className="ep-field">
             <label className="ep-label">New Password</label>
             <div className="ep-input-wrap">
-              <span className="ep-input-icon">🔑</span>
-              <input
-                className="ep-input"
-                type={showNewPassword ? 'text' : 'password'}
-                value={passwordData.newPassword}
-                onChange={e => setPasswordData(prev => ({ ...prev, newPassword: e.target.value }))}
-                placeholder="••••••••"
-              />
-              <button
-                type="button"
-                className="ep-eye-btn"
-                onClick={() => setShowNewPassword(!showNewPassword)}
-              >
-                {showNewPassword ? '🙈' : '👁️'}
+              <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input className="ep-input" type={showNew ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="New password (optional)" />
+              <button className="ep-eye-btn" onClick={() => setShowNew(v => !v)}>
+                {showNew
+                  ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
               </button>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={handleChangePassword}
-            style={{
-              padding: '11px 24px',
-              borderRadius: '10px',
-              border: '1px solid rgba(16,185,129,0.3)',
-              background: 'rgba(16,185,129,0.1)',
-              color: '#10b981',
-              fontSize: '14px',
-              fontWeight: '700',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              alignSelf: 'flex-start'
-            }}
-          >
-            Change Password
-          </button>
-        </div>
+          <div className="ep-field">
+            <label className="ep-label">Confirm New Password</label>
+            <div className="ep-input-wrap">
+              <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input
+                className={`ep-input ${confirmPass && confirmPass !== newPass ? "ep-input--error" : ""}`}
+                type={showConfirm ? "text" : "password"}
+                value={confirmPass}
+                onChange={e => setConfirmPass(e.target.value)}
+                placeholder="Confirm new password"
+              />
+              <button className="ep-eye-btn" onClick={() => setShowConfirm(v => !v)}>
+                {showConfirm
+                  ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+            </div>
+            {confirmPass && confirmPass !== newPass && (
+              <p className="ep-error-msg">Passwords do not match</p>
+            )}
+          </div>
+        </section>
 
-        {/* SAVE BAR */}
+        {/* SAVE BUTTON */}
         <div className="ep-save-bar">
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={saving}
-            className={`ep-save-btn ${saved ? 'ep-save-btn--saved' : ''}`}
-          >
-            {saving ? '⏳ Saving...' : saved ? '✅ Saved!' : '💾 Save Changes'}
+          <button className={`ep-save-btn ${saving ? "ep-save-btn--saved" : ""}`} onClick={handleSave} disabled={saving}>
+            {saving ? (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                </svg>
+                Save Changes
+              </>
+            )}
           </button>
         </div>
-
       </div>
     </div>
   );
 }
-
-export default EditProfile;
