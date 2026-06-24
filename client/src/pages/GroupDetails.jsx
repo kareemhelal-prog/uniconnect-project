@@ -328,4 +328,23 @@ export default function GroupDetails() {
                 <div className="gd2-meta-row"><span className="gd2-meta-label">Created</span><span className="gd2-meta-val">{new Date(group.created_at).toLocaleDateString()}</span></div>
               </div>
             </div>
+
+            <div className="gd2-card gd2-rules-card">
+              <h3 className="gd2-section-title">📜 Group Rules</h3>
+              <ul className="gd2-rules-list">
+                {RULES.map((rule, i) => (
+                  <li key={i} className="gd2-rule-item">
+                    <span className="gd2-rule-num">{i + 1}</span>
+                    {rule}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+            </div>
             <div

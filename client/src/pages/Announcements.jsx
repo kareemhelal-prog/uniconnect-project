@@ -442,4 +442,85 @@ function NewAnnouncementModal({ onClose, onPublish }) {
         </button>
       </div>
 
+      <div className="modal-body">
+        <label className="form-label">Title</label>
+        <input
+          className="form-input"
+          type="text"
+          placeholder="Announcement title..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+
+        <label className="form-label" style={{ marginTop: 16 }}>Content</label>
+        <textarea
+          className="form-textarea"
+          placeholder="Write the announcement content..."
+          rows={5}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+
+        <label className="form-label" style={{ marginTop: 16 }}>Target Audience</label>
+        <div className="target-options">
+          {TARGETS.map((t) => (
+            <button
+              key={t}
+              className={`target-btn ${target === t ? 'active' : ''}`}
+              onClick={() => setTarget(t)}
+              type="button"
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="modal-footer">
+        <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+        <button
+          className="btn btn-primary"
+          disabled={!canPublish}
+          onClick={() => onPublish({ title, content, target })}
+        >
+          <Send size={15} />
+          Publish
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function ViewModal({ item, onClose }) {
+  const { date, time } = formatDateTime(item.created_at);
+  return (
+    <Modal onClose={onClose} wide>
+      <div className="modal-head">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <TypeIcon type={item.type} size={40} iconSize={20} />
+          <h2 style={{ margin: 0 }}>{item.title}</h2>
+        </div>
+        <button className="modal-close" onClick={onClose} aria-label="Close">
+          <X size={18} />
+        </button>
+      </div>
+
+      <div className="modal-body">
+        <div className="view-meta">
+          <span className={`badge badge-${item.target}`}>{item.target}</span>
+          <span className="view-date">
+            <Calendar size={14} />
+            {date} · {time}
+          </span>
+        </div>
+        <p className="view-content">{item.content}</p>
+      </div>
+
+      <div className="modal-footer">
+        <button className="btn btn-ghost" onClick={onClose}>Close</button>
+      </div>
+    </Modal>
+  );
+}
+
       <div

@@ -36,16 +36,16 @@ const safeLazy = (importer) =>
   React.lazy(() => importer().catch(() => ({ default: NotFound })));
 
 const PAGE_COMPONENTS = {
-  [ROUTES.users]: safeLazy(() => import("./Users.jsx")),
-  [ROUTES.posts]: safeLazy(() => import("./Posts.jsx")),
-  [ROUTES.reports]: safeLazy(() => import("./Reports.jsx")),
-  [ROUTES.projects]: safeLazy(() => import("./Projects.jsx")),
-  [ROUTES.groups]: safeLazy(() => import("./Groups.jsx")),
-  [ROUTES.reviews]: safeLazy(() => import("./Reviews.jsx")),
-  [ROUTES.files]: safeLazy(() => import("./Files.jsx")),
+  [ROUTES.users]:         safeLazy(() => import("./UserManagement.jsx")),
+  [ROUTES.posts]:         safeLazy(() => import("./postsManagement.jsx")),
+  [ROUTES.reports]:       safeLazy(() => import("./ReportsManagement.jsx")),
+  [ROUTES.projects]:      safeLazy(() => import("./ProjectsManagement.jsx")),
+  [ROUTES.groups]:        safeLazy(() => import("./GroupsManagement.jsx")),
+  [ROUTES.reviews]:       safeLazy(() => import("./ReviewsManagement.jsx")),
+  [ROUTES.files]:         safeLazy(() => import("./Files.jsx")),
   [ROUTES.announcements]: safeLazy(() => import("./Announcements.jsx")),
-  [ROUTES.emailAlerts]: safeLazy(() => import("./EmailAlerts.jsx")),
-  [ROUTES.activityLogs]: safeLazy(() => import("./ActivityLogs.jsx")),
+  [ROUTES.emailAlerts]:   safeLazy(() => import("./EmailAlerts.jsx")),
+  [ROUTES.activityLogs]:  safeLazy(() => import("./ActivityLogs.jsx")),
 };
 
 ChartJS.register(
