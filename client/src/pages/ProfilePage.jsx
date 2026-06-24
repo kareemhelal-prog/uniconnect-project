@@ -222,17 +222,21 @@ export default function ProfilePage() {
     if (!profileId || followLoad) return;
     setFollowLoad(true);
     const wasFollowing = following;
+    // تحديث فوري للزرار بدون تغيير العدد لحد ما السيرفر يرد
     setFollowing(!wasFollowing);
-    setFollowers((n) => wasFollowing ? n - 1 : n + 1);
     try {
       await fetch(`${BASE}/follow`, {
         method: "POST",
         headers: { ...authH, "Content-Type": "application/json" },
         body: JSON.stringify({ following_id: parseInt(profileId) }),
       });
+      // جيب العدد الحقيقي من السيرفر بعد الـ follow/unfollow
+      const r = await fetch(`${BASE}/follow/followers/${profileId}`, { headers: authH });
+      const d = await r.json();
+      setFollowers(typeof d.followers === "number" ? d.followers : 0);
     } catch {
+      // rollback الزرار لو فشل
       setFollowing(wasFollowing);
-      setFollowers((n) => wasFollowing ? n + 1 : n - 1);
     } finally {
       setFollowLoad(false);
     }
