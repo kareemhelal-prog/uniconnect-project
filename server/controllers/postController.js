@@ -44,10 +44,11 @@ exports.getAllPosts = async (req, res) => {
     const userId = req.user.id; // ✅ عشان نعرف اليوزر ده عمل like ولا لأ
 
     const [posts] = await promisePool.query(
-      `SELECT 
+      `SELECT
         Posts.*,
         Users.username,
         Users.name,
+        Users.profile_picture,
 
         -- ✅ عدد الـ likes
         (SELECT COUNT(*) FROM Likes WHERE Likes.post_id = Posts.id) AS likes,
@@ -74,7 +75,7 @@ exports.getAllPosts = async (req, res) => {
       const postIdList = formatted.map(p => p.id);
       const [comments] = await promisePool.query(
         `SELECT c.id, c.post_id, c.content, c.created_at,
-                u.id AS user_id, u.name AS user_name
+                u.id AS user_id, u.name AS user_name, u.profile_picture AS user_profile_picture
          FROM Comments c
          JOIN Users u ON c.user_id = u.id
          WHERE c.post_id IN (?)
@@ -89,7 +90,7 @@ exports.getAllPosts = async (req, res) => {
           id:         c.id,
           content:    c.content,
           created_at: c.created_at,
-          user: { id: c.user_id, name: c.user_name },
+          user: { id: c.user_id, name: c.user_name, profile_picture: c.user_profile_picture || "" },
         });
       }
 
@@ -265,7 +266,7 @@ exports.getPostsByUser = async (req, res) => {
       const postIdList = formatted.map(p => p.id);
       const [comments] = await promisePool.query(
         `SELECT c.id, c.post_id, c.content, c.created_at,
-                u.id AS user_id, u.name AS user_name
+                u.id AS user_id, u.name AS user_name, u.profile_picture AS user_profile_picture
          FROM Comments c
          JOIN Users u ON c.user_id = u.id
          WHERE c.post_id IN (?)
@@ -278,7 +279,7 @@ exports.getPostsByUser = async (req, res) => {
         if (!byPost[c.post_id]) byPost[c.post_id] = [];
         byPost[c.post_id].push({
           id: c.id, content: c.content, created_at: c.created_at,
-          user: { id: c.user_id, name: c.user_name },
+          user: { id: c.user_id, name: c.user_name, profile_picture: c.user_profile_picture || "" },
         });
       }
       for (const p of formatted) p.comments = byPost[p.id] || [];

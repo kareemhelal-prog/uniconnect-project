@@ -35,6 +35,7 @@ const mapPost = (p) => ({
   user_id:     p.user_id,
   author:      p.name || p.user?.name || p.author_name || "Unknown",
   avatar:      (p.name || p.user?.name || "U").slice(0, 2).toUpperCase(),
+  profilePic:  p.profile_picture || p.user?.profile_picture || "",
   avatarColor: "#a855f7",
   role:        p.user?.role || "",
   time:        new Date(p.created_at).toLocaleString(),
@@ -48,6 +49,7 @@ const mapPost = (p) => ({
     id:          c.id,
     author:      c.user?.name || "Unknown",
     avatar:      (c.user?.name || "U").slice(0, 2).toUpperCase(),
+    profilePic:  c.user?.profile_picture || "",
     avatarColor: "#00e5ff",
     text:        c.content || c.text || "",
     time:        new Date(c.created_at).toLocaleString(),
@@ -68,7 +70,7 @@ function renderPage(page, user, setUser) {
 // ══════════════════════════════════════════════
 // PostCard
 // ══════════════════════════════════════════════
-function PostCard({ post, onUpdate, onDelete, currentUserId }) {
+function PostCard({ post, onUpdate, onDelete, currentUserId, currentUserPic, currentUserInitials }) {
   const navigate = useNavigate();
   const [liked,          setLiked]          = useState(post.liked  ?? false);
   const [shared,         setShared]         = useState(post.shared ?? false);
@@ -206,8 +208,13 @@ function PostCard({ post, onUpdate, onDelete, currentUserId }) {
 
       {/* Header */}
       <div className="post-header">
-        <div className="post-avatar-wrap" style={{ background: post.avatarColor || "#a855f7" }}>
-          {post.avatar}
+        <div
+          className="post-avatar-wrap"
+          style={post.profilePic ? { background: "transparent", padding: 0, overflow: "hidden" } : { background: post.avatarColor || "#a855f7" }}
+        >
+          {post.profilePic
+            ? <img src={post.profilePic} alt={post.author} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => { e.target.style.display = "none"; e.target.parentElement.textContent = post.avatar; }} />
+            : post.avatar}
         </div>
         <div className="post-meta-info">
           <h4
@@ -325,9 +332,11 @@ function PostCard({ post, onUpdate, onDelete, currentUserId }) {
             <div key={c.id} className="comment-item">
               <div
                 className="comment-avatar"
-                style={{ background: c.avatarColor || "#a855f7" }}
+                style={c.profilePic ? { background: "transparent", padding: 0, overflow: "hidden" } : { background: c.avatarColor || "#a855f7" }}
               >
-                {c.avatar}
+                {c.profilePic
+                  ? <img src={c.profilePic} alt={c.author} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => { e.target.style.display = "none"; e.target.parentElement.textContent = c.avatar; }} />
+                  : c.avatar}
               </div>
               <div className="comment-bubble">
                 <span className="comment-author">{c.author}</span>
@@ -338,7 +347,14 @@ function PostCard({ post, onUpdate, onDelete, currentUserId }) {
           ))}
 
           <div className="comment-input-row">
-            <div className="comment-avatar" style={{ background: "#a855f7" }}>Me</div>
+            <div
+              className="comment-avatar"
+              style={currentUserPic ? { background: "transparent", padding: 0, overflow: "hidden" } : { background: "#a855f7" }}
+            >
+              {currentUserPic
+                ? <img src={currentUserPic} alt="me" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => { e.target.style.display = "none"; e.target.parentElement.textContent = currentUserInitials || "Me"; }} />
+                : (currentUserInitials || "Me")}
+            </div>
             <input
               className="comment-input"
               placeholder="Write a comment..."
@@ -467,13 +483,14 @@ const Home = () => {
       .then((data) => {
         const u = data.user || data;
         setUser({
-          id:       u.id,
-          name:     u.name || u.full_name || "User",
-          initials: (u.name || "U").slice(0, 2).toUpperCase(),
-          role:     u.role       || "",
-          dept:     u.department || "",
-          faculty:  u.faculty    || "",
-          status:   "online",
+          id:         u.id,
+          name:       u.name || u.full_name || "User",
+          initials:   (u.name || "U").slice(0, 2).toUpperCase(),
+          profilePic: u.profile_picture || "",
+          role:       u.role       || "",
+          dept:       u.department || "",
+          faculty:    u.faculty    || "",
+          status:     "online",
           stats: [
             { label: "Projects", value: 0 },
             { label: "Friends",  value: 0 },
@@ -572,7 +589,15 @@ const Home = () => {
               </div>
             ) : (
               posts.map((post) => (
-                <PostCard key={post.id} post={post} onUpdate={updatePost} onDelete={deletePost} currentUserId={user?.id} />
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onUpdate={updatePost}
+                  onDelete={deletePost}
+                  currentUserId={user?.id}
+                  currentUserPic={user?.profilePic}
+                  currentUserInitials={user?.initials}
+                />
               ))
             )}
           </main>
