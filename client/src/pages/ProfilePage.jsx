@@ -125,29 +125,46 @@ function CoursesTab({ courses }) {
   );
 }
 
+// Helper: decode JWT payload to get current user id
+function getCurrentUserId() {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.id;
+  } catch {
+    return null;
+  }
+}
+
 export default function ProfilePage() {
   const { id } = useParams();
-  const [profile, setProfile] = useState(null);
-  const [files, setFiles] = useState([]);
-  const [groups, setGroups] = useState([]);
-  const [courses, setCourses] = useState([]);
-  const [activeTab, setActiveTab] = useState("Posts");
-  const [following, setFollowing] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [profile,    setProfile]    = useState(null);
+  const [files,      setFiles]      = useState([]);
+  const [groups,     setGroups]     = useState([]);
+  const [courses,    setCourses]    = useState([]);
+  const [activeTab,  setActiveTab]  = useState("Posts");
+  const [following,  setFollowing]  = useState(false);
+  const [followers,  setFollowers]  = useState(0);
+  const [followLoad, setFollowLoad] = useState(false);
+  const [loading,    setLoading]    = useState(true);
 
-  const token = localStorage.getItem("token");
+  const token      = localStorage.getItem("token");
+  const currentUid = getCurrentUserId();
+  const profileId  = id || null;
+  const isOwnProfile = !profileId || String(currentUid) === String(profileId);
 
   const BASE = "http://localhost:5000/api";
+  const authH = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const url = id ? `${BASE}/profile/${id}` : `${BASE}/profile`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const url = profileId ? `${BASE}/profile/${profileId}` : `${BASE}/profile`;
+        const res = await fetch(url, { headers: authH });
         const data = await res.json();
         setProfile(data);
+        setFollowers(data.followers || 0);
       } catch (err) {
         console.error("Failed to fetch profile:", err);
       } finally {
@@ -155,11 +172,18 @@ export default function ProfilePage() {
       }
     };
 
+    const fetchFollowState = async () => {
+      if (!profileId || isOwnProfile) return;
+      try {
+        const res = await fetch(`${BASE}/follow/is-following/${profileId}`, { headers: authH });
+        const data = await res.json();
+        setFollowing(data.isFollowing || false);
+      } catch {}
+    };
+
     const fetchFiles = async () => {
       try {
-        const res = await fetch(`${BASE}/files`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await fetch(`${BASE}/files`, { headers: authH });
         const data = await res.json();
         setFiles(data.data || []);
       } catch (err) {
@@ -169,9 +193,7 @@ export default function ProfilePage() {
 
     const fetchGroups = async () => {
       try {
-        const res = await fetch(`${BASE}/groups/my-groups`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await fetch(`${BASE}/groups/my-groups`, { headers: authH });
         const data = await res.json();
         setGroups(data.data || []);
       } catch (err) {
@@ -181,9 +203,7 @@ export default function ProfilePage() {
 
     const fetchCourses = async () => {
       try {
-        const res = await fetch(`${BASE}/courses/my`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await fetch(`${BASE}/courses/my`, { headers: authH });
         const data = await res.json();
         setCourses(data.data || []);
       } catch (err) {
@@ -192,10 +212,31 @@ export default function ProfilePage() {
     };
 
     fetchProfile();
+    fetchFollowState();
     fetchFiles();
     fetchGroups();
     fetchCourses();
   }, [id]);
+
+  const handleFollow = async () => {
+    if (!profileId || followLoad) return;
+    setFollowLoad(true);
+    const wasFollowing = following;
+    setFollowing(!wasFollowing);
+    setFollowers((n) => wasFollowing ? n - 1 : n + 1);
+    try {
+      await fetch(`${BASE}/follow`, {
+        method: "POST",
+        headers: { ...authH, "Content-Type": "application/json" },
+        body: JSON.stringify({ following_id: parseInt(profileId) }),
+      });
+    } catch {
+      setFollowing(wasFollowing);
+      setFollowers((n) => wasFollowing ? n + 1 : n - 1);
+    } finally {
+      setFollowLoad(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -252,18 +293,21 @@ export default function ProfilePage() {
           </div>
 
           <div className="pp-cta-group">
-            <button
-              className={`pp-btn-follow${following ? " followed" : ""}`}
-              onClick={() => setFollowing(!following)}
-            >
-              {following ? "✓ Following" : "+ Follow"}
-            </button>
+            {!isOwnProfile && (
+              <button
+                className={`pp-btn-follow${following ? " followed" : ""}`}
+                onClick={handleFollow}
+                disabled={followLoad}
+              >
+                {following ? "✓ Following" : "+ Follow"}
+              </button>
+            )}
           </div>
         </div>
 
         {/* Stats */}
         <div className="pp-stats-row">
-          <StatItem icon="👥" value={profile.followers || 0} label="Followers" />
+          <StatItem icon="👥" value={followers} label="Followers" />
           <div className="pp-stats-divider" />
           <StatItem icon="📚" value={courses.length} label="Courses" />
           <div className="pp-stats-divider" />

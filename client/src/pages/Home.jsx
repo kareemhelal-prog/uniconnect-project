@@ -31,6 +31,7 @@ const authFetch = (url, options = {}) =>
 // ── Helper: حوّل بيانات post من الـ API للشكل اللي الـ UI بيتوقعه ──
 const mapPost = (p) => ({
   id:          p.id,
+  user_id:     p.user_id,
   author:      p.name || p.user?.name || p.author_name || "Unknown",
   avatar:      (p.name || p.user?.name || "U").slice(0, 2).toUpperCase(),
   avatarColor: "#a855f7",
@@ -38,7 +39,6 @@ const mapPost = (p) => ({
   time:        new Date(p.created_at).toLocaleString(),
   title:       p.title || "",
   content:     p.content || p.body || "",
-  // ✅ likes و liked بييجوا من الـ API بعد تعديل postController
   likes:       p.likes       ?? p.likes_count ?? 0,
   liked:       p.liked       ?? false,
   shares:      p.shares      ?? 0,
@@ -67,17 +67,21 @@ function renderPage(page, user, setUser) {
 // ══════════════════════════════════════════════
 // PostCard
 // ══════════════════════════════════════════════
-function PostCard({ post, onUpdate }) {
-  // ✅ FIX 1: بتبدأ بالقيمة الصح من الـ post (مش false دايمًا)
+function PostCard({ post, onUpdate, onDelete, currentUserId }) {
   const [liked,          setLiked]          = useState(post.liked  ?? false);
-  // ✅ FIX 3: shared state عشان نمنع التكرار
   const [shared,         setShared]         = useState(post.shared ?? false);
   const [showComments,   setShowComments]   = useState(false);
   const [commentText,    setCommentText]    = useState("");
   const [likeLoading,    setLikeLoading]    = useState(false);
   const [commentLoading, setCommentLoading] = useState(false);
-  // ✅ FIX 4: error state بدل console.error بس
   const [error,          setError]          = useState(null);
+  const [showMenu,       setShowMenu]       = useState(false);
+  const [editing,        setEditing]        = useState(false);
+  const [editTitle,      setEditTitle]      = useState(post.title || "");
+  const [editContent,    setEditContent]    = useState(post.content || "");
+  const [editLoading,    setEditLoading]    = useState(false);
+
+  const isOwner = currentUserId && post.user_id && String(currentUserId) === String(post.user_id);
 
   // ── Like / Unlike ──
   const handleLike = useCallback(async () => {
@@ -149,12 +153,43 @@ function PostCard({ post, onUpdate }) {
   }, [commentText, commentLoading, post, onUpdate]);
 
   // ── Share ──
-  // ✅ FIX 3: share مرة واحدة بس
   const handleShare = useCallback(() => {
     if (shared) return;
     setShared(true);
     onUpdate?.({ ...post, shares: (post.shares || 0) + 1 });
   }, [shared, post, onUpdate]);
+
+  // ── Delete Post ──
+  const handleDelete = useCallback(async () => {
+    setShowMenu(false);
+    if (!window.confirm("Delete this post?")) return;
+    try {
+      const res = await authFetch(`${API_BASE}/posts/${post.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      onDelete?.(post.id);
+    } catch {
+      setError("Failed to delete post.");
+    }
+  }, [post.id, onDelete]);
+
+  // ── Edit Post ──
+  const handleEditSave = useCallback(async () => {
+    if (!editContent.trim()) return;
+    setEditLoading(true);
+    try {
+      const res = await authFetch(`${API_BASE}/posts/${post.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ title: editTitle, content: editContent }),
+      });
+      if (!res.ok) throw new Error();
+      onUpdate?.({ ...post, title: editTitle, content: editContent });
+      setEditing(false);
+    } catch {
+      setError("Failed to update post.");
+    } finally {
+      setEditLoading(false);
+    }
+  }, [editTitle, editContent, post, onUpdate]);
 
   return (
     <div className="post-card" data-post-id={post.id}>
@@ -177,8 +212,50 @@ function PostCard({ post, onUpdate }) {
           <span className="post-role">{post.role}</span>
           <span className="post-time">{post.time}</span>
         </div>
-        <button className="more-btn" aria-label="More options">•••</button>
+        {isOwner && (
+          <div style={{ position: "relative" }}>
+            <button className="more-btn" aria-label="More options" onClick={() => setShowMenu(v => !v)}>•••</button>
+            {showMenu && (
+              <div style={{
+                position: "absolute", right: 0, top: "100%", zIndex: 10,
+                background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "8px", overflow: "hidden", minWidth: "120px", boxShadow: "0 4px 16px rgba(0,0,0,0.4)"
+              }}>
+                <button onClick={() => { setEditing(true); setShowMenu(false); }} style={{
+                  display: "block", width: "100%", padding: "10px 16px", background: "none",
+                  border: "none", color: "#e2e8f0", cursor: "pointer", textAlign: "left", fontSize: "14px"
+                }}>✏️ Edit</button>
+                <button onClick={handleDelete} style={{
+                  display: "block", width: "100%", padding: "10px 16px", background: "none",
+                  border: "none", color: "#f87171", cursor: "pointer", textAlign: "left", fontSize: "14px"
+                }}>🗑 Delete</button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Edit Modal (inline) */}
+      {editing && (
+        <div style={{ padding: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "8px", marginBottom: "8px" }}>
+          <input
+            style={{ width: "100%", background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", padding: "8px", color: "#e2e8f0", marginBottom: "8px", boxSizing: "border-box" }}
+            value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title (optional)"
+          />
+          <textarea
+            style={{ width: "100%", background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", padding: "8px", color: "#e2e8f0", minHeight: "80px", resize: "vertical", boxSizing: "border-box" }}
+            value={editContent} onChange={e => setEditContent(e.target.value)} placeholder="Post content..."
+          />
+          <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+            <button onClick={handleEditSave} disabled={editLoading} style={{ padding: "7px 16px", borderRadius: "6px", background: "#a855f7", border: "none", color: "#fff", cursor: "pointer", fontSize: "13px" }}>
+              {editLoading ? "Saving..." : "Save"}
+            </button>
+            <button onClick={() => setEditing(false)} style={{ padding: "7px 16px", borderRadius: "6px", background: "rgba(255,255,255,0.1)", border: "none", color: "#e2e8f0", cursor: "pointer", fontSize: "13px" }}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Body */}
       <div className="post-body">
@@ -435,6 +512,9 @@ const Home = () => {
   const updatePost = (updated) =>
     setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
 
+  const deletePost = (id) =>
+    setPosts((prev) => prev.filter((p) => p.id !== id));
+
   const addPost = (newPost) => setPosts((prev) => [newPost, ...prev]);
 
   if (loadingUser) {
@@ -484,7 +564,7 @@ const Home = () => {
               </div>
             ) : (
               posts.map((post) => (
-                <PostCard key={post.id} post={post} onUpdate={updatePost} />
+                <PostCard key={post.id} post={post} onUpdate={updatePost} onDelete={deletePost} currentUserId={user?.id} />
               ))
             )}
           </main>

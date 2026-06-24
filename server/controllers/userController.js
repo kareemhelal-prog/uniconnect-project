@@ -117,7 +117,7 @@ exports.getProfile = async (req, res) => {
 exports.updateProfile = async (req, res) => {
   try {
     const {
-      bio, phone_number, profile_picture,
+      name, bio, phone_number, profile_picture,
       faculty, major, academic_year
     } = req.body;
 
@@ -126,8 +126,8 @@ exports.updateProfile = async (req, res) => {
     }
 
     await promisePool.query(
-      "UPDATE Users SET bio = ?, phone_number = ?, profile_picture = ? WHERE id = ?",
-      [bio || null, phone_number || null, profile_picture || null, req.params.id]
+      "UPDATE Users SET name = COALESCE(?, name), bio = ?, phone_number = ?, profile_picture = COALESCE(NULLIF(?, ''), profile_picture) WHERE id = ?",
+      [name || null, bio || null, phone_number || null, profile_picture || null, req.params.id]
     );
 
     await promisePool.query(

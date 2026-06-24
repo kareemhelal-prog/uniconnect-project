@@ -26,6 +26,17 @@ exports.addComment = async (req, res) => {
       [result.insertId]
     );
 
+    // إشعار لصاحب البوست (لو مش نفس اليوزر)
+    const [[commentedPost]] = await promisePool.query(
+      "SELECT user_id FROM Posts WHERE id = ?", [post_id]
+    );
+    if (commentedPost && commentedPost.user_id !== req.user.id) {
+      await promisePool.query(
+        "INSERT INTO Notifications (user_id, sender_id, type, message, reference_id) VALUES (?, ?, 'comment', 'commented on your post', ?)",
+        [commentedPost.user_id, req.user.id, post_id]
+      );
+    }
+
     res.status(201).json({
       id:         newComment.id,
       content:    newComment.content,

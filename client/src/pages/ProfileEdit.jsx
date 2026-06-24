@@ -1,73 +1,159 @@
-import { useState, useRef } from "react";
-import { useEffect } from "react";
-
+import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/ProfileEdit.css";
-const DEFAULT_SKILLS = ["Python", "Web Development", "Machine Learning", "React", "Data Structures", "Git", "SQL", "UI/UX Design"];
+
+const API_BASE = "http://localhost:5000/api";
+const getToken = () => localStorage.getItem("token");
+
+const authFetch = (url, options = {}) =>
+  fetch(url, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      ...(options.headers || {}),
+    },
+  });
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function ProfileEdit() {
-  useEffect(() => {
-    document.title = "Edit Profile | UniConnect";
-}, []);
-  const [avatar, setAvatar] = useState("/ahmed.png");
-  const [name, setName] = useState("Ahmed Ayman");
-  const [bio, setBio] = useState("Computer Science student passionate about AI, web development, and open source. Always learning and building.");
-  const [status, setStatus] = useState("Active");
-  const [phone, setPhone] = useState("+20 1280443768");
-  const [linkedin, setLinkedin] = useState("https://www.linkedin.com/in/arjunpatel");
-  const [github, setGithub] = useState("https://github.com/arjunpatel");
-  const [faculty, setFaculty] = useState("Faculty of Engineering & Computer Science");
-  const [year, setYear] = useState("Year 3");
-  const [skills, setSkills] = useState(DEFAULT_SKILLS);
-  const [skillInput, setSkillInput] = useState("");
-  const [currentPass, setCurrentPass] = useState("");
-  const [newPass, setNewPass] = useState("");
-  const [confirmPass, setConfirmPass] = useState("");
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const navigate = useNavigate();
   const fileRef = useRef();
 
-  const handleAvatar = (e) => {
+  const [userId,      setUserId]      = useState(null);
+  const [avatar,      setAvatar]      = useState(null);
+  const [avatarFile,  setAvatarFile]  = useState(null);
+  const [name,        setName]        = useState("");
+  const [bio,         setBio]         = useState("");
+  const [phone,       setPhone]       = useState("");
+  const [faculty,     setFaculty]     = useState("");
+  const [year,        setYear]        = useState("Year 1");
+  const [currentPass, setCurrentPass] = useState("");
+  const [newPass,     setNewPass]     = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew,     setShowNew]     = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [msg,         setMsg]         = useState(null);
+
+  useEffect(() => {
+    document.title = "Edit Profile | UniConnect";
+    authFetch(`${API_BASE}/users/me`)
+      .then((r) => r.json())
+      .then((data) => {
+        const u = data.user || data;
+        setUserId(u.id);
+        setName(u.name || "");
+        setBio(u.bio || "");
+        setPhone(u.phone_number || "");
+        setFaculty(u.faculty || "");
+        setYear(u.academic_year ? `Year ${u.academic_year}` : "Year 1");
+        if (u.profile_picture) setAvatar(u.profile_picture);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleAvatar = async (e) => {
     const file = e.target.files[0];
-    if (file) setAvatar(URL.createObjectURL(file));
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatar(URL.createObjectURL(file));
   };
 
-  const handleSkillKey = (e) => {
-    if ((e.key === "Enter" || e.key === ",") && skillInput.trim()) {
-      e.preventDefault();
-      if (!skills.includes(skillInput.trim())) {
-        setSkills([...skills, skillInput.trim()]);
+  const showMsg = (text, type) => {
+    setMsg({ text, type });
+    setTimeout(() => setMsg(null), 3000);
+  };
+
+  const handleSave = async () => {
+    if (!userId) return;
+    setSaving(true);
+
+    try {
+      let pictureData = null;
+      if (avatarFile) {
+        pictureData = await readFileAsBase64(avatarFile);
       }
-      setSkillInput("");
+
+      const yearNum = year.replace("Year ", "").replace("Graduate", "5");
+
+      const res = await authFetch(`${API_BASE}/users/${userId}/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          bio,
+          phone_number: phone,
+          profile_picture: pictureData,
+          faculty,
+          major: faculty,
+          academic_year: yearNum,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Save failed");
+
+      if (newPass) {
+        if (newPass !== confirmPass) {
+          showMsg("Passwords do not match", "error");
+          setSaving(false);
+          return;
+        }
+        if (newPass.length < 7) {
+          showMsg("Password must be at least 7 characters", "error");
+          setSaving(false);
+          return;
+        }
+        // password change via auth reset flow — show message
+        showMsg("Profile saved! Password change requires email verification.", "success");
+      } else {
+        showMsg("Profile saved successfully!", "success");
+      }
+    } catch {
+      showMsg("Failed to save. Please try again.", "error");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const removeSkill = (sk) => setSkills(skills.filter((s) => s !== sk));
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", color: "#00e5ff" }}>
+        Loading...
+      </div>
+    );
+  }
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
-  };
+  const initials = name ? name.slice(0, 2).toUpperCase() : "ME";
 
   return (
     <div className="ep-page">
       {/* NAV */}
       <nav className="ep-nav">
         <div className="ep-logo">
-<div className="ep-logo-icon">
-  <img src="/logo.png" alt="Logo" style={{ width: '100%', height: '100%' }} />
-</div>          <span className="ep-logo-text">
+          <div className="ep-logo-icon">
+            <img src="/logo.png" alt="Logo" style={{ width: "100%", height: "100%" }} />
+          </div>
+          <span className="ep-logo-text">
             Uni<span className="ep-logo-accent">Connect</span>
           </span>
         </div>
-        <button className="ep-back-btn">
+        <button className="ep-back-btn" onClick={() => navigate(-1)}>
           <span className="ep-back-arrow">←</span> Back
         </button>
       </nav>
 
       <div className="ep-container">
-        {/* PAGE HEADER */}
         <div className="ep-header">
           <div>
             <h1 className="ep-title">Edit Profile</h1>
@@ -76,7 +162,18 @@ export default function ProfileEdit() {
           <div className="ep-header-icon">🎓</div>
         </div>
 
-        {/* ── SECTION 1: Personal Information ── */}
+        {msg && (
+          <div style={{
+            padding: "12px 16px", borderRadius: "8px", marginBottom: "16px",
+            background: msg.type === "success" ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+            color: msg.type === "success" ? "#22c55e" : "#ef4444",
+            border: `1px solid ${msg.type === "success" ? "#22c55e" : "#ef4444"}`,
+          }}>
+            {msg.text}
+          </div>
+        )}
+
+        {/* SECTION 1: Personal Information */}
         <section className="ep-section">
           <div className="ep-section-header">
             <div className="ep-section-icon">
@@ -97,8 +194,8 @@ export default function ProfileEdit() {
               <div className="ep-avatar-wrap">
                 <div className="ep-avatar-ring">
                   {avatar
-                    ? <img src={avatar} alt="avatar" className="ep-avatar-img" />
-                    : <div className="ep-avatar-placeholder">AP</div>
+                    ? <img src={avatar} alt="avatar" className="ep-avatar-img" onError={() => setAvatar(null)} />
+                    : <div className="ep-avatar-placeholder">{initials}</div>
                   }
                 </div>
                 <button className="ep-avatar-edit-btn" onClick={() => fileRef.current.click()}>
@@ -139,56 +236,20 @@ export default function ProfileEdit() {
 
               <div className="ep-row">
                 <div className="ep-field ep-field--half">
-                  <label className="ep-label">Status</label>
-                  <div className="ep-select-wrap">
-                    <span className="ep-status-dot" />
-                    <select className="ep-select" value={status} onChange={e => setStatus(e.target.value)}>
-                      <option>Active</option>
-                      <option>Busy</option>
-                      <option>Away</option>
-                      <option>Offline</option>
-                    </select>
-                    <svg className="ep-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                  </div>
-                </div>
-
-                <div className="ep-field ep-field--half">
                   <label className="ep-label">Phone Number</label>
                   <div className="ep-input-wrap">
                     <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
                     </svg>
-                    <input className="ep-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
+                    <input className="ep-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+20 1xx xxx xxxx" />
                   </div>
-                </div>
-              </div>
-
-              <div className="ep-field">
-                <label className="ep-label">LinkedIn URL</label>
-                <div className="ep-input-wrap">
-                  <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
-                  </svg>
-                  <input className="ep-input" value={linkedin} onChange={e => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/..." />
-                </div>
-              </div>
-
-              <div className="ep-field">
-                <label className="ep-label">GitHub URL</label>
-                <div className="ep-input-wrap">
-                  <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-                  </svg>
-                  <input className="ep-input" value={github} onChange={e => setGithub(e.target.value)} placeholder="https://github.com/..." />
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* ── SECTION 2: Academic Information ── */}
+        {/* SECTION 2: Academic Information */}
         <section className="ep-section ep-section--academic">
           <div className="ep-section-header">
             <div className="ep-section-icon ep-section-icon--academic">
@@ -232,30 +293,9 @@ export default function ProfileEdit() {
               </div>
             </div>
           </div>
-
-          <div className="ep-field">
-            <label className="ep-label">Skills</label>
-            <div className="ep-skills-box">
-              <input
-                className="ep-skills-input"
-                value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={handleSkillKey}
-                placeholder="Type a skill and press Enter..."
-              />
-              <div className="ep-tags">
-                {skills.map(sk => (
-                  <span key={sk} className="ep-tag">
-                    {sk}
-                    <button className="ep-tag-remove" onClick={() => removeSkill(sk)}>×</button>
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
         </section>
 
-        {/* ── SECTION 3: Security ── */}
+        {/* SECTION 3: Security */}
         <section className="ep-section ep-section--security">
           <div className="ep-section-header">
             <div className="ep-section-icon ep-section-icon--security">
@@ -270,28 +310,12 @@ export default function ProfileEdit() {
           </div>
 
           <div className="ep-field">
-            <label className="ep-label">Current Password</label>
-            <div className="ep-input-wrap">
-              <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-              <input className="ep-input" type={showCurrent ? "text" : "password"} value={currentPass} onChange={e => setCurrentPass(e.target.value)} placeholder="Enter your current password" />
-              <button className="ep-eye-btn" onClick={() => setShowCurrent(v => !v)}>
-                {showCurrent
-                  ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                  : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                }
-              </button>
-            </div>
-          </div>
-
-          <div className="ep-field">
             <label className="ep-label">New Password</label>
             <div className="ep-input-wrap">
               <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              <input className="ep-input" type={showNew ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Enter your new password" />
+              <input className="ep-input" type={showNew ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="New password (optional)" />
               <button className="ep-eye-btn" onClick={() => setShowNew(v => !v)}>
                 {showNew
                   ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -312,7 +336,7 @@ export default function ProfileEdit() {
                 type={showConfirm ? "text" : "password"}
                 value={confirmPass}
                 onChange={e => setConfirmPass(e.target.value)}
-                placeholder="Confirm your new password"
+                placeholder="Confirm new password"
               />
               <button className="ep-eye-btn" onClick={() => setShowConfirm(v => !v)}>
                 {showConfirm
@@ -327,15 +351,15 @@ export default function ProfileEdit() {
           </div>
         </section>
 
-        {/* ── SAVE BUTTON ── */}
+        {/* SAVE BUTTON */}
         <div className="ep-save-bar">
-          <button className={`ep-save-btn ${saved ? "ep-save-btn--saved" : ""}`} onClick={handleSave}>
-            {saved ? (
+          <button className={`ep-save-btn ${saving ? "ep-save-btn--saved" : ""}`} onClick={handleSave} disabled={saving}>
+            {saving ? (
               <>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12"/>
                 </svg>
-                Saved!
+                Saving...
               </>
             ) : (
               <>
