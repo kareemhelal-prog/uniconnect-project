@@ -1,6 +1,6 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../middleware/authMiddleware');
+const { authenticateToken } = require("../middleware/authMiddleware");
 const {
   createProject,
   getAllProjects,
@@ -10,7 +10,7 @@ const {
   getLeaderboard,
 } = require('../controllers/projectController');
 
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 router.get('/leaderboard',   getLeaderboard);
 router.get('/',              getAllProjects);

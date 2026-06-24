@@ -1,12 +1,12 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 
-const authMiddleware = require('../middleware/authMiddleware');
+const { authenticateToken } = require("../middleware/authMiddleware");
 const roleMiddleware = require('../middleware/roleMiddleware');
 const adminController = require('../controllers/adminController');
 const { getActivityLogs } = require('../controllers/activityLogController');
 
-router.use(authMiddleware);
+router.use(authenticateToken);
 router.use(roleMiddleware('admin'));
 
 router.get('/stats',                        adminController.getStats);
@@ -26,3 +26,4 @@ router.put('/reports/:id/dismiss',          adminController.dismissReport);
 router.delete('/reports/:id/content',       adminController.deleteReportedContent);
 
 module.exports = router;
+

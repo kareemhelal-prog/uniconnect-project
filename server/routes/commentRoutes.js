@@ -1,10 +1,10 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
 
 const commentController = require("../controllers/commentController");
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // add comment
 router.post("/", commentController.addComment);

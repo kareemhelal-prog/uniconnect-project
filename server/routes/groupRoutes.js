@@ -1,4 +1,4 @@
-const { getAllGroups, getGroupById, createGroup, joinGroup, leaveGroup, deleteGroup } = require("../controllers/groupController");
+﻿const { getAllGroups, getGroupById, createGroup, joinGroup, leaveGroup, deleteGroup } = require("../controllers/groupController");
 
 const express = require("express");
 
@@ -6,10 +6,10 @@ const router = express.Router();
 
 const groupController = require("../controllers/groupController");
 
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 // protect routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // =======================
 // GET ALL GROUPS
