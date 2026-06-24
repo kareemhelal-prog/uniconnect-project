@@ -14,10 +14,29 @@ const authFetch = (url, options = {}) =>
     },
   });
 
-function readFileAsBase64(file) {
+// ضغط الصورة وتحويلها لـ base64 بحد أقصى 800px وجودة 80%
+function compressAndEncodeImage(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target.result);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 800;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round((h * MAX) / w); w = MAX; }
+          else       { w = Math.round((w * MAX) / h); h = MAX; }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL("image/jpeg", 0.8));
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -82,7 +101,7 @@ export default function ProfileEdit() {
     try {
       let pictureData = null;
       if (avatarFile) {
-        pictureData = await readFileAsBase64(avatarFile);
+        pictureData = await compressAndEncodeImage(avatarFile);
       }
 
       const yearNum = year.replace("Year ", "").replace("Graduate", "5");
