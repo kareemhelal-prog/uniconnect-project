@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./Navbar.css";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -17,6 +17,8 @@ import {
 } from "react-icons/fi";
 import { HiOutlineLink } from "react-icons/hi";
 
+const API_BASE = "http://localhost:5000/api";
+
 const LAUNCHER_PAGES_STUDENT = [
   { id: "profile",  label: "Profile",          icon: FiUser,       path: "/profile" },
   { id: "projects", label: "Projects",         icon: FiFolderPlus, path: "/projects" },
@@ -33,73 +35,188 @@ const LAUNCHER_PAGES_DOCTOR = [
   { id: "reviews",   label: "Reviews",    icon: FiStar,  path: "/reviews" },
 ];
 
-function Navbar({ notifications = [], user: userProp = {}, searchValue, onSearchChange }) {
-  const navigate = useNavigate();
-  const location = useLocation();
+const notifIcon = (type) => {
+  if (type === "like")    return "❤️";
+  if (type === "comment") return "💬";
+  if (type === "follow")  return "👤";
+  return "🔔";
+};
+
+const playNotificationSound = () => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {}
+};
+
+const resolveAvatar = (pic) => {
+  if (!pic) return "";
+  if (pic.startsWith("data:") || pic.startsWith("http")) return pic;
+  return `http://localhost:5000/${pic.replace(/^\//, "")}`;
+};
+
+function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
+  const navigate  = useNavigate();
+  const location  = useLocation();
 
   const token = localStorage.getItem("token");
-  const role = token
+  const role  = token
     ? (() => { try { return JSON.parse(atob(token.split(".")[1])).role; } catch { return "student"; } })()
     : "student";
 
+  // ── Self-fetch user ──────────────────────────────────────
   const [selfUser, setSelfUser] = useState({});
-
   useEffect(() => {
     if (!token) return;
-    fetch("http://localhost:5000/api/users/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${API_BASE}/users/me`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(d => {
-        const u = d.user || d;
+        const u   = d.user || d;
         const pic = u.profile_picture || "";
         setSelfUser({
-          name:      u.name  || "",
-          email:     u.email || "",
-          initials:  (u.name || "U").slice(0, 2).toUpperCase(),
-          profilePic: pic.startsWith("data:") || pic.startsWith("http")
-            ? pic
-            : pic ? `http://localhost:5000/${pic.replace(/^\//, "")}` : "",
+          name:       u.name  || "",
+          email:      u.email || "",
+          initials:   (u.name || "U").slice(0, 2).toUpperCase(),
+          profilePic: resolveAvatar(pic),
         });
-      })
-      .catch(() => {});
+      }).catch(() => {});
   }, [token]);
 
-  // Merge: selfUser base, then any non-empty userProp fields override
   const user = {
     ...selfUser,
     ...Object.fromEntries(Object.entries(userProp).filter(([, v]) => v != null && v !== "")),
   };
 
-  const [bellRing,        setBellRing]        = useState(false);
-  const [notifOpen,       setNotifOpen]       = useState(false);
-  const [readNotifs,      setReadNotifs]      = useState([]);
-  const [launcherOpen,    setLauncherOpen]    = useState(false);
+  // ── Self-fetch notifications (polls every 30 s) ──────────
+  const [selfNotifs,  setSelfNotifs]  = useState([]);
+  const prevUnreadRef = useRef(-1);
+
+  const fetchNotifs = async () => {
+    if (!token) return;
+    try {
+      const res  = await fetch(`${API_BASE}/notifications`, { headers: { Authorization: `Bearer ${token}` } });
+      const json = await res.json();
+      const list = json.data || [];
+      const newUnread = list.filter(n => !n.is_read).length;
+      // Play sound only when unread count grows (new notification arrived)
+      if (prevUnreadRef.current >= 0 && newUnread > prevUnreadRef.current) {
+        playNotificationSound();
+      }
+      prevUnreadRef.current = newUnread;
+      setSelfNotifs(list);
+    } catch {}
+  };
+
+  useEffect(() => {
+    fetchNotifs();
+    const id = setInterval(fetchNotifs, 30000);
+    return () => clearInterval(id);
+  }, [token]);
+
+  const unreadCount = selfNotifs.filter(n => !n.is_read).length;
+
+  // ── Notification panel ───────────────────────────────────
+  const [bellRing,     setBellRing]     = useState(false);
+  const [notifOpen,    setNotifOpen]    = useState(false);
+  const [launcherOpen, setLauncherOpen] = useState(false);
   const [launcherClicked, setLauncherClicked] = useState(false);
   const [avatarMenuOpen,  setAvatarMenuOpen]  = useState(false);
 
   const launcherPages = role === "doctor" ? LAUNCHER_PAGES_DOCTOR : LAUNCHER_PAGES_STUDENT;
   const homePath      = role === "doctor" ? "/HomeDoctor" : "/home";
+  const activePage    = location.pathname.replace("/", "") || "home";
 
-  const unreadCount = notifications.filter((n) => !readNotifs.includes(n.id)).length;
-  const activePage  = location.pathname.replace("/", "") || "home";
-
-  const handleBell = () => {
+  const handleBell = async () => {
     setBellRing(true);
-    setNotifOpen((p) => !p);
+    const wasOpen = notifOpen;
+    setNotifOpen(p => !p);
     setLauncherOpen(false);
     setAvatarMenuOpen(false);
     setTimeout(() => setBellRing(false), 600);
+    // Mark all as read in DB when opening the panel
+    if (!wasOpen && unreadCount > 0) {
+      try {
+        await fetch(`${API_BASE}/notifications/read-all`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setSelfNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
+        prevUnreadRef.current = 0;
+      } catch {}
+    }
   };
 
-  const markRead    = (id) => setReadNotifs((p) => [...p, id]);
-  const markAllRead = () => {
-    setReadNotifs(notifications.map((n) => n.id));
+  const markAllRead = async () => {
+    try {
+      await fetch(`${API_BASE}/notifications/read-all`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setSelfNotifs(prev => prev.map(n => ({ ...n, is_read: true })));
+      prevUnreadRef.current = 0;
+    } catch {}
     setNotifOpen(false);
   };
 
+  // ── User Search ─────────────────────────────────────────
+  const [searchQuery,   setSearchQuery]   = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchOpen,    setSearchOpen]    = useState(false);
+  const searchRef = useRef(null);
+
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (q.length < 1) { setSearchResults([]); setSearchOpen(false); return; }
+    const timer = setTimeout(async () => {
+      try {
+        const res  = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(q)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        setSearchResults(json.data || []);
+        setSearchOpen(true);
+      } catch {}
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Close search dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) {
+        setSearchOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleFollowFromSearch = async (e, userId) => {
+    e.stopPropagation();
+    try {
+      await fetch(`${API_BASE}/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ following_id: userId }),
+      });
+      setSearchResults(prev =>
+        prev.map(u => u.id === userId ? { ...u, is_following: !u.is_following } : u)
+      );
+    } catch {}
+  };
+
   const handleLauncher = () => {
-    setLauncherOpen((p) => !p);
+    setLauncherOpen(p => !p);
     setNotifOpen(false);
     setAvatarMenuOpen(false);
     setLauncherClicked(true);
@@ -107,7 +224,7 @@ function Navbar({ notifications = [], user: userProp = {}, searchValue, onSearch
   };
 
   const handleAvatarMenu = () => {
-    setAvatarMenuOpen((p) => !p);
+    setAvatarMenuOpen(p => !p);
     setNotifOpen(false);
     setLauncherOpen(false);
   };
@@ -133,15 +250,61 @@ function Navbar({ notifications = [], user: userProp = {}, searchValue, onSearch
       </div>
 
       {/* Search */}
-      <div className="nav-search-wrap">
+      <div className="nav-search-wrap" ref={searchRef} style={{ position: "relative" }}>
         <FiSearch className="search-icon" />
         <input
           className="nav-search"
-          placeholder="Search..."
+          placeholder="Search users..."
           type="text"
-          value={searchValue ?? ""}
-          onChange={onSearchChange || (() => {})}
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          onFocus={() => searchQuery.trim().length >= 2 && setSearchOpen(true)}
         />
+        {searchOpen && searchResults.length > 0 && (
+          <div className="search-dropdown">
+            {searchResults.map(u => {
+              const pic        = resolveAvatar(u.profile_picture);
+              const isVerified = u.role === "doctor" || u.role === "admin";
+              return (
+                <div
+                  key={u.id}
+                  className="search-result-item"
+                  onClick={() => { goTo(`/profile/${u.id}`); setSearchOpen(false); setSearchQuery(""); }}
+                >
+                  <div className="search-result-avatar">
+                    {pic
+                      ? <img src={pic} alt="" onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
+                      : null}
+                    <span className="search-result-initials" style={{ display: pic ? "none" : "flex" }}>
+                      {(u.name || "U").slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="search-result-info">
+                    <span className="search-result-name">
+                      {u.name}
+                      {isVerified && <span className="search-verified-badge" title="Verified">✓</span>}
+                    </span>
+                    <span className="search-result-role">
+                      {u.role}
+                      {u.role === "student" && u.username && ` · ${u.username}`}
+                    </span>
+                  </div>
+                  <button
+                    className={`search-follow-btn${u.is_following ? " following" : ""}`}
+                    onClick={e => handleFollowFromSearch(e, u.id)}
+                  >
+                    {u.is_following ? "✓" : "+ Follow"}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {searchOpen && searchQuery.trim().length >= 2 && searchResults.length === 0 && (
+          <div className="search-dropdown">
+            <div className="search-no-results">No users found</div>
+          </div>
+        )}
       </div>
 
       <div style={{ flex: 1 }} />
@@ -205,29 +368,30 @@ function Navbar({ notifications = [], user: userProp = {}, searchValue, onSearch
               </button>
             </div>
             <div className="notif-list">
-              {notifications.length === 0 ? (
+              {selfNotifs.length === 0 ? (
                 <div className="notif-empty">No notifications</div>
               ) : (
-                notifications.slice(0, 5).map((n) => (
+                selfNotifs.slice(0, 6).map(n => (
                   <div
                     key={n.id}
-                    className={`notif-item ${readNotifs.includes(n.id) ? "read" : "unread"}`}
-                    onClick={() => markRead(n.id)}
+                    className={`notif-item ${n.is_read ? "read" : "unread"}`}
                   >
-                    <span className="notif-icon">{n.icon}</span>
+                    <span className="notif-icon">{notifIcon(n.type)}</span>
                     <div className="notif-body">
-                      <div className="notif-item-title">{n.title}</div>
-                      <div className="notif-item-body">{n.body}</div>
-                      <div className="notif-item-time">{n.time}</div>
+                      <div className="notif-item-title">
+                        {n.sender_name ? `${n.sender_name} ` : ""}{n.message}
+                      </div>
+                      <div className="notif-item-time">
+                        {n.created_at ? new Date(n.created_at).toLocaleString() : ""}
+                      </div>
                     </div>
-                    {!readNotifs.includes(n.id) && <span className="notif-dot" />}
+                    {!n.is_read && <span className="notif-dot" />}
                   </div>
                 ))
               )}
             </div>
             <div
-              className="notif-mark-all"
-              style={{ padding: "10px 16px", borderTop: "1px solid #1e1e3a", textAlign: "center" }}
+              className="notif-view-all"
               onClick={() => goTo("/notifications")}
             >
               View all notifications

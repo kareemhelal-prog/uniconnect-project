@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
 import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
 import Sidebar from "../components/Sidebar";
+import PostCard from "../components/PostCard";
 
 import ProfilePage from "./ProfilePage";
 import ProjectsPage from "./ProjectsPage";
@@ -26,28 +26,17 @@ const authFetch = (url, options = {}) =>
     },
   });
 
+// Spread raw fields so PostCard gets user_id, profile_picture, role, liked, nested comments
 const mapPost = (p) => ({
-  id:          p.id,
-  user_id:     p.user_id,
+  ...p,
   author:      p.name || p.user?.name || p.author_name || "Unknown",
-  avatar:      (p.name || p.user?.name || "U").slice(0, 2).toUpperCase(),
+  avatar:      (p.name || p.user?.name || "D").slice(0, 2).toUpperCase(),
   avatarColor: "#a855f7",
-  role:        p.user?.role || "",
   time:        new Date(p.created_at).toLocaleString(),
-  title:       p.title || "",
+  title:       p.title   || "",
   content:     p.content || p.body || "",
-  likes:       p.likes       ?? p.likes_count ?? 0,
-  liked:       p.liked       ?? false,
-  shares:      p.shares      ?? 0,
-  shared:      p.shared      ?? false,
-  comments:    (p.comments   || []).map((c) => ({
-    id:          c.id,
-    author:      c.user?.name || "Unknown",
-    avatar:      (c.user?.name || "U").slice(0, 2).toUpperCase(),
-    avatarColor: "#00e5ff",
-    text:        c.content || c.text || "",
-    time:        new Date(c.created_at).toLocaleString(),
-  })),
+  likes:       Number(p.likes || p.likes_count || 0),
+  shares:      0,
 });
 
 function renderPage(page, user, setUser) {
@@ -60,280 +49,9 @@ function renderPage(page, user, setUser) {
   }
 }
 
-function PostCard({ post, onUpdate, onDelete, currentUserId }) {
-  const navigate = useNavigate();
-  const [liked,          setLiked]          = useState(post.liked  ?? false);
-  const [shared,         setShared]         = useState(post.shared ?? false);
-  const [showComments,   setShowComments]   = useState(false);
-  const [commentText,    setCommentText]    = useState("");
-  const [likeLoading,    setLikeLoading]    = useState(false);
-  const [commentLoading, setCommentLoading] = useState(false);
-  const [error,          setError]          = useState(null);
-  const [showMenu,       setShowMenu]       = useState(false);
-  const [editing,        setEditing]        = useState(false);
-  const [editTitle,      setEditTitle]      = useState(post.title || "");
-  const [editContent,    setEditContent]    = useState(post.content || "");
-  const [editLoading,    setEditLoading]    = useState(false);
-
-  const isOwner = currentUserId && post.user_id && String(currentUserId) === String(post.user_id);
-
-  const handleLike = useCallback(async () => {
-    if (likeLoading) return;
-    const newLiked = !liked;
-    const newLikes = newLiked
-      ? (post.likes || 0) + 1
-      : Math.max((post.likes || 1) - 1, 0);
-
-    setLiked(newLiked);
-    onUpdate?.({ ...post, liked: newLiked, likes: newLikes });
-    setLikeLoading(true);
-    setError(null);
-
-    try {
-      await authFetch(`${API_BASE}/likes`, {
-        method: "POST",
-        body: JSON.stringify({ post_id: post.id }),
-      });
-    } catch {
-      setLiked(!newLiked);
-      onUpdate?.({ ...post, liked: !newLiked, likes: post.likes });
-      setError("تعذّر تنفيذ الإعجاب، حاول مجدداً.");
-    } finally {
-      setLikeLoading(false);
-    }
-  }, [liked, likeLoading, post, onUpdate]);
-
-  const handleComment = useCallback(async () => {
-    const trimmed = commentText.trim();
-    if (!trimmed || commentLoading) return;
-
-    setCommentLoading(true);
-    setError(null);
-
-    try {
-      const res = await authFetch(`${API_BASE}/comments`, {
-        method: "POST",
-        body: JSON.stringify({ post_id: post.id, content: trimmed }),
-      });
-
-      if (!res.ok) throw new Error(`Server error: ${res.status}`);
-
-      const data = await res.json();
-
-      const newComment = {
-        id:          data.id,
-        author:      data.user?.name || "Me",
-        avatar:      (data.user?.name || "Me").slice(0, 2).toUpperCase(),
-        avatarColor: "#a855f7",
-        text:        data.content || trimmed,
-        time:        data.created_at ? new Date(data.created_at).toLocaleString() : "Just now",
-      };
-
-      onUpdate?.({ ...post, comments: [...(post.comments || []), newComment] });
-      setCommentText("");
-    } catch {
-      setError("تعذّر إضافة التعليق، حاول مجدداً.");
-    } finally {
-      setCommentLoading(false);
-    }
-  }, [commentText, commentLoading, post, onUpdate]);
-
-  const handleShare = useCallback(() => {
-    if (shared) return;
-    setShared(true);
-    onUpdate?.({ ...post, shares: (post.shares || 0) + 1 });
-  }, [shared, post, onUpdate]);
-
-  const handleDelete = useCallback(async () => {
-    setShowMenu(false);
-    if (!window.confirm("Delete this post?")) return;
-    try {
-      const res = await authFetch(`${API_BASE}/posts/${post.id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error();
-      onDelete?.(post.id);
-    } catch {
-      setError("Failed to delete post.");
-    }
-  }, [post.id, onDelete]);
-
-  const handleEditSave = useCallback(async () => {
-    if (!editContent.trim()) return;
-    setEditLoading(true);
-    try {
-      const res = await authFetch(`${API_BASE}/posts/${post.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ title: editTitle, content: editContent }),
-      });
-      if (!res.ok) throw new Error();
-      onUpdate?.({ ...post, title: editTitle, content: editContent });
-      setEditing(false);
-    } catch {
-      setError("Failed to update post.");
-    } finally {
-      setEditLoading(false);
-    }
-  }, [editTitle, editContent, post, onUpdate]);
-
-  return (
-    <div className="post-card" data-post-id={post.id}>
-      {error && (
-        <div className="post-error-banner" role="alert">
-          ⚠️ {error}
-          <button className="error-dismiss" onClick={() => setError(null)}>✕</button>
-        </div>
-      )}
-
-      <div className="post-header">
-        <div className="post-avatar-wrap" style={{ background: post.avatarColor || "#a855f7" }}>
-          {post.avatar}
-        </div>
-        <div className="post-meta-info">
-          <h4
-            className="post-author"
-            style={{ cursor: post.user_id ? "pointer" : "default" }}
-            onClick={() => post.user_id && navigate(`/profile/${post.user_id}`)}
-          >
-            {post.author}
-          </h4>
-          <span className="post-role">{post.role}</span>
-          <span className="post-time">{post.time}</span>
-        </div>
-        {isOwner && (
-          <div style={{ position: "relative" }}>
-            <button className="more-btn" aria-label="More options" onClick={() => setShowMenu(v => !v)}>•••</button>
-            {showMenu && (
-              <div style={{
-                position: "absolute", right: 0, top: "100%", zIndex: 10,
-                background: "#1a1f2e", border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: "8px", overflow: "hidden", minWidth: "120px", boxShadow: "0 4px 16px rgba(0,0,0,0.4)"
-              }}>
-                <button onClick={() => { setEditing(true); setShowMenu(false); }} style={{
-                  display: "block", width: "100%", padding: "10px 16px", background: "none",
-                  border: "none", color: "#e2e8f0", cursor: "pointer", textAlign: "left", fontSize: "14px"
-                }}>✏️ Edit</button>
-                <button onClick={handleDelete} style={{
-                  display: "block", width: "100%", padding: "10px 16px", background: "none",
-                  border: "none", color: "#f87171", cursor: "pointer", textAlign: "left", fontSize: "14px"
-                }}>🗑 Delete</button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {editing && (
-        <div style={{ padding: "12px", background: "rgba(255,255,255,0.05)", borderRadius: "8px", marginBottom: "8px" }}>
-          <input
-            style={{ width: "100%", background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", padding: "8px", color: "#e2e8f0", marginBottom: "8px", boxSizing: "border-box" }}
-            value={editTitle} onChange={e => setEditTitle(e.target.value)} placeholder="Title (optional)"
-          />
-          <textarea
-            style={{ width: "100%", background: "#0d1117", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "6px", padding: "8px", color: "#e2e8f0", minHeight: "80px", resize: "vertical", boxSizing: "border-box" }}
-            value={editContent} onChange={e => setEditContent(e.target.value)} placeholder="Post content..."
-          />
-          <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-            <button onClick={handleEditSave} disabled={editLoading} style={{ padding: "7px 16px", borderRadius: "6px", background: "#a855f7", border: "none", color: "#fff", cursor: "pointer", fontSize: "13px" }}>
-              {editLoading ? "Saving..." : "Save"}
-            </button>
-            <button onClick={() => setEditing(false)} style={{ padding: "7px 16px", borderRadius: "6px", background: "rgba(255,255,255,0.1)", border: "none", color: "#e2e8f0", cursor: "pointer", fontSize: "13px" }}>
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="post-body">
-        {post.title   && <h3 className="post-title">{post.title}</h3>}
-        {post.content && <p className="post-content">{post.content}</p>}
-      </div>
-
-      {((post.likes > 0) || (post.comments?.length > 0) || (post.shares > 0)) && (
-        <div className="post-stats-row">
-          {post.likes > 0 && (
-            <span className="post-stat">{post.likes} likes</span>
-          )}
-          {post.comments?.length > 0 && (
-            <span className="post-stat">{post.comments.length} comments</span>
-          )}
-          {post.shares > 0 && (
-            <span className="post-stat">{post.shares} shares</span>
-          )}
-        </div>
-      )}
-
-      <div className="post-divider" />
-
-      <div className="post-actions">
-        <button
-          className={`action-btn like-btn ${liked ? "liked" : ""}`}
-          onClick={handleLike}
-          disabled={likeLoading}
-          aria-label={liked ? "Unlike" : "Like"}
-        >
-          {likeLoading ? "⏳" : liked ? "❤️" : "🤍"} Like
-        </button>
-
-        <button
-          className="action-btn comment-btn"
-          onClick={() => setShowComments((v) => !v)}
-          aria-expanded={showComments}
-        >
-          💬 Comment
-        </button>
-
-        <button
-          className={`action-btn share-btn ${shared ? "shared" : ""}`}
-          onClick={handleShare}
-          disabled={shared}
-          aria-label={shared ? "Already shared" : "Share"}
-        >
-          {shared ? "✅ Shared" : "↗ Share"}
-        </button>
-      </div>
-
-      {showComments && (
-        <div className="comments-section">
-          {(post.comments || []).map((c) => (
-            <div key={c.id} className="comment-item">
-              <div
-                className="comment-avatar"
-                style={{ background: c.avatarColor || "#a855f7" }}
-              >
-                {c.avatar}
-              </div>
-              <div className="comment-bubble">
-                <span className="comment-author">{c.author}</span>
-                <p className="comment-text">{c.text}</p>
-                <span className="comment-time">{c.time}</span>
-              </div>
-            </div>
-          ))}
-
-          <div className="comment-input-row">
-            <div className="comment-avatar" style={{ background: "#a855f7" }}>Me</div>
-            <input
-              className="comment-input"
-              placeholder="Write a comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleComment()}
-              disabled={commentLoading}
-              aria-label="Comment input"
-            />
-            <button
-              className="comment-send-btn"
-              onClick={handleComment}
-              disabled={commentLoading || !commentText.trim()}
-            >
-              {commentLoading ? "..." : "Send"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
+// ══════════════════════════════════════════════
+// Create Post Modal
+// ══════════════════════════════════════════════
 function CreatePostModal({ onClose, onPost }) {
   const [title,   setTitle]   = useState("");
   const [content, setContent] = useState("");
@@ -353,8 +71,8 @@ function CreatePostModal({ onClose, onPost }) {
         }),
       });
       if (!res.ok) throw new Error("Failed to create post");
-      const data = await res.json();
-      onPost(mapPost(data));
+      const json = await res.json();
+      onPost(mapPost(json.data));
       onClose();
     } catch {
       setError("حصل خطأ، حاول تاني.");
@@ -364,10 +82,7 @@ function CreatePostModal({ onClose, onPost }) {
   };
 
   return (
-    <div
-      className="modal-overlay"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal-card">
         <div className="modal-header">
           <span className="modal-title">Create Post</span>
@@ -391,21 +106,11 @@ function CreatePostModal({ onClose, onPost }) {
             onChange={(e) => setContent(e.target.value)}
             rows={5}
           />
-          {error && (
-            <p style={{ color: "#f87171", fontSize: "13px", marginTop: "8px" }}>
-              {error}
-            </p>
-          )}
+          {error && <p className="modal-error">{error}</p>}
         </div>
         <div className="modal-footer-btns">
-          <button className="modal-cancel-btn" onClick={onClose} disabled={loading}>
-            Cancel
-          </button>
-          <button
-            className="modal-submit-btn"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
+          <button className="modal-cancel-btn" onClick={onClose} disabled={loading}>Cancel</button>
+          <button className="modal-submit-btn" onClick={handleSubmit} disabled={loading}>
             {loading ? "Posting..." : "Post"}
           </button>
         </div>
@@ -414,6 +119,9 @@ function CreatePostModal({ onClose, onPost }) {
   );
 }
 
+// ══════════════════════════════════════════════
+// HomeDoctor Component
+// ══════════════════════════════════════════════
 const HomeDoctor = () => {
   const [activePage,     setActivePage]     = useState("home");
   const [user,           setUser]           = useState(null);
@@ -422,6 +130,7 @@ const HomeDoctor = () => {
   const [showCreatePost, setShowCreatePost] = useState(false);
   const [loadingUser,    setLoadingUser]    = useState(true);
   const [loadingPosts,   setLoadingPosts]   = useState(true);
+  const [showToast,      setShowToast]      = useState(false);
 
   const isHome = activePage === "home";
 
@@ -430,14 +139,20 @@ const HomeDoctor = () => {
       .then((r) => r.json())
       .then((data) => {
         const u = data.user || data;
+        const pic = u.profile_picture || "";
         setUser({
           id:       u.id,
-          name:     u.name || u.full_name || "Doctor",
+          name:     u.name || "Doctor",
+          email:    u.email || "",
           initials: (u.name || "D").slice(0, 2).toUpperCase(),
-          role:     u.role       || "doctor",
+          role:     u.role || "doctor",
           dept:     u.department || "",
           faculty:  u.faculty    || "",
           status:   "online",
+          profile_picture: pic,
+          profilePic: pic.startsWith("data:") || pic.startsWith("http")
+            ? pic
+            : pic ? `http://localhost:5000/${pic.replace(/^\//, "")}` : "",
           stats: [
             { label: "Projects", value: 0 },
             { label: "Students", value: 0 },
@@ -452,8 +167,8 @@ const HomeDoctor = () => {
   useEffect(() => {
     authFetch(`${API_BASE}/posts`)
       .then((r) => r.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data.data || data.posts || [];
+      .then((json) => {
+        const list = Array.isArray(json) ? json : json.data || json.posts || [];
         setPosts(list.map(mapPost));
       })
       .catch((err) => console.error("Fetch posts error:", err))
@@ -463,14 +178,14 @@ const HomeDoctor = () => {
   useEffect(() => {
     authFetch(`${API_BASE}/notifications`)
       .then((r) => r.json())
-      .then((data) => {
-        const list = Array.isArray(data) ? data : data.notifications || [];
+      .then((json) => {
+        const list = json.data || json.notifications || (Array.isArray(json) ? json : []);
         setNotifications(
           list.map((n) => ({
             id:    n.id,
             icon:  "🔔",
-            title: n.title   || n.message || "Notification",
-            body:  n.body    || "",
+            title: n.title || n.message || "Notification",
+            body:  n.body  || "",
             time:  n.created_at ? new Date(n.created_at).toLocaleString() : "",
           }))
         );
@@ -478,13 +193,19 @@ const HomeDoctor = () => {
       .catch(() => {});
   }, []);
 
-  const updatePost = (updated) =>
-    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  const updatePost = (updated) => {
+    if (updated._deleted) {
+      setPosts((prev) => prev.filter((p) => p.id !== updated.id));
+    } else {
+      setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    }
+  };
 
-  const deletePost = (id) =>
-    setPosts((prev) => prev.filter((p) => p.id !== id));
-
-  const addPost = (newPost) => setPosts((prev) => [newPost, ...prev]);
+  const addPost = (newPost) => {
+    setPosts((prev) => [newPost, ...prev]);
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
 
   if (loadingUser) {
     return (
@@ -496,6 +217,13 @@ const HomeDoctor = () => {
 
   return (
     <div className="home-page">
+      {showToast && (
+        <div className="success-toast">
+          <span className="toast-check">✓</span>
+          تم نشر البوست بنجاح!
+        </div>
+      )}
+
       <Navbar
         activePage={activePage}
         onNavigate={(id) => setActivePage(id)}
@@ -514,18 +242,13 @@ const HomeDoctor = () => {
           <main className="feed-section">
             <div className="feed-top-bar">
               <h2 className="feed-title">Academic Social Feed</h2>
-              <button
-                className="create-post-btn"
-                onClick={() => setShowCreatePost(true)}
-              >
+              <button className="create-post-btn" onClick={() => setShowCreatePost(true)}>
                 + Create Post
               </button>
             </div>
 
             {loadingPosts ? (
-              <p style={{ color: "#8b949e", textAlign: "center", padding: "2rem" }}>
-                Loading posts...
-              </p>
+              <p className="feed-loading">Loading posts...</p>
             ) : posts.length === 0 ? (
               <div className="feed-empty">
                 <span className="feed-empty-icon">📭</span>
@@ -533,7 +256,7 @@ const HomeDoctor = () => {
               </div>
             ) : (
               posts.map((post) => (
-                <PostCard key={post.id} post={post} onUpdate={updatePost} onDelete={deletePost} currentUserId={user?.id} />
+                <PostCard key={post.id} post={post} onUpdate={updatePost} />
               ))
             )}
           </main>

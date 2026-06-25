@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import PostCard from "../components/PostCard";
 import "../styles/DoctorProfile.css";
 import api from "../api/axios";
 
@@ -21,45 +22,6 @@ function StatItem({ icon, value, label }) {
   );
 }
 
-function PostCard({ post, doctorName }) {
-  const [liked, setLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
-
-  const handleLike = async () => {
-    try {
-      if (liked) {
-        await api.delete(`/posts/${post.id}/like`);
-        setLikesCount((c) => c - 1);
-      } else {
-        await api.post(`/posts/${post.id}/like`);
-        setLikesCount((c) => c + 1);
-      }
-      setLiked(!liked);
-    } catch (err) {
-      console.error("Like failed:", err);
-    }
-  };
-
-  return (
-    <div className="dp-post-card">
-      <div className="dp-post-header">
-        <div className="dp-post-avatar">{doctorName?.[0] || "D"}</div>
-        <div>
-          <p className="dp-post-name">{doctorName}</p>
-          <p className="dp-post-date">{new Date(post.created_at).toLocaleString()}</p>
-        </div>
-        <button className="dp-post-menu">⋯</button>
-      </div>
-      <p className="dp-post-text">{post.content}</p>
-      <div className="dp-post-actions">
-        <button className={`dp-action-btn${liked ? " active" : ""}`} onClick={handleLike}>
-          <span>👍</span> Like ({likesCount})
-        </button>
-        <button className="dp-action-btn"><span>💬</span> Comment</button>
-      </div>
-    </div>
-  );
-}
 
 function FilesTab({ files }) {
   if (!files || files.length === 0)
@@ -141,15 +103,22 @@ export default function DoctorProfile() {
     const fetchAll = async () => {
       try {
         const profileUrl = id ? `/profile/${id}` : "/profile";
-        const [profileRes, postsRes, filesRes, groupsRes, coursesRes] = await Promise.all([
+        const [profileRes, filesRes, groupsRes, coursesRes] = await Promise.all([
           api.get(profileUrl),
-          api.get(id ? `/posts?user_id=${id}` : "/posts/my"),
           api.get(id ? `/files?user=${id}` : "/files/my"),
           api.get("/groups/my-groups"),
           api.get(id ? `/courses?doctor_id=${id}` : "/courses/my"),
         ]);
-        setProfile(profileRes.data.data || profileRes.data);
-        setPosts(postsRes.data.data   || postsRes.data   || []);
+        const profileData = profileRes.data.data || profileRes.data;
+        setProfile(profileData);
+        // Posts come from the profile response (populated by fetchPosts() in profileController)
+        const rawPosts = profileData.posts || [];
+        setPosts(rawPosts.map(p => ({
+          ...p,
+          author: p.name || "Unknown",
+          time:   new Date(p.created_at).toLocaleString(),
+          likes:  Number(p.likes || 0),
+        })));
         setFiles(filesRes.data.data   || filesRes.data   || []);
         setGroups(groupsRes.data.data  || groupsRes.data  || []);
         setCourses(coursesRes.data.data || coursesRes.data || []);
@@ -164,12 +133,8 @@ export default function DoctorProfile() {
 
   const handleFollow = async () => {
     try {
-      if (following) {
-        await api.delete(`/follow/${id}`);
-      } else {
-        await api.post(`/follow/${id}`);
-      }
-      setFollowing(!following);
+      await api.post("/follow", { following_id: id });
+      setFollowing(f => !f);
     } catch (err) {
       console.error("Follow failed:", err);
     }
@@ -236,7 +201,16 @@ export default function DoctorProfile() {
           </nav>
 
           <div className="dp-tab-content">
-            {activeTab === "Posts"   && (posts.length > 0 ? posts.map((p) => <PostCard key={p.id} post={p} doctorName={profile.name} />) : <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No posts yet.</p>)}
+            {activeTab === "Posts"   && (posts.length > 0 ? posts.map((p) => (
+              <PostCard
+                key={p.id}
+                post={p}
+                onUpdate={(updated) => {
+                  if (updated._deleted) setPosts(prev => prev.filter(x => x.id !== updated.id));
+                  else setPosts(prev => prev.map(x => x.id === updated.id ? updated : x));
+                }}
+              />
+            )) : <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 14 }}>No posts yet.</p>)}
             {activeTab === "Files"   && <FilesTab files={files} />}
             {activeTab === "Groups"  && <GroupsTab groups={groups} />}
             {activeTab === "Courses" && <CoursesTab courses={courses} />}

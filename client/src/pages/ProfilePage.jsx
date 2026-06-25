@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PostCard from "../components/PostCard";
 import "../styles/ProfilePage.css";
@@ -20,15 +20,114 @@ function VerifiedBadge() {
   return <span className="pp-verified" title="Verified">✓</span>;
 }
 
-function StatItem({ icon, value, label }) {
+function StatItem({ icon, value, label, onClick }) {
   return (
-    <div className="pp-stat">
+    <div
+      className={`pp-stat${onClick ? " pp-stat-clickable" : ""}`}
+      onClick={onClick}
+    >
       <span className="pp-stat-icon">{icon}</span>
       <div>
         <span className="pp-stat-value">
           {typeof value === "number" ? value.toLocaleString() : value}
         </span>
         <span className="pp-stat-label">{label}</span>
+      </div>
+    </div>
+  );
+}
+
+function FollowersModal({ profileId, type, onClose }) {
+  const navigate = useNavigate();
+  const [users,   setUsers]   = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const myId = (() => {
+    try { return JSON.parse(atob((localStorage.getItem("token") || "").split(".")[1])).id; } catch { return null; }
+  })();
+
+  useEffect(() => {
+    const url = `${API}/users/${profileId}/${type}`;
+    fetch(url, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => setUsers(d.data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [profileId, type]);
+
+  const toggleFollow = async (targetId) => {
+    try {
+      await fetch(`${API}/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...authHeaders() },
+        body: JSON.stringify({ following_id: targetId }),
+      });
+      setUsers(prev => prev.map(u =>
+        u.id === targetId ? { ...u, is_following: !u.is_following } : u
+      ));
+    } catch {}
+  };
+
+  return (
+    <div className="pp-modal-overlay" onClick={onClose}>
+      <div className="pp-modal" onClick={e => e.stopPropagation()}>
+        <div className="pp-modal-header">
+          <h3 className="pp-modal-title">
+            {type === "followers" ? "Followers" : "Following"}
+          </h3>
+          <button className="pp-modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="pp-modal-list">
+          {loading && (
+            <p style={{ textAlign: "center", color: "#00e5ff", padding: "20px" }}>Loading...</p>
+          )}
+          {!loading && users.length === 0 && (
+            <p style={{ textAlign: "center", color: "rgba(255,255,255,0.35)", padding: "24px" }}>
+              No {type} yet.
+            </p>
+          )}
+          {users.map(u => {
+            const pic        = resolveImg(u.profile_picture);
+            const isVerified = u.role === "doctor" || u.role === "admin";
+            const isSelf     = myId != null && Number(u.id) === Number(myId);
+            return (
+              <div key={u.id} className="pp-modal-user-row">
+                <div
+                  className="pp-modal-avatar"
+                  onClick={() => { navigate(`/profile/${u.id}`); onClose(); }}
+                >
+                  {pic
+                    ? <img src={pic} alt="" onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
+                    : null}
+                  <span className="pp-modal-initials" style={{ display: pic ? "none" : "flex" }}>
+                    {(u.name || "U").slice(0, 2).toUpperCase()}
+                  </span>
+                </div>
+                <div
+                  className="pp-modal-info"
+                  onClick={() => { navigate(`/profile/${u.id}`); onClose(); }}
+                >
+                  <span className="pp-modal-name">
+                    {u.name}
+                    {isVerified && <span className="pp-modal-verified">✓</span>}
+                  </span>
+                  <span className="pp-modal-role">
+                    {u.role}
+                    {u.role === "student" && u.username && ` · ${u.username}`}
+                  </span>
+                </div>
+                {!isSelf && (
+                  <button
+                    className={`pp-modal-follow-btn${u.is_following ? " following" : ""}`}
+                    onClick={() => toggleFollow(u.id)}
+                  >
+                    {u.is_following ? "✓ Following" : "+ Follow"}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -112,10 +211,12 @@ export default function ProfilePage() {
   const [activeTab, setActiveTab]           = useState("Posts");
   const [following, setFollowing]           = useState(false);
   const [followersCount, setFollowersCount] = useState(0);
+  const [followingCount, setFollowingCount] = useState(0);
   const [followLoading, setFollowLoading]   = useState(false);
   const [loading, setLoading]               = useState(true);
   const [shareCopied, setShareCopied]       = useState(false);
   const [inviteCopied, setInviteCopied]     = useState(false);
+  const [modal, setModal]                   = useState(null); // "followers" | "following" | null
 
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -140,6 +241,7 @@ export default function ProfilePage() {
         const data = await res.json();
         setProfile(data);
         setFollowersCount(data.followers || 0);
+        setFollowingCount(data.following || 0);
         setPosts(data.posts || []);
       } catch (err) {
         console.error("Profile fetch failed:", err);
@@ -226,8 +328,9 @@ export default function ProfilePage() {
     );
   }
 
-  const avatarSrc = resolveImg(profile.profile_picture || "");
+  const avatarSrc  = resolveImg(profile.profile_picture || "");
   const isVerified = profile.role === "doctor" || profile.role === "admin";
+  const profileId  = id || profile.id;
 
   return (
     <>
@@ -288,7 +391,15 @@ export default function ProfilePage() {
           </div>
 
           <div className="pp-stats-row">
-            <StatItem icon="👥" value={followersCount} label="Followers" />
+            <StatItem
+              icon="👥" value={followersCount} label="Followers"
+              onClick={() => setModal("followers")}
+            />
+            <div className="pp-stats-divider" />
+            <StatItem
+              icon="➡️" value={followingCount} label="Following"
+              onClick={() => setModal("following")}
+            />
             <div className="pp-stats-divider" />
             <StatItem icon="📚" value={courses.length} label="Courses" />
             <div className="pp-stats-divider" />
@@ -386,6 +497,13 @@ export default function ProfilePage() {
           </aside>
         </div>
       </div>
+      {modal && (
+        <FollowersModal
+          profileId={profileId}
+          type={modal}
+          onClose={() => setModal(null)}
+        />
+      )}
     </>
   );
 }

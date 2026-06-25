@@ -9,6 +9,11 @@ const currentUserId = () => {
   if (!t) return null;
   try { return JSON.parse(atob(t.split(".")[1])).id; } catch { return null; }
 };
+const currentUserRole = () => {
+  const t = token();
+  if (!t) return null;
+  try { return JSON.parse(atob(t.split(".")[1])).role; } catch { return null; }
+};
 
 const resolveImg = (pic) => {
   if (!pic) return "";
@@ -20,12 +25,20 @@ function VerifiedBadge() {
   return <span className="verified-badge" title="Verified account">✓</span>;
 }
 
-function CommentItem({ comment, postId, onReply, navigate, depth = 0 }) {
-  const [showReplyInput, setShowReplyInput] = useState(false);
-  const [replyText, setReplyText] = useState("");
-  const [sending, setSending] = useState(false);
+function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, depth = 0 }) {
+  const myId   = currentUserId();
+  const myRole = currentUserRole();
+  const isCommentOwner = myId != null && comment.user?.id != null && Number(comment.user.id) === Number(myId);
+  const canDelete = isCommentOwner || myRole === "doctor" || myRole === "admin";
 
-  const pic = resolveImg(comment.user?.profile_picture || "");
+  const [showReplyInput, setShowReplyInput] = useState(false);
+  const [replyText,      setReplyText]      = useState("");
+  const [sending,        setSending]        = useState(false);
+  const [showMenu,       setShowMenu]       = useState(false);
+  const [editing,        setEditing]        = useState(false);
+  const [editText,       setEditText]       = useState(comment.content);
+
+  const pic        = resolveImg(comment.user?.profile_picture || "");
   const isVerified = comment.user?.role === "doctor" || comment.user?.role === "admin";
 
   const submitReply = async () => {
@@ -41,9 +54,32 @@ function CommentItem({ comment, postId, onReply, navigate, depth = 0 }) {
       onReply(comment.id, data);
       setReplyText("");
       setShowReplyInput(false);
-    } catch {} finally {
-      setSending(false);
-    }
+    } catch {} finally { setSending(false); }
+  };
+
+  const handleDeleteComment = async () => {
+    if (!window.confirm("Delete this comment?")) return;
+    try {
+      await fetch(`${API_BASE}/comments/${comment.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token()}` },
+      });
+      onDelete(comment.id);
+    } catch {}
+    setShowMenu(false);
+  };
+
+  const handleEditSave = async () => {
+    if (!editText.trim()) return;
+    try {
+      await fetch(`${API_BASE}/comments/${comment.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
+        body: JSON.stringify({ content: editText.trim() }),
+      });
+      onEdit(comment.id, editText.trim());
+      setEditing(false);
+    } catch {}
   };
 
   return (
@@ -62,23 +98,51 @@ function CommentItem({ comment, postId, onReply, navigate, depth = 0 }) {
       </div>
 
       <div className="comment-bubble">
-        <span
-          className="comment-author clickable-name"
-          onClick={() => comment.user?.id && navigate(`/profile/${comment.user.id}`)}
-        >
-          {comment.user?.name || "Unknown"}
-          {isVerified && <VerifiedBadge />}
-        </span>
-        <p className="comment-text">{comment.content}</p>
+        <div className="comment-bubble-header">
+          <span
+            className="comment-author clickable-name"
+            onClick={() => comment.user?.id && navigate(`/profile/${comment.user.id}`)}
+          >
+            {comment.user?.name || "Unknown"}
+            {isVerified && <VerifiedBadge />}
+          </span>
+          {canDelete && (
+            <div className="comment-menu-wrap">
+              <button className="comment-menu-btn" onClick={() => setShowMenu(m => !m)}>⋯</button>
+              {showMenu && (
+                <div className="comment-menu-dropdown">
+                  {isCommentOwner && (
+                    <button onClick={() => { setEditing(true); setShowMenu(false); }}>✏ Edit</button>
+                  )}
+                  <button onClick={handleDeleteComment} className="comment-delete-btn">🗑 Delete</button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {editing ? (
+          <>
+            <input
+              className="comment-edit-input"
+              value={editText}
+              onChange={e => setEditText(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleEditSave(); if (e.key === "Escape") setEditing(false); }}
+              autoFocus
+            />
+            <div className="comment-edit-actions">
+              <button className="comment-edit-save" onClick={handleEditSave}>Save</button>
+              <button className="comment-edit-cancel" onClick={() => setEditing(false)}>Cancel</button>
+            </div>
+          </>
+        ) : (
+          <p className="comment-text">{comment.content}</p>
+        )}
+
         <div className="comment-footer">
           <span className="comment-time">{new Date(comment.created_at).toLocaleString()}</span>
           {depth === 0 && (
-            <button
-              className="reply-toggle-btn"
-              onClick={() => setShowReplyInput(s => !s)}
-            >
-              Reply
-            </button>
+            <button className="reply-toggle-btn" onClick={() => setShowReplyInput(s => !s)}>Reply</button>
           )}
         </div>
 
@@ -106,6 +170,8 @@ function CommentItem({ comment, postId, onReply, navigate, depth = 0 }) {
                 comment={r}
                 postId={postId}
                 onReply={onReply}
+                onDelete={onDelete}
+                onEdit={onEdit}
                 navigate={navigate}
                 depth={depth + 1}
               />
@@ -182,7 +248,6 @@ const PostCard = ({ post, onUpdate }) => {
     } catch {}
   };
 
-  // Adds a reply to a specific parent comment by ID
   const handleReply = (parentId, newReply) => {
     setComments(prev =>
       prev.map(c =>
@@ -191,6 +256,23 @@ const PostCard = ({ post, onUpdate }) => {
           : c
       )
     );
+  };
+
+  const handleCommentDelete = (commentId) => {
+    const removeFromTree = (list) =>
+      list.filter(c => c.id !== commentId)
+          .map(c => ({ ...c, replies: c.replies ? removeFromTree(c.replies) : [] }));
+    setComments(prev => removeFromTree(prev));
+  };
+
+  const handleCommentEdit = (commentId, newContent) => {
+    const updateInTree = (list) =>
+      list.map(c => ({
+        ...c,
+        content: c.id === commentId ? newContent : c.content,
+        replies: c.replies ? updateInTree(c.replies) : [],
+      }));
+    setComments(prev => updateInTree(prev));
   };
 
   const handleFollow = async () => {
@@ -324,6 +406,8 @@ const PostCard = ({ post, onUpdate }) => {
               comment={c}
               postId={post.id}
               onReply={handleReply}
+              onDelete={handleCommentDelete}
+              onEdit={handleCommentEdit}
               navigate={navigate}
               depth={0}
             />

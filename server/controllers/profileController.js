@@ -66,14 +66,15 @@ exports.getProfile = async (req, res) => {
       });
     }
 
-    const [posts, followers, groups, uploadedFiles] = await Promise.all([
+    const [posts, followers, following, groups, uploadedFiles] = await Promise.all([
       fetchPosts(userId, userId),
       safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE following_id = ?", [userId]),
-      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",    [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE follower_id = ?",  [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",     [userId]),
       safeCount("SELECT COUNT(*) AS count FROM Files         WHERE uploader_id = ?", [userId]),
     ]);
 
-    res.json({ ...user, followers, groups, uploadedFiles, posts });
+    res.json({ ...user, followers, following, groups, uploadedFiles, posts });
   } catch (err) {
     console.error("❌ getProfile error:", err.message);
     res.status(500).json({ message: "Server error", detail: err.message });
@@ -94,14 +95,15 @@ exports.getUserById = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const viewerId = req.user.id;
-    const [posts, followers, groups, uploadedFiles] = await Promise.all([
+    const [posts, followers, following, groups, uploadedFiles] = await Promise.all([
       fetchPosts(userId, viewerId),
       safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE following_id = ?", [userId]),
-      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",    [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE follower_id = ?",  [userId]),
+      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",     [userId]),
       safeCount("SELECT COUNT(*) AS count FROM Files         WHERE uploader_id = ?", [userId]),
     ]);
 
-    res.json({ ...user, followers, groups, uploadedFiles, posts });
+    res.json({ ...user, followers, following, groups, uploadedFiles, posts });
   } catch (err) {
     console.error("❌ getUserById error:", err.message);
     res.status(500).json({ message: "Server error", detail: err.message });

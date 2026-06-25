@@ -102,14 +102,34 @@ exports.getCommentsByPost = async (req, res) => {
 };
 
 // =======================
-// DELETE COMMENT
+// EDIT COMMENT (owner only)
+// =======================
+exports.editComment = async (req, res) => {
+  const { content } = req.body;
+  try {
+    if (!content || !content.trim()) return res.status(400).json({ message: "content is required" });
+    const [[comment]] = await promisePool.query("SELECT * FROM Comments WHERE id = ?", [req.params.id]);
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
+    if (comment.user_id !== req.user.id) return res.status(403).json({ message: "Not authorized" });
+    await promisePool.query("UPDATE Comments SET content = ? WHERE id = ?", [content.trim(), req.params.id]);
+    res.json({ message: "Comment updated", content: content.trim() });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// =======================
+// DELETE COMMENT (owner, doctor, or admin)
 // =======================
 exports.deleteComment = async (req, res) => {
   try {
-    const [comments] = await promisePool.query("SELECT * FROM Comments WHERE id = ?", [req.params.id]);
+    const [[comment]] = await promisePool.query("SELECT * FROM Comments WHERE id = ?", [req.params.id]);
+    if (!comment) return res.status(404).json({ message: "Comment not found" });
 
-    if (comments.length === 0) return res.status(404).json({ message: "Comment not found" });
-    if (comments[0].user_id !== req.user.id) return res.status(403).json({ message: "Not authorized" });
+    const canDelete = comment.user_id === req.user.id ||
+                      req.user.role === "doctor" ||
+                      req.user.role === "admin";
+    if (!canDelete) return res.status(403).json({ message: "Not authorized" });
 
     await promisePool.query("DELETE FROM Comments WHERE id = ?", [req.params.id]);
     res.json({ message: "Comment deleted" });

@@ -6,13 +6,9 @@ const { authenticateToken } = require("../middleware/authMiddleware");
 
 router.use(authenticateToken);
 
-// add comment
-router.post("/", commentController.addComment);
-
-// get comments for post
-router.get("/:postId", commentController.getCommentsByPost);
-
-// delete comment
-router.delete("/:id", commentController.deleteComment);
+router.post("/",         commentController.addComment);
+router.get("/:postId",   commentController.getCommentsByPost);
+router.put("/:id",       commentController.editComment);
+router.delete("/:id",    commentController.deleteComment);
 
 module.exports = router;
