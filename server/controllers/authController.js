@@ -104,6 +104,14 @@ exports.login = async (req, res) => {
     }
 
     const user = users[0];
+
+    // Google-only accounts have no local password yet
+    if (!user.password) {
+      return res.status(401).json({
+        message: "This account uses Google sign-in. Log in with Google, or use 'Forgot Password' to set a password.",
+      });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {

@@ -5,6 +5,7 @@ import "../styles/Register.css";
 import profileImg from "../assets/image.register.jpeg";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import GoogleAuthButton from "../components/GoogleAuthButton";
 
 export default function Register() {
   useEffect(() => {
@@ -16,15 +17,30 @@ export default function Register() {
     email: "",
     password: "",
     confirmPass: "",
-    username: "", 
+    username: "",
     role: "student",
     academicYear: "",
     specialization: "",
     phone: "",
-    studentId: "", 
+    studentId: "",
   });
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleToken = async (accessToken) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post("/auth/google", { access_token: accessToken });
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("role", data.user.role);
+      // Google sign-ups default to student
+      navigate("/Home");
+    } catch (err) {
+      setErrors({ general: err.response?.data?.message || "Google sign-in failed" });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -259,6 +275,10 @@ export default function Register() {
                 {loading ? "Creating account…" : "Register"}
               </button>
             </form>
+
+            <div className="auth-divider">OR</div>
+
+            <GoogleAuthButton onToken={handleGoogleToken} disabled={loading} />
 
             <p className="register-footer">
               Already have an account?{" "}

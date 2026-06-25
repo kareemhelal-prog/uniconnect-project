@@ -3,6 +3,8 @@ import logo from '../assets/logo.png';
 import "../styles/Login.css";
 import api from '../api/axios';
 import { useNavigate } from 'react-router-dom';
+import GoogleAuthButton from '../components/GoogleAuthButton';
+import ForgotPasswordModal from '../components/ForgotPasswordModal';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -12,6 +14,7 @@ export default function Login() {
   const [userType, setUserType] = useState("university");
   const [loading, setLoading]   = useState(false);
   const [msg, setMsg]           = useState(null);
+  const [showForgot, setShowForgot] = useState(false);
 
   const showMsg = (text, type) => {
     setMsg({ text, type });
@@ -21,6 +24,29 @@ export default function Login() {
   useEffect(() => {
     document.title = "Login | UniConnect";
   }, []);
+
+  // Route the user to the right home page based on their role
+  const routeByRole = (role) => {
+    if (role === 'admin')    navigate('/Dashboard');
+    else if (role === 'doctor')   navigate('/HomeDoctor');
+    else if (role === 'investor') navigate('/HomeInvestor');
+    else navigate('/Home');
+  };
+
+  const handleGoogleToken = async (accessToken) => {
+    setLoading(true);
+    try {
+      const { data } = await api.post('/auth/google', { access_token: accessToken });
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('role', data.user.role);
+      showMsg("Login successful ✓", "success");
+      setTimeout(() => routeByRole(data.user.role), 700);
+    } catch (error) {
+      showMsg(error.response?.data?.message || "Google sign-in failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -81,7 +107,7 @@ export default function Login() {
 
   const handleForgot = (e) => {
     e.preventDefault();
-    navigate('/forgot-password');
+    setShowForgot(true);
   };
 
   return (
@@ -165,6 +191,10 @@ export default function Login() {
               </a>
             </div>
 
+            <div className="auth-divider">OR</div>
+
+            <GoogleAuthButton onToken={handleGoogleToken} disabled={loading} />
+
             {msg && (
               <div className={`uc-msg uc-msg-${msg.type}`}>
                 {msg.text}
@@ -181,6 +211,8 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
     </div>
   );
 }

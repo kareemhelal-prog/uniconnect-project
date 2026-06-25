@@ -44,6 +44,11 @@ const testConnection = async () => {
       ensureColumn("Users", "profile_picture", "MEDIUMTEXT"),
       ensureColumn("Users", "bio",             "TEXT"),
       ensureColumn("Users", "phone_number",    "VARCHAR(20)"),
+      // Google OAuth support
+      ensureColumn("Users", "google_id",       "VARCHAR(255) NULL"),
+      ensureColumn("Users", "google_email",    "VARCHAR(255) NULL"),
+      // Allow Google-only accounts to have no local password
+      ensureColumn("Users", "password",        "VARCHAR(255) NULL"),
     ]);
     console.log("✅ Schema check complete");
 
