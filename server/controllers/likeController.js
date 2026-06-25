@@ -19,37 +19,40 @@ exports.toggleLike = async (req, res) => {
       [req.user.id, post_id]
     );
 
-    if (existing.length > 0) {
-      // remove like
+    const isLiked = existing.length > 0;
+
+    if (isLiked) {
       await promisePool.query(
         "DELETE FROM Likes WHERE user_id = ? AND post_id = ?",
         [req.user.id, post_id]
       );
-
-      return res.json({
-        message: "Unliked"
-      });
-    }
-
-    // add like
-    await promisePool.query(
-      "INSERT INTO Likes (user_id, post_id) VALUES (?, ?)",
-      [req.user.id, post_id]
-    );
-
-    // إشعار لصاحب البوست (لو مش نفس اليوزر)
-    const [[likedPost]] = await promisePool.query(
-      "SELECT user_id FROM Posts WHERE id = ?", [post_id]
-    );
-    if (likedPost && likedPost.user_id !== req.user.id) {
+    } else {
       await promisePool.query(
-        "INSERT INTO Notifications (user_id, sender_id, type, message, reference_id) VALUES (?, ?, 'like', 'liked your post', ?)",
-        [likedPost.user_id, req.user.id, post_id]
+        "INSERT INTO Likes (user_id, post_id) VALUES (?, ?)",
+        [req.user.id, post_id]
       );
+
+      // Notify post owner (not self-like)
+      const [[likedPost]] = await promisePool.query(
+        "SELECT user_id FROM Posts WHERE id = ?", [post_id]
+      );
+      if (likedPost && likedPost.user_id !== req.user.id) {
+        await promisePool.query(
+          "INSERT INTO Notifications (user_id, sender_id, type, message, reference_id) VALUES (?, ?, 'like', 'liked your post', ?)",
+          [likedPost.user_id, req.user.id, post_id]
+        );
+      }
     }
+
+    // Return real count from DB so frontend stays in sync
+    const [[countRow]] = await promisePool.query(
+      "SELECT COUNT(*) AS likes FROM Likes WHERE post_id = ?", [post_id]
+    );
 
     res.json({
-      message: "Liked"
+      message: isLiked ? "Unliked" : "Liked",
+      liked:  !isLiked,
+      likes:  countRow.likes,
     });
 
   } catch (error) {

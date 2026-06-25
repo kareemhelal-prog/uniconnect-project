@@ -125,7 +125,7 @@ const PostCard = ({ post, onUpdate }) => {
   const postPic = resolveImg(post.profile_picture || "");
 
   const [liked, setLiked]               = useState(!!post.liked);
-  const [likesCount, setLikesCount]     = useState(Number(post.likes) || 0);
+  const [likesCount, setLikesCount]     = useState(Number(post.likes || post.likes_count) || 0);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText]   = useState("");
   const [comments, setComments]         = useState(post.comments || []);
@@ -147,16 +147,25 @@ const PostCard = ({ post, onUpdate }) => {
   }, [post.user_id, isOwner]);
 
   const handleLike = async () => {
+    // Optimistic update first
+    const wasLiked = liked;
+    setLiked(!wasLiked);
+    setLikesCount(c => wasLiked ? c - 1 : c + 1);
     try {
-      await fetch(`${API_BASE}/likes`, {
+      const res  = await fetch(`${API_BASE}/likes`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
         body: JSON.stringify({ post_id: post.id }),
       });
-      const newLiked = !liked;
-      setLiked(newLiked);
-      setLikesCount(c => newLiked ? c + 1 : c - 1);
-    } catch {}
+      const data = await res.json();
+      // Sync to real DB count
+      if (typeof data.likes === "number") setLikesCount(data.likes);
+      if (typeof data.liked === "boolean") setLiked(data.liked);
+    } catch {
+      // Revert on error
+      setLiked(wasLiked);
+      setLikesCount(c => wasLiked ? c + 1 : c - 1);
+    }
   };
 
   const handleComment = async () => {
@@ -290,7 +299,9 @@ const PostCard = ({ post, onUpdate }) => {
 
       <div className="post-stats-row">
         <span className="post-stat">{likesCount} likes</span>
-        <span className="post-stat">{comments.length} comments</span>
+        <span className="post-stat">
+          {comments.length > 0 ? comments.length : (post.comments_count || 0)} comments
+        </span>
       </div>
 
       <div className="post-divider" />
