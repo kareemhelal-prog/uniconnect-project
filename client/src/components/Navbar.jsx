@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import "./Navbar.css";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -66,8 +67,19 @@ const resolveAvatar = (pic) => {
 };
 
 function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate   = useNavigate();
+  const location   = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Track viewport width so portal styles are correct after resize
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth <= 640
+  );
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 640);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   const token = localStorage.getItem("token");
   const role  = token
@@ -169,10 +181,25 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
   };
 
   // ── User Search ─────────────────────────────────────────
-  const [searchQuery,   setSearchQuery]   = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchOpen,    setSearchOpen]    = useState(false);
-  const searchRef = useRef(null);
+  const [searchQuery,    setSearchQuery]    = useState("");
+  const [searchResults,  setSearchResults]  = useState([]);
+  const [searchOpen,     setSearchOpen]     = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchRef      = useRef(null);
+  const searchInputRef = useRef(null);
+
+  // Auto-focus when mobile search expands
+  useEffect(() => {
+    if (searchExpanded && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchExpanded]);
+
+  const closeSearch = () => {
+    setSearchExpanded(false);
+    setSearchQuery("");
+    setSearchOpen(false);
+  };
 
   useEffect(() => {
     const q = searchQuery.trim();
@@ -242,6 +269,7 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
   };
 
   return (
+    <>
     <nav className="navbar">
       {/* Logo */}
       <div className="nav-logo" onClick={() => goTo(homePath)} style={{ cursor: "pointer" }}>
@@ -250,16 +278,30 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
       </div>
 
       {/* Search */}
-      <div className="nav-search-wrap" ref={searchRef} style={{ position: "relative" }}>
-        <FiSearch className="search-icon" />
-        <input
-          className="nav-search"
-          placeholder="Search users..."
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          onFocus={() => searchQuery.trim().length >= 2 && setSearchOpen(true)}
-        />
+      <div
+        className={`nav-search-wrap${searchExpanded ? " search-open" : ""}`}
+        ref={searchRef}
+      >
+        {/* Mobile icon-only button — tapping opens the full search overlay */}
+        <button className="nav-search-toggle" onClick={() => setSearchExpanded(true)} aria-label="Open search">
+          <FiSearch size={18} />
+        </button>
+
+        {/* Search input area (always visible on desktop; overlay on mobile when expanded) */}
+        <div className="nav-search-inner">
+          <FiSearch className="search-icon" />
+          <input
+            ref={searchInputRef}
+            className="nav-search"
+            placeholder="Search users..."
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onFocus={() => searchQuery.trim().length >= 1 && setSearchOpen(true)}
+            onBlur={() => setTimeout(() => { if (!searchQuery.trim()) setSearchExpanded(false); }, 200)}
+          />
+          <button className="nav-search-close" onClick={closeSearch} aria-label="Close search">✕</button>
+        </div>
         {searchOpen && searchResults.length > 0 && (
           <div className="search-dropdown">
             {searchResults.map(u => {
@@ -348,7 +390,7 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
         )}
       </div>
 
-      {/* Bell */}
+      {/* Bell — button only; dropdown rendered outside <nav> below */}
       <div className="notif-wrap">
         <div
           className={`nav-bell ${bellRing ? "ring" : ""} ${notifOpen ? "nav-bell-active" : ""}`}
@@ -358,47 +400,16 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
           {unreadCount > 0 && <span className="bell-badge">{unreadCount}</span>}
           {unreadCount > 0 && <span className="bell-pulse" />}
         </div>
-
-        {notifOpen && (
-          <div className="notif-dropdown">
-            <div className="notif-header">
-              <span className="notif-title">Notifications</span>
-              <button className="notif-mark-all" onClick={markAllRead}>
-                Mark all read
-              </button>
-            </div>
-            <div className="notif-list">
-              {selfNotifs.length === 0 ? (
-                <div className="notif-empty">No notifications</div>
-              ) : (
-                selfNotifs.slice(0, 6).map(n => (
-                  <div
-                    key={n.id}
-                    className={`notif-item ${n.is_read ? "read" : "unread"}`}
-                  >
-                    <span className="notif-icon">{notifIcon(n.type)}</span>
-                    <div className="notif-body">
-                      <div className="notif-item-title">
-                        {n.sender_name ? `${n.sender_name} ` : ""}{n.message}
-                      </div>
-                      <div className="notif-item-time">
-                        {n.created_at ? new Date(n.created_at).toLocaleString() : ""}
-                      </div>
-                    </div>
-                    {!n.is_read && <span className="notif-dot" />}
-                  </div>
-                ))
-              )}
-            </div>
-            <div
-              className="notif-view-all"
-              onClick={() => goTo("/notifications")}
-            >
-              View all notifications
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Hamburger — mobile only */}
+      <button
+        className={`nav-hamburger${menuOpen ? " open" : ""}`}
+        onClick={() => setMenuOpen(m => !m)}
+        aria-label="Menu"
+      >
+        <span /><span /><span />
+      </button>
 
       {/* Avatar */}
       <div className="tooltip-wrap">
@@ -434,6 +445,112 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
         )}
       </div>
     </nav>
+
+    {/* ── Notification overlay — rendered via portal into document.body ── */}
+    {notifOpen && createPortal(
+      <>
+        {/* Backdrop: inline styles so nothing in the CSS cascade can interfere */}
+        <div
+          onClick={() => setNotifOpen(false)}
+          style={{
+            position: "fixed",
+            inset: "0",
+            background: "rgba(0,0,0,0.35)",
+            zIndex: 9998,
+            cursor: "pointer",
+          }}
+        />
+        {/* Panel: inline styles for critical layout; CSS class handles visual design */}
+        <div
+          className="notif-dropdown"
+          style={isMobile ? {
+            /* Compact dropdown — centered on mobile, never full-screen */
+            position: "fixed",
+            top: "62px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            width: "320px",
+            maxWidth: "90vw",
+            maxHeight: "60vh",
+            zIndex: 9999,
+            overflowY: "auto",
+            overflowX: "hidden",
+            boxSizing: "border-box",
+          } : {
+            position: "fixed",
+            top: "62px",
+            right: "10px",
+            width: "360px",
+            maxWidth: "calc(100vw - 20px)",
+            maxHeight: "520px",
+            zIndex: 9999,
+            overflowY: "auto",
+            overflowX: "hidden",
+            boxSizing: "border-box",
+          }}
+        >
+          <div className="notif-header">
+            <span className="notif-title">Notifications</span>
+            <div className="notif-header-actions">
+              <button className="notif-mark-all" onClick={markAllRead}>
+                Mark all read
+              </button>
+              <button className="notif-close-btn" onClick={() => setNotifOpen(false)} aria-label="Close">✕</button>
+            </div>
+          </div>
+          <div className="notif-list">
+            {selfNotifs.length === 0 ? (
+              <div className="notif-empty">No notifications</div>
+            ) : (
+              selfNotifs.slice(0, 8).map(n => (
+                <div
+                  key={n.id}
+                  className={`notif-item ${n.is_read ? "read" : "unread"}`}
+                >
+                  <span className="notif-icon">{notifIcon(n.type)}</span>
+                  <div className="notif-body">
+                    <div className="notif-item-title">
+                      {n.sender_name ? `${n.sender_name} ` : ""}{n.message}
+                    </div>
+                    <div className="notif-item-time">
+                      {n.created_at ? new Date(n.created_at).toLocaleString() : ""}
+                    </div>
+                  </div>
+                  {!n.is_read && <span className="notif-dot" />}
+                </div>
+              ))
+            )}
+          </div>
+          <div className="notif-view-all" onClick={() => { goTo("/notifications"); setNotifOpen(false); }}>
+            View all notifications
+          </div>
+        </div>
+      </>,
+      document.body
+    )}
+
+    {/* Mobile slide-down menu */}
+    {menuOpen && (
+      <div className="mobile-menu">
+        <button className="mobile-menu-item" onClick={() => { goTo(homePath); setMenuOpen(false); }}>
+          <FiHome size={18} /> Home
+        </button>
+        {launcherPages.map(({ id, label, icon: Icon, path }) => (
+          <button
+            key={id}
+            className="mobile-menu-item"
+            onClick={() => { goTo(path); setMenuOpen(false); }}
+          >
+            <Icon size={18} /> {label}
+          </button>
+        ))}
+        <div className="mobile-menu-divider" />
+        <button className="mobile-menu-item mobile-menu-danger" onClick={handleLogout}>
+          <FiLogOut size={18} /> Logout
+        </button>
+      </div>
+    )}
+    </>
   );
 }
 

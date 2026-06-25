@@ -781,11 +781,146 @@
     grid-template-columns: 1fr;
     padding: 0 16px 48px;
   }
-  .pp-sidebar { order: -1; }
+  .pp-sidebar { order: 2; }
   .pp-header { flex-wrap: wrap; }
   .pp-courses-grid { grid-template-columns: 1fr; }
   .pp-header-wrap { padding: 0 16px; }
   .pp-stats-row { flex-wrap: wrap; gap: 12px; }
+}
+
+/* ── Tablet ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .pp-cover { height: 160px; }
+  .pp-header-wrap { padding: 0 12px; }
+  .pp-header { gap: 14px; }
+  .pp-avatar-wrap { width: 80px; height: 80px; margin-top: -40px; }
+  .pp-avatar { width: 80px; height: 80px; }
+  .pp-avatar-fallback { width: 80px; height: 80px; font-size: 34px; }
+  .pp-name { font-size: clamp(16px, 5vw, 22px); }
+  .pp-cta-group { flex-wrap: wrap; gap: 8px; }
+  .pp-btn-follow, .pp-btn-share, .pp-btn-invite {
+    padding: 8px 14px;
+    font-size: 12px;
+    min-height: 44px;
+  }
+  .pp-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .pp-stats-divider { display: none; }
+  .pp-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .pp-tabs::-webkit-scrollbar { display: none; }
+  .pp-tab { white-space: nowrap; flex-shrink: 0; }
+  .pp-body { padding: 0 12px 60px; gap: 12px; }
+}
+
+/* ── Mobile (portrait) ──────────────────────── */
+@media (max-width: 480px) {
+  /* Cover */
+  .pp-cover { height: 130px; }
+
+  /* Header wrap: no side padding, pull avatar up over cover */
+  .pp-header-wrap {
+    padding: 0;
+    margin-top: -45px;
+  }
+
+  /* Header: centered column, avatar → name → role → buttons */
+  .pp-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    padding: 0 16px 14px;
+    margin-bottom: 0;
+  }
+
+  /* Avatar: 90px, centered */
+  .pp-avatar-wrap { width: 90px; height: 90px; margin-top: 0; flex-shrink: 0; }
+  .pp-avatar      { width: 90px; height: 90px; }
+  .pp-avatar-fallback { width: 90px; height: 90px; font-size: 38px; }
+  .pp-active-dot  { bottom: 4px; right: 2px; width: 14px; height: 14px; }
+
+  /* Identity: centered */
+  .pp-identity { text-align: center; padding-bottom: 0; width: 100%; }
+  .pp-name     { font-size: 20px; justify-content: center; }
+  .pp-title    { font-size: 13px; text-align: center; }
+  .pp-meta-row { justify-content: center; flex-wrap: wrap; font-size: 11px; }
+
+  /* CTA buttons: centered row */
+  .pp-cta-group {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .pp-btn-follow, .pp-btn-share, .pp-btn-invite {
+    flex: 0 0 auto;
+    min-width: 90px;
+    padding: 8px 14px;
+    font-size: 12px;
+    min-height: 40px;
+    text-align: center;
+    justify-content: center;
+  }
+
+  /* Stats: single horizontal scroll row */
+  .pp-stats-row {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 10px 0;
+    margin: 0;
+    gap: 0;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .pp-stats-row::-webkit-scrollbar { display: none; }
+  .pp-stats-divider { display: none; }
+
+  .pp-stat {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px 16px;
+    border-right: 1px solid rgba(255,255,255,0.08);
+    gap: 2px;
+  }
+  .pp-stat:last-child { border-right: none; }
+  .pp-stat-icon  { display: none; }
+  .pp-stat-value { font-size: 17px; font-weight: 700; display: block; }
+  .pp-stat-label { font-size: 10px; color: rgba(255,255,255,0.45); display: block; margin-top: 2px; }
+
+  /* Tabs */
+  .pp-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .pp-tabs::-webkit-scrollbar { display: none; }
+  .pp-tab { white-space: nowrap; flex-shrink: 0; padding: 10px 14px; font-size: 13px; }
+
+  /* Body */
+  .pp-body { padding: 0 10px 80px; gap: 10px; }
+
+  /* Modal → bottom sheet */
+  .pp-modal-overlay { align-items: flex-end; padding: 0; }
+  .pp-modal {
+    width: 100%;
+    max-width: 100vw;
+    border-radius: 18px 18px 0 0;
+    max-height: 85vh;
+    margin: 0;
+  }
+}
+
+/* ── Smallest phones ────────────────────────── */
+@media (max-width: 360px) {
+  .pp-name { font-size: 17px; }
+  .pp-stat { padding: 4px 10px; }
+  .pp-btn-follow, .pp-btn-share, .pp-btn-invite { min-width: 76px; font-size: 11px; padding: 7px 10px; }
 }
 
 /* ─── Profile Post Card Avatar ───────────────── */

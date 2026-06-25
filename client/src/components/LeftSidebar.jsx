@@ -62,7 +62,7 @@ export default function LeftSidebar({ user = {} }) {
             className={`hp-nav-item ${activeTab === n.key ? "active" : ""}`}
             onClick={() => setActiveTab(n.key)}
           >
-            {n.icon} {n.label}
+            {n.icon} <span className="hp-nav-label">{n.label}</span>
           </button>
         ))}
       </nav>
