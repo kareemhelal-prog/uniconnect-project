@@ -61,6 +61,8 @@ const testConnection = async () => {
       ensureColumn("Users", "password",        "VARCHAR(255) NULL"),
       // Deep-link comment notifications to the exact comment
       ensureColumn("Notifications", "reference_comment_id", "INT NULL"),
+      // Real download counter for files
+      ensureColumn("Files", "download_count", "INT NOT NULL DEFAULT 0"),
     ]);
 
     // Composite indexes for the hottest query patterns (no-op if present)

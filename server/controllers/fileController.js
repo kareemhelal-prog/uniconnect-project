@@ -10,13 +10,14 @@ exports.getFiles = async (req, res) => {
     const { subject, year, file_type } = req.query;
 
     let query = `
-      SELECT 
+      SELECT
         f.*,
         u.username AS uploader_username,
         u.name     AS uploader_name,
         COUNT(DISTINCT fl.id)  AS likes_count,
         COUNT(DISTINCT fc.id)  AS comments_count,
-        ROUND(AVG(fr.rating), 1) AS avg_rating
+        ROUND(AVG(fr.rating), 1) AS avg_rating,
+        EXISTS(SELECT 1 FROM File_Likes WHERE file_id = f.id AND user_id = ?) AS liked_by_me
       FROM Files f
       JOIN Users u ON f.uploader_id = u.id
       LEFT JOIN File_Likes    fl ON fl.file_id = f.id
@@ -25,7 +26,7 @@ exports.getFiles = async (req, res) => {
       WHERE 1=1
     `;
 
-    const params = [];
+    const params = [req.user.id];
 
     if (subject) {
       query += " AND f.subject = ?";
@@ -63,13 +64,14 @@ exports.getFiles = async (req, res) => {
 exports.getFileById = async (req, res) => {
   try {
     const [files] = await promisePool.query(
-      `SELECT 
+      `SELECT
          f.*,
          u.username AS uploader_username,
          u.name     AS uploader_name,
          COUNT(DISTINCT fl.id)    AS likes_count,
          COUNT(DISTINCT fc.id)    AS comments_count,
-         ROUND(AVG(fr.rating), 1) AS avg_rating
+         ROUND(AVG(fr.rating), 1) AS avg_rating,
+         EXISTS(SELECT 1 FROM File_Likes WHERE file_id = f.id AND user_id = ?) AS liked_by_me
        FROM Files f
        JOIN Users u ON f.uploader_id = u.id
        LEFT JOIN File_Likes    fl ON fl.file_id = f.id
@@ -77,7 +79,7 @@ exports.getFileById = async (req, res) => {
        LEFT JOIN File_Ratings  fr ON fr.file_id = f.id
        WHERE f.id = ?
        GROUP BY f.id`,
-      [req.params.id]
+      [req.user.id, req.params.id]
     );
 
     if (files.length === 0) {
@@ -163,8 +165,10 @@ exports.deleteFile = async (req, res) => {
 
     const file = files[0];
 
-    // تأكد إن صاحب الملف هو اللي بيحذفه
-    if (file.uploader_id !== req.user.id) {
+    // المالك يحذف ملفه، والأدمن يحذف أي ملف (للإشراف)
+    const isOwner = file.uploader_id === req.user.id;
+    const isAdmin = req.user.role === "admin";
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         message: "Not authorized — you can only delete your own files"
       });
@@ -216,6 +220,11 @@ exports.downloadFile = async (req, res) => {
         message: "File not found on server"
       });
     }
+
+    // Count the download (best-effort — don't block the response if it fails)
+    promisePool
+      .query("UPDATE Files SET download_count = download_count + 1 WHERE id = ?", [file.id])
+      .catch(() => {});
 
     res.download(filePath, file.file_name);
 
