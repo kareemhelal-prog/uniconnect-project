@@ -58,7 +58,7 @@ DROP TABLE IF EXISTS `activity_logs`;
 CREATE TABLE `activity_logs` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `admin_id` int(11) NOT NULL,
-  `action_type` enum('delete','resolve','dismiss','send_email','ban_user','unban_user','edit') NOT NULL,
+  `action_type` enum('delete','resolve','dismiss','send_email','ban_user') NOT NULL,
   `target_label` varchar(255) DEFAULT NULL,
   `details` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
@@ -75,7 +75,7 @@ CREATE TABLE `activity_logs` (
 
 LOCK TABLES `activity_logs` WRITE;
 /*!40000 ALTER TABLE `activity_logs` DISABLE KEYS */;
-INSERT INTO `activity_logs` VALUES (1,1,'ban_user','Nour Ali','Banned account','2026-06-24 19:35:51'),(2,1,'unban_user','Nour Ali','Activated account','2026-06-24 19:35:54'),(3,1,'ban_user','Nour Ali','Banned account','2026-06-24 19:35:55'),(4,1,'unban_user','Nour Ali','Activated account','2026-06-24 19:36:17');
+INSERT INTO `activity_logs` VALUES (1,1,'ban_user','Nour Ali','Banned account','2026-06-24 19:35:51'),(2,1,'','Nour Ali','Activated account','2026-06-24 19:35:54'),(3,1,'ban_user','Nour Ali','Banned account','2026-06-24 19:35:55'),(4,1,'','Nour Ali','Activated account','2026-06-24 19:36:17');
 /*!40000 ALTER TABLE `activity_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -167,7 +167,7 @@ CREATE TABLE `course_enrollments` (
 
 LOCK TABLES `course_enrollments` WRITE;
 /*!40000 ALTER TABLE `course_enrollments` DISABLE KEYS */;
-INSERT INTO `course_enrollments` VALUES (1,7,'2026-06-24 03:14:37'),(1,8,'2026-06-24 03:14:37'),(1,9,'2026-06-24 03:14:37'),(1,15,'2026-06-24 03:14:37'),(2,7,'2026-06-24 03:14:37'),(2,9,'2026-06-24 03:14:37'),(3,7,'2026-06-24 03:14:37'),(3,8,'2026-06-24 03:14:37'),(3,12,'2026-06-24 03:14:37'),(3,16,'2026-06-24 03:14:37'),(4,8,'2026-06-24 03:14:37'),(4,12,'2026-06-24 03:14:37'),(5,7,'2026-06-24 03:14:37'),(5,9,'2026-06-24 03:14:37'),(5,11,'2026-06-24 03:14:37'),(5,12,'2026-06-24 03:14:37'),(5,13,'2026-06-24 03:14:37'),(5,15,'2026-06-24 03:14:37'),(7,10,'2026-06-24 03:14:37'),(7,14,'2026-06-24 03:14:37'),(8,11,'2026-06-24 03:14:37'),(8,13,'2026-06-24 03:14:37');
+INSERT INTO `course_enrollments` VALUES (1,7,'2026-06-24 03:14:37'),(1,8,'2026-06-24 03:14:37'),(1,9,'2026-06-24 03:14:37'),(1,15,'2026-06-24 03:14:37'),(2,7,'2026-06-24 03:14:37'),(2,9,'2026-06-24 03:14:37'),(3,7,'2026-06-24 03:14:37'),(3,8,'2026-06-24 03:14:37'),(3,12,'2026-06-24 03:14:37'),(3,16,'2026-06-24 03:14:37'),(4,8,'2026-06-24 03:14:37'),(4,12,'2026-06-24 03:14:37'),(5,7,'2026-06-24 03:14:37'),(5,9,'2026-06-24 03:14:37'),(5,11,'2026-06-24 03:14:37'),(5,12,'2026-06-24 03:14:37'),(5,13,'2026-06-24 03:14:37'),(5,15,'2026-06-24 03:14:37'),(7,10,'2026-06-24 03:14:37'),(7,14,'2026-06-24 03:14:37'),(8,11,'2026-06-24 03:14:37'),(8,13,'2026-06-24 03:14:37'),(9,7,'2026-06-24 03:30:44'),(9,8,'2026-06-24 03:30:44'),(9,9,'2026-06-24 03:30:44'),(9,15,'2026-06-24 03:30:44'),(10,7,'2026-06-24 03:30:44'),(10,9,'2026-06-24 03:30:44'),(11,7,'2026-06-24 03:30:44'),(11,8,'2026-06-24 03:30:44'),(11,12,'2026-06-24 03:30:44'),(11,16,'2026-06-24 03:30:44'),(12,8,'2026-06-24 03:30:44'),(12,12,'2026-06-24 03:30:44'),(13,7,'2026-06-24 03:30:44'),(13,9,'2026-06-24 03:30:44'),(13,11,'2026-06-24 03:30:44'),(13,12,'2026-06-24 03:30:44'),(13,13,'2026-06-24 03:30:44'),(13,15,'2026-06-24 03:30:44'),(15,10,'2026-06-24 03:30:44'),(15,14,'2026-06-24 03:30:44'),(16,11,'2026-06-24 03:30:44'),(16,13,'2026-06-24 03:30:44');
 /*!40000 ALTER TABLE `course_enrollments` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -196,7 +196,7 @@ CREATE TABLE `courses` (
 
 LOCK TABLES `courses` WRITE;
 /*!40000 ALTER TABLE `courses` DISABLE KEYS */;
-INSERT INTO `courses` VALUES (1,2,'Artificial Intelligence COMP-401','Comprehensive AI course covering search, ML, neural networks, NLP, and computer vision. 3 credit hours.','2026-06-24 03:14:37'),(2,2,'Machine Learning Fundamentals','Practical ML course with hands-on projects using Python, scikit-learn, and TensorFlow.','2026-06-24 03:14:37'),(3,3,'Software Engineering SE-301','Industry-standard software development practices: Agile, design patterns, testing, CI/CD.','2026-06-24 03:14:37'),(4,3,'Web Development Full Stack','Complete web development: React, Node.js, MySQL, REST APIs, authentication, deployment.','2026-06-24 03:14:37'),(5,4,'Database Systems DB-201','Relational databases, SQL mastery, normalization, indexing, transactions, and NoSQL intro.','2026-06-24 03:14:37'),(6,4,'Advanced Database Design','Query optimization, stored procedures, triggers, distributed databases, and database security.','2026-06-24 03:14:37'),(7,5,'Health Informatics HI-401','Digital health systems, medical records, telemedicine, and AI applications in healthcare.','2026-06-24 03:14:37'),(8,6,'Electrical Circuits EE-201','Circuit analysis, AC/DC theory, operational amplifiers, filters, and power systems fundamentals.','2026-06-24 03:14:37');
+INSERT INTO `courses` VALUES (1,2,'Artificial Intelligence COMP-401','Comprehensive AI course covering search, ML, neural networks, NLP, and computer vision. 3 credit hours.','2026-06-24 03:14:37'),(2,2,'Machine Learning Fundamentals','Practical ML course with hands-on projects using Python, scikit-learn, and TensorFlow.','2026-06-24 03:14:37'),(3,3,'Software Engineering SE-301','Industry-standard software development practices: Agile, design patterns, testing, CI/CD.','2026-06-24 03:14:37'),(4,3,'Web Development Full Stack','Complete web development: React, Node.js, MySQL, REST APIs, authentication, deployment.','2026-06-24 03:14:37'),(5,4,'Database Systems DB-201','Relational databases, SQL mastery, normalization, indexing, transactions, and NoSQL intro.','2026-06-24 03:14:37'),(6,4,'Advanced Database Design','Query optimization, stored procedures, triggers, distributed databases, and database security.','2026-06-24 03:14:37'),(7,5,'Health Informatics HI-401','Digital health systems, medical records, telemedicine, and AI applications in healthcare.','2026-06-24 03:14:37'),(8,6,'Electrical Circuits EE-201','Circuit analysis, AC/DC theory, operational amplifiers, filters, and power systems fundamentals.','2026-06-24 03:14:37'),(9,2,'Artificial Intelligence COMP-401','Comprehensive AI course covering search, ML, neural networks, NLP, and computer vision. 3 credit hours.','2026-06-24 03:30:44'),(10,2,'Machine Learning Fundamentals','Practical ML course with hands-on projects using Python, scikit-learn, and TensorFlow.','2026-06-24 03:30:44'),(11,3,'Software Engineering SE-301','Industry-standard software development practices: Agile, design patterns, testing, CI/CD.','2026-06-24 03:30:44'),(12,3,'Web Development Full Stack','Complete web development: React, Node.js, MySQL, REST APIs, authentication, deployment.','2026-06-24 03:30:44'),(13,4,'Database Systems DB-201','Relational databases, SQL mastery, normalization, indexing, transactions, and NoSQL intro.','2026-06-24 03:30:44'),(14,4,'Advanced Database Design','Query optimization, stored procedures, triggers, distributed databases, and database security.','2026-06-24 03:30:44'),(15,5,'Health Informatics HI-401','Digital health systems, medical records, telemedicine, and AI applications in healthcare.','2026-06-24 03:30:44'),(16,6,'Electrical Circuits EE-201','Circuit analysis, AC/DC theory, operational amplifiers, filters, and power systems fundamentals.','2026-06-24 03:30:44');
 /*!40000 ALTER TABLE `courses` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -216,6 +216,7 @@ CREATE TABLE `doctor_profiles` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_id` (`user_id`),
+  KEY `user_id_2` (`user_id`),
   CONSTRAINT `doctor_profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -613,6 +614,7 @@ CREATE TABLE `investor_profiles` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_id` (`user_id`),
+  KEY `user_id_2` (`user_id`),
   CONSTRAINT `investor_profiles_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -676,8 +678,6 @@ CREATE TABLE `notifications` (
   PRIMARY KEY (`id`),
   KEY `sender_id` (`sender_id`),
   KEY `user_id` (`user_id`),
-  KEY `idx_notif_user_read` (`user_id`,`is_read`),
-  KEY `idx_notif_user_created` (`user_id`,`created_at`),
   CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   CONSTRAINT `notifications_ibfk_2` FOREIGN KEY (`sender_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=326 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -707,8 +707,7 @@ CREATE TABLE `password_resets` (
   `expires_at` datetime NOT NULL,
   `is_used` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_pwreset_email` (`email`,`is_used`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -770,6 +769,7 @@ CREATE TABLE `profile_studies` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
   UNIQUE KEY `user_id` (`user_id`),
+  KEY `user_id_2` (`user_id`),
   CONSTRAINT `profile_studies_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -1014,7 +1014,9 @@ CREATE TABLE `users` (
   `google_email` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
-  UNIQUE KEY `email` (`email`)
+  UNIQUE KEY `email` (`email`),
+  KEY `email_2` (`email`),
+  KEY `username_2` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1037,4 +1039,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-06-27 12:26:09
+-- Dump completed on 2026-06-27 12:22:08

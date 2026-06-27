@@ -32,6 +32,16 @@ async function ensureColumn(table, column, definition) {
   }
 }
 
+// Safely add an index if it doesn't already exist
+async function ensureIndex(table, indexName, columns) {
+  try {
+    await promisePool.query(`CREATE INDEX ${indexName} ON ${table} (${columns})`);
+    console.log(`  ✅ Added index ${table}.${indexName}`);
+  } catch (err) {
+    // ER_DUP_KEYNAME = already exists; anything else (missing table) ignored
+  }
+}
+
 const testConnection = async () => {
   try {
     console.log("📡 Connecting to MySQL...");
@@ -51,6 +61,13 @@ const testConnection = async () => {
       ensureColumn("Users", "password",        "VARCHAR(255) NULL"),
       // Deep-link comment notifications to the exact comment
       ensureColumn("Notifications", "reference_comment_id", "INT NULL"),
+    ]);
+
+    // Composite indexes for the hottest query patterns (no-op if present)
+    await Promise.all([
+      ensureIndex("Notifications",   "idx_notif_user_read",    "user_id, is_read"),
+      ensureIndex("Notifications",   "idx_notif_user_created", "user_id, created_at"),
+      ensureIndex("password_resets", "idx_pwreset_email",      "email, is_used"),
     ]);
 
     // One-time cleanup: remove historical duplicate like/follow notifications,

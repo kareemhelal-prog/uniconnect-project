@@ -215,6 +215,7 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
   const [editing, setEditing]           = useState(false);
   const [editContent, setEditContent]   = useState(post.content || "");
   const [imgError, setImgError]         = useState(false);
+  const [sendingComment, setSendingComment] = useState(false);
 
   useEffect(() => {
     if (isOwner || !post.user_id) return;
@@ -289,17 +290,19 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
   };
 
   const handleComment = async () => {
-    if (!commentText.trim()) return;
+    if (!commentText.trim() || sendingComment) return;
+    setSendingComment(true);
     try {
-      const res = await fetch(`${API_BASE}/comments`, {
+      await fetch(`${API_BASE}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
         body: JSON.stringify({ post_id: post.id, content: commentText.trim() }),
       });
-      const data = await res.json();
-      setComments(prev => [...prev, { ...data, replies: data.replies || [] }]);
+      // Don't add to list here — the socket 'new_comment' event handles it for
+      // everyone in the room (including the sender), preventing double-render.
       setCommentText("");
     } catch {}
+    finally { setSendingComment(false); }
   };
 
   const handleReply = (parentId, newReply) => {
@@ -475,7 +478,9 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
               onChange={e => setCommentText(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleComment()}
             />
-            <button className="comment-send-btn" onClick={handleComment}>Send</button>
+            <button className="comment-send-btn" onClick={handleComment} disabled={sendingComment}>
+              {sendingComment ? "..." : "Send"}
+            </button>
           </div>
         </div>
       )}

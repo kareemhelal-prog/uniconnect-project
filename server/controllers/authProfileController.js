@@ -76,13 +76,18 @@ exports.updateProfile = async (req, res) => {
       userId
     ]);
 
-    await promisePool.query(`
-      INSERT INTO Profile_Studies (user_id, faculty, academic_year)
-      VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        faculty       = COALESCE(VALUES(faculty), faculty),
-        academic_year = COALESCE(VALUES(academic_year), academic_year)
-    `, [userId, faculty || null, year || null]);
+    // Profile_Studies is the students' table — faculty is NOT NULL there, so
+    // only upsert for students. Other roles have their own profile tables and
+    // writing NULL faculty here would throw "Column 'faculty' cannot be null".
+    if (req.user.role === "student") {
+      await promisePool.query(`
+        INSERT INTO Profile_Studies (user_id, faculty, academic_year)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          faculty       = COALESCE(VALUES(faculty), faculty),
+          academic_year = COALESCE(VALUES(academic_year), academic_year)
+      `, [userId, faculty || "General Faculty", year || null]);
+    }
 
     if (Array.isArray(skills)) {
       await promisePool.query('DELETE FROM User_Skills WHERE user_id = ?', [userId]);

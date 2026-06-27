@@ -170,9 +170,9 @@ exports.updateStatus = async (req, res) => {
     await promisePool.query(`UPDATE Reports SET status = ? WHERE id = ?`, [dbStatus, req.params.id]);
 
     await promisePool.query(
-      `INSERT INTO Activity_Logs (admin_id, action_type, target_id, details)
+      `INSERT INTO Activity_Logs (admin_id, action_type, target_label, details)
        VALUES (?, ?, ?, ?)`,
-      [req.user.id, logAction, req.params.id, `Report #${req.params.id} marked as ${dbStatus}`]
+      [req.user.id, logAction, `Report #${req.params.id}`, `Report #${req.params.id} marked as ${dbStatus}`]
     );
 
     res.json({ message: `Report ${status.toLowerCase()} successfully` });
@@ -220,9 +220,9 @@ exports.deleteReportedContent = async (req, res) => {
     await promisePool.query(`UPDATE Reports SET status = 'resolved' WHERE id = ?`, [req.params.id]);
 
     await promisePool.query(
-      `INSERT INTO Activity_Logs (admin_id, action_type, target_id, details)
+      `INSERT INTO Activity_Logs (admin_id, action_type, target_label, details)
        VALUES (?, ?, ?, ?)`,
-      [req.user.id, actionType, req.params.id, `Deleted content for report #${req.params.id} (${report.reported_type})`]
+      [req.user.id, actionType, `Report #${req.params.id}`, `Deleted content for report #${req.params.id} (${report.reported_type})`]
     );
 
     res.json({ message: "Content deleted and report resolved" });
@@ -272,15 +272,15 @@ exports.sendWarning = async (req, res) => {
       "Your content has been reported and reviewed by our team. Please make sure your future posts follow the platform's community guidelines.";
 
     await promisePool.query(
-      `INSERT INTO Email_Logs (admin_id, recipient_id, recipient_type, subject, message, type)
-       VALUES (?, ?, 'individual', ?, ?, 'warning')`,
+      `INSERT INTO Email_Logs (sender_id, recipient_id, recipient_type, subject, message, message_type)
+       VALUES (?, ?, 'user', ?, ?, 'Warning')`,
       [req.user.id, recipientId, subject, message]
     );
 
     await promisePool.query(
-      `INSERT INTO Activity_Logs (admin_id, action_type, target_id, details)
+      `INSERT INTO Activity_Logs (admin_id, action_type, target_label, details)
        VALUES (?, 'send_email', ?, ?)`,
-      [req.user.id, req.params.id, `Warning sent for report #${req.params.id}`]
+      [req.user.id, `Report #${req.params.id}`, `Warning sent for report #${req.params.id}`]
     );
 
     res.json({ message: "Warning logged successfully" });
