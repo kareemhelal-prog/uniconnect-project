@@ -58,28 +58,52 @@ exports.createReview = async (req, res) => {
 };
 
 // =======================
-// GET REVIEWS BY DOCTOR
+// GET REVIEWS BY DOCTOR  (role-based visibility)
+// -----------------------------------------------
+// Privacy rules (enforced here, server-side):
+//   • student → sees ONLY their own review for the doctor
+//   • doctor  → sees ALL reviews written about THEMSELVES, and may not view
+//               another doctor's reviews at all
+//   • admin   → sees everything (moderation)
 // =======================
 exports.getReviewsByDoctor = async (req, res) => {
   try {
+    const doctorId = Number(req.params.doctorId);
+    const { id: userId, role } = req.user;
+
+    // A doctor can only ever look at their own reviews
+    if (role === "doctor" && doctorId !== Number(userId)) {
+      return res.status(403).json({
+        message: "Doctors can only view reviews written about themselves"
+      });
+    }
+
+    // Visibility filter: students are restricted to their own review
+    let visibility = "";
+    const params = [userId, doctorId]; // userId → is_mine, doctorId → WHERE
+    if (role === "student") {
+      visibility = "AND ar.student_id = ?";
+      params.push(userId);
+    }
 
     const [reviews] = await promisePool.query(
       `SELECT
-        Academic_Reviews.id,
-        Academic_Reviews.rating,
-        Academic_Reviews.comment,
-        Academic_Reviews.is_anonymous,
-        Academic_Reviews.created_at,
+        ar.id,
+        ar.rating,
+        ar.comment,
+        ar.is_anonymous,
+        ar.created_at,
+        ar.student_id,
+        (ar.student_id = ?) AS is_mine,
         CASE
-          WHEN Academic_Reviews.is_anonymous = TRUE
-          THEN 'Anonymous'
-          ELSE Users.name
+          WHEN ar.is_anonymous = TRUE THEN 'Anonymous'
+          ELSE u.name
         END AS student_name
-       FROM Academic_Reviews
-       JOIN Users ON Academic_Reviews.student_id = Users.id
-       WHERE Academic_Reviews.doctor_id = ?
-       ORDER BY Academic_Reviews.created_at DESC`,
-      [req.params.doctorId]
+       FROM Academic_Reviews ar
+       JOIN Users u ON ar.student_id = u.id
+       WHERE ar.doctor_id = ? ${visibility}
+       ORDER BY ar.created_at DESC`,
+      params
     );
 
     res.json({
