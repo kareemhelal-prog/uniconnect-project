@@ -95,14 +95,31 @@ const testConnection = async () => {
 
     console.log("✅ Schema check complete");
 
-    // Run periodic cleanup on startup, then repeat every 45 days
-    runPeriodicCleanup();
-    setInterval(runPeriodicCleanup, 45 * 24 * 60 * 60 * 1000);
+    // Run cleanup on startup, then check once a day and actually clean every
+    // 45 days. NOTE: setInterval/setTimeout delays are capped at a 32-bit int
+    // (~24.8 days); passing 45 days directly overflows and silently fires every
+    // 1ms. So we tick daily (86.4M ms, safely under the cap) and gate the real
+    // work behind a 45-day elapsed check.
+    maybeRunCleanup();
+    setInterval(maybeRunCleanup, 24 * 60 * 60 * 1000);
 
   } catch (error) {
     console.error("❌ Database connection failed:", error.message);
   }
 };
+
+// Gate the heavy cleanup behind a 45-day window. Called daily; runs the actual
+// delete only when at least 45 days have passed since the last run (and always
+// once per process start, since lastCleanup resets to 0 on boot).
+const CLEANUP_INTERVAL_MS = 45 * 24 * 60 * 60 * 1000;
+let lastCleanup = 0;
+
+async function maybeRunCleanup() {
+  const now = Date.now();
+  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
+  lastCleanup = now;
+  await runPeriodicCleanup();
+}
 
 // Removes stale rows that accumulate over time and serve no purpose after expiry.
 async function runPeriodicCleanup() {
