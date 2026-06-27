@@ -17,6 +17,22 @@ const resolveImg = (pic) => {
 
 const TABS = ["Posts", "Files", "Groups", "Courses"];
 
+/* Inline SVG icons (no emoji) */
+const Ico = {
+  users: (p) => (<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>),
+  userPlus: (p) => (<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M15 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg>),
+  book: (p) => (<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>),
+  layers: (p) => (<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="m2 17 10 5 10-5M2 12l10 5 10-5"/></svg>),
+  file: (p) => (<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>),
+  user: (p) => (<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg>),
+  building: (p) => (<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/><path d="M9 9h.01M15 9h.01M9 13h.01M15 13h.01"/></svg>),
+  code: (p) => (<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/></svg>),
+  calendar: (p) => (<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>),
+  info: (p) => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>),
+  download: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>),
+  share: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5"/></svg>),
+};
+
 function VerifiedBadge() {
   return <span className="pp-verified" title="Verified">✓</span>;
 }
@@ -150,7 +166,7 @@ function FilesTab({ files }) {
             <p className="pp-file-meta">{f.file_size ? `${(f.file_size / 1024).toFixed(1)} KB` : ""}</p>
           </div>
           <a href={f.file_url} target="_blank" rel="noreferrer">
-            <button className="pp-download-btn">⬇ Download</button>
+            <button className="pp-download-btn"><Ico.download /> Download</button>
           </a>
         </div>
       ))}
@@ -368,7 +384,7 @@ export default function ProfilePage() {
               {avatarSrc
                 ? <img src={avatarSrc} alt={profile.name} className="pp-avatar" onError={e => { e.target.style.display = "none"; e.target.parentNode.querySelector(".pp-avatar-fallback").style.display = "flex"; }} />
                 : null}
-              <div className="pp-avatar-fallback" style={{ display: avatarSrc ? "none" : "flex" }}>👤</div>
+              <div className="pp-avatar-fallback" style={{ display: avatarSrc ? "none" : "flex" }}><Ico.user /></div>
               <span className="pp-active-dot" />
             </div>
 
@@ -379,16 +395,16 @@ export default function ProfilePage() {
               </h1>
               <p className="pp-title">{profile.role}</p>
               <div className="pp-meta-row">
-                {profile.faculty      && <span>🏛 {profile.faculty}</span>}
-                {profile.major        && <span>💻 {profile.major}</span>}
-                {profile.academic_year && <span>📅 Year {profile.academic_year}</span>}
+                {profile.faculty      && <span><Ico.building /> {profile.faculty}</span>}
+                {profile.major        && <span><Ico.code /> {profile.major}</span>}
+                {profile.academic_year && <span><Ico.calendar /> Year {profile.academic_year}</span>}
               </div>
             </div>
 
             <div className="pp-cta-group">
               {isOwnProfile ? (
                 <button className="pp-btn-share" onClick={handleShare}>
-                  {shareCopied ? "✓ Copied!" : "↗ Share Profile"}
+                  {shareCopied ? "✓ Copied!" : <><Ico.share /> Share Profile</>}
                 </button>
               ) : (
                 <>
@@ -400,10 +416,10 @@ export default function ProfilePage() {
                     {following ? "✓ Following" : "+ Follow"}
                   </button>
                   <button className="pp-btn-invite" onClick={handleInvite}>
-                    {inviteCopied ? "✓ Copied!" : "👥 Invite Friends"}
+                    {inviteCopied ? "✓ Copied!" : <><Ico.users width="15" height="15" /> Invite Friends</>}
                   </button>
                   <button className="pp-btn-share" onClick={handleShare}>
-                    {shareCopied ? "✓ Copied!" : "↗ Share"}
+                    {shareCopied ? "✓ Copied!" : <><Ico.share /> Share</>}
                   </button>
                 </>
               )}
@@ -412,20 +428,20 @@ export default function ProfilePage() {
 
           <div className="pp-stats-row">
             <StatItem
-              icon="👥" value={followersCount} label="Followers"
+              icon={<Ico.users />} value={followersCount} label="Followers"
               onClick={() => setModal("followers")}
             />
             <div className="pp-stats-divider" />
             <StatItem
-              icon="➡️" value={followingCount} label="Following"
+              icon={<Ico.userPlus />} value={followingCount} label="Following"
               onClick={() => setModal("following")}
             />
             <div className="pp-stats-divider" />
-            <StatItem icon="📚" value={courses.length} label="Courses" />
+            <StatItem icon={<Ico.book />} value={courses.length} label="Courses" />
             <div className="pp-stats-divider" />
-            <StatItem icon="🗂" value={groups.length} label="Groups" />
+            <StatItem icon={<Ico.layers />} value={groups.length} label="Groups" />
             <div className="pp-stats-divider" />
-            <StatItem icon="📄" value={files.length} label="Files" />
+            <StatItem icon={<Ico.file />} value={files.length} label="Files" />
           </div>
         </div>
 
@@ -467,7 +483,7 @@ export default function ProfilePage() {
 
           <aside className="pp-sidebar">
             <section className="pp-sidebar-card">
-              <h3 className="pp-sidebar-title">ℹ About</h3>
+              <h3 className="pp-sidebar-title"><Ico.info /> About</h3>
               <p className="pp-about-text">{profile.bio || "No bio added yet."}</p>
               <div className="pp-about-grid">
                 <span className="pp-about-key">Role</span>
@@ -488,7 +504,7 @@ export default function ProfilePage() {
             </section>
 
             <section className="pp-sidebar-card">
-              <h3 className="pp-sidebar-title">👥 Groups</h3>
+              <h3 className="pp-sidebar-title"><Ico.users width="16" height="16" /> Groups</h3>
               {groups.slice(0, 3).map((g, i) => (
                 <div className="pp-sg-item" key={i}>
                   <span className="pp-sg-icon" style={{ background: "#6c47ff" }}>◈</span>
@@ -501,7 +517,7 @@ export default function ProfilePage() {
             </section>
 
             <section className="pp-sidebar-card">
-              <h3 className="pp-sidebar-title">📖 Courses</h3>
+              <h3 className="pp-sidebar-title"><Ico.book width="16" height="16" /> Courses</h3>
               <div className="pp-sidebar-courses">
                 {courses.slice(0, 4).map((c, i) => (
                   <div className="pp-sc-item" key={i}>

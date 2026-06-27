@@ -486,7 +486,7 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
             <button className="avatar-menu-item" onClick={() => goTo("/profile")}>
               <FiUser size={15} /> Profile
             </button>
-            <button className="avatar-menu-item" onClick={() => goTo("/profile/edit")}>
+            <button className="avatar-menu-item" onClick={() => goTo("/settings")}>
               <FiSettings size={15} /> Settings
             </button>
             <div className="avatar-menu-divider" />

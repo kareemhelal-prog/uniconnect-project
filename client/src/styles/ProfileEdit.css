@@ -19,6 +19,21 @@
   --radius:       14px;
   --radius-sm:    10px;
   --shadow:       0 4px 24px rgba(0, 0, 0, 0.4);
+  --nav-bg:       rgba(9, 12, 26, 0.85);
+}
+
+/* Light mode: remap this page's tokens to light values */
+:root[data-theme="light"] {
+  --bg:             #eef2f9;
+  --bg-card:        #ffffff;
+  --bg-input:       #f8fafc;
+  --bg-input-hover: #f1f5f9;
+  --border:         rgba(15, 23, 42, 0.10);
+  --text:           #1e293b;
+  --text-muted:     rgba(15, 23, 42, 0.45);
+  --text-label:     rgba(15, 23, 42, 0.70);
+  --shadow:         0 4px 24px rgba(30, 41, 59, 0.12);
+  --nav-bg:         linear-gradient(90deg, #e8f0ff, #ffffff 45%, #f3eafe);
 }
 
 /* ── Reset ─────────────────────────────────────────────────────────────── */
@@ -44,7 +59,7 @@ input, textarea, select { font-family: inherit; }
   justify-content: space-between;
   padding: 14px 28px;
   border-bottom: 1px solid var(--border);
-  background: rgba(9, 12, 26, 0.85);
+  background: var(--nav-bg);
   backdrop-filter: blur(16px);
   position: sticky;
   top: 0;
@@ -54,30 +69,53 @@ input, textarea, select { font-family: inherit; }
 .ep-logo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
 }
+.ep-logo:hover { transform: scale(1.06); }
 
 .ep-logo-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  width: 28px;
+  height: 28px;
+  background: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: 'Outfit', sans-serif;
-  font-weight: 800;
-  font-size: 16px;
 }
+.ep-logo-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+  animation: epLogoSpin 7s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.45));
+  transition: filter 0.25s ease;
+}
+.ep-logo:hover .ep-logo-icon img {
+  animation-duration: 1.6s;
+  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.85));
+}
+@keyframes epLogoSpin { to { transform: rotate(360deg); } }
 
 .ep-logo-text {
   font-family: 'Outfit', sans-serif;
   font-size: 18px;
   font-weight: 800;
-  color: var(--text);
+  background: linear-gradient(90deg, #22d3ee, #a855f7, #ec4899, #22d3ee);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: epLogoGradient 3s linear infinite;
 }
+@keyframes epLogoGradient { to { background-position: 200% center; } }
 
-.ep-logo-accent { color: var(--purple-light); }
+.ep-logo-accent { -webkit-text-fill-color: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ep-logo-icon img { animation: none; }
+}
 
 .ep-back-btn {
   display: flex;
@@ -159,6 +197,12 @@ input, textarea, select { font-family: inherit; }
 .ep-section--security {
   border-color: rgba(16, 185, 129, 0.15);
   background: linear-gradient(160deg, #0e1225, #0b1520);
+}
+
+/* Light mode: flatten the tinted section cards to the light surface */
+:root[data-theme="light"] .ep-section--academic,
+:root[data-theme="light"] .ep-section--security {
+  background: var(--bg-card);
 }
 
 /* ── Section Header ────────────────────────────────────────────────────── */

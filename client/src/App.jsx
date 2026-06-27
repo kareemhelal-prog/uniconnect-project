@@ -26,6 +26,7 @@ import Notifications from './pages/Notifications'
 import NotFound from './pages/NotFound'
 import Files from './pages/Files'
 import CoursesPage from './pages/CoursesPage'
+import SettingsPage from './pages/SettingsPage'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -59,6 +60,7 @@ const TITLES = {
   '/notifications': 'Notifications',
   '/search': 'Search',
   '/admin/users': 'User Management',
+  '/settings': 'Settings',
 }
 
 function titleForPath(path) {
@@ -141,6 +143,9 @@ function App() {
 
         {/* Courses */}
         <Route path="/courses"           element={<PrivateRoute><CoursesPage /></PrivateRoute>} />
+
+        {/* Settings */}
+        <Route path="/settings"          element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
 
         {/* Notifications */}
         <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />

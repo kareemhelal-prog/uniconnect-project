@@ -120,6 +120,41 @@
   opacity: 0.6;
 }
 
+/* ===== Light mode: gradient bar + adapted controls ===== */
+:root[data-theme="light"] .navbar {
+  background: linear-gradient(90deg, #e8f0ff 0%, #ffffff 45%, #f3eafe 100%);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 24px rgba(99, 102, 241, 0.1);
+}
+:root[data-theme="light"] .navbar::after { opacity: 0.9; }
+
+:root[data-theme="light"] .home-btn,
+:root[data-theme="light"] .launcher-btn,
+:root[data-theme="light"] .nav-bell,
+:root[data-theme="light"] .nav-search,
+:root[data-theme="light"] .nav-search-toggle {
+  background: rgba(15, 23, 42, 0.045);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: #334155;
+}
+:root[data-theme="light"] .launcher-btn,
+:root[data-theme="light"] .nav-bell { color: #475569; }
+:root[data-theme="light"] .search-icon { color: #94a3b8; }
+:root[data-theme="light"] .nav-search::placeholder { color: #94a3b8; }
+
+/* keep the active Home button as a vivid gradient pill */
+:root[data-theme="light"] .home-btn-active {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #22d3ee, #6366f1);
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+}
+:root[data-theme="light"] .home-btn:not(.home-btn-active):hover {
+  background: rgba(34, 211, 238, 0.12);
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #0f172a;
+}
+
 .nav-logo {
   display: flex;
   align-items: center;

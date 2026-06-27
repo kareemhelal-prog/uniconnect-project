@@ -7,8 +7,8 @@
   background:
     radial-gradient(1200px 600px at 80% -10%, rgba(59,130,246,0.10), transparent 60%),
     radial-gradient(1000px 500px at 0% 110%, rgba(99,102,241,0.10), transparent 55%),
-    #0a0a0f;
-  color: #e2e8f0;
+    var(--bg);
+  color: var(--text);
   font-family: 'Inter', system-ui, sans-serif;
   isolation: isolate;
 }
@@ -67,15 +67,15 @@
 .ar-search-input {
   width: 100%;
   padding: 11px 34px 11px 38px;
-  border: 1px solid #2d2d44;
+  border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 14px;
-  color: #e2e8f0;
-  background: rgba(21, 21, 31, 0.85);
+  color: var(--text);
+  background: var(--surface);
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
-.ar-search-input::placeholder { color: #64748b; }
+.ar-search-input::placeholder { color: var(--text-dim); }
 .ar-search-input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
 
 .ar-search-clear {
@@ -83,7 +83,7 @@
   right: 10px;
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--text-dim);
   cursor: pointer;
   font-size: 13px;
   padding: 4px;
@@ -97,9 +97,9 @@
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
-  background: rgba(21, 21, 31, 0.78);
+  background: var(--surface);
   backdrop-filter: blur(6px);
-  border: 1px solid #24243a;
+  border: 1px solid var(--border);
   border-radius: 14px;
   cursor: pointer;
   text-align: left;
@@ -133,7 +133,7 @@
 
 .ar-doc-info { display: flex; flex-direction: column; min-width: 0; }
 .ar-subj-name { font-weight: 700; font-size: 14px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ar-subj-code { font-size: 12px; color: #64748b; }
+.ar-subj-code { font-size: 12px; color: var(--text-dim); }
 
 /* ===== Main panel ===== */
 .ar-main { min-width: 0; }
@@ -141,7 +141,7 @@
 .ar-main-header {
   margin-bottom: 1.25rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #24243a;
+  border-bottom: 1px solid var(--border);
 }
 
 .ar-subj-title {
@@ -153,31 +153,31 @@
 
 .ar-avg {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 600;
 }
 
 /* ===== Add review ===== */
 .ar-add-review {
-  background: rgba(21, 21, 31, 0.78);
+  background: var(--surface);
   backdrop-filter: blur(6px);
-  border: 1px solid #24243a;
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.25rem;
   margin-bottom: 1.5rem;
 }
 
-.ar-add-label { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: #cbd5e1; }
+.ar-add-label { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--text); }
 
 .ar-textarea {
   width: 100%;
   margin-top: 10px;
   padding: 11px 14px;
-  border: 1px solid #2d2d44;
+  border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 14px;
-  color: #e2e8f0;
-  background: #0e0e16;
+  color: var(--text);
+  background: var(--surface-2);
   outline: none;
   font-family: inherit;
   resize: vertical;
@@ -194,7 +194,7 @@
   flex-wrap: wrap;
 }
 
-.ar-anon-label { display: flex; align-items: center; gap: 7px; font-size: 13px; color: #94a3b8; cursor: pointer; }
+.ar-anon-label { display: flex; align-items: center; gap: 7px; font-size: 13px; color: var(--text-muted); cursor: pointer; }
 .ar-anon-check { accent-color: #3b82f6; width: 15px; height: 15px; cursor: pointer; }
 
 .ar-submit-btn {
@@ -215,9 +215,9 @@
 .ar-reviews-list { display: flex; flex-direction: column; gap: 1rem; }
 
 .ar-review-card {
-  background: rgba(21, 21, 31, 0.78);
+  background: var(--surface);
   backdrop-filter: blur(6px);
-  border: 1px solid #24243a;
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 1.25rem;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
@@ -262,16 +262,16 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.ar-anon-badge { background: rgba(100,116,139,0.2); color: #94a3b8; }
+.ar-anon-badge { background: rgba(100,116,139,0.2); color: var(--text-muted); }
 .ar-fake-badge { background: rgba(245,158,11,0.15); color: #fbbf24; }
 
-.ar-review-date { font-size: 12px; color: #64748b; margin-top: 2px; }
+.ar-review-date { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
 
 .ar-review-actions { display: flex; gap: 6px; }
 
 .ar-action-btn {
   background: none;
-  border: 1px solid #2d2d44;
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 5px 9px;
   cursor: pointer;
@@ -285,7 +285,7 @@
   margin: 12px 0 0;
   font-size: 14px;
   line-height: 1.6;
-  color: #cbd5e1;
+  color: var(--text);
 }
 
 .ar-edit-form { margin-top: 12px; }
@@ -293,16 +293,16 @@
 
 .ar-cancel-btn {
   padding: 9px 18px;
-  border: 1px solid #2d2d44;
+  border: 1px solid var(--border);
   background: transparent;
-  color: #cbd5e1;
+  color: var(--text);
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s;
 }
-.ar-cancel-btn:hover { background: #24243a; }
+.ar-cancel-btn:hover { background: var(--border); }
 
 /* ===== Stars ===== */
 .ar-stars { display: inline-flex; gap: 2px; }
@@ -322,7 +322,7 @@
 .ar-empty {
   text-align: center;
   padding: 2.5rem 1rem;
-  color: #64748b;
+  color: var(--text-dim);
   font-size: 14px;
 }
 
@@ -340,14 +340,14 @@
 
 /* ===== Skeletons ===== */
 .ar-skeleton {
-  background: linear-gradient(90deg, #1a1a2e 25%, #24243a 50%, #1a1a2e 75%);
+  background: linear-gradient(90deg, #1a1a2e 25%, var(--border) 50%, #1a1a2e 75%);
   background-size: 200% 100%;
   animation: arShimmer 1.3s ease-in-out infinite;
   border-radius: 6px;
 }
 @keyframes arShimmer { to { background-position: -200% 0; } }
 
-.ar-skeleton-btn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #24243a; border-radius: 14px; }
+.ar-skeleton-btn { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; }
 .ar-skeleton-icon { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; }
 .ar-skeleton-avatar { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; }
 .ar-skeleton-text { height: 12px; width: 70%; margin-bottom: 6px; }
@@ -387,12 +387,12 @@
 .ar-confirm-box {
   width: 100%;
   max-width: 420px;
-  background: #15151f;
-  border: 1px solid #2d2d44;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
   border-radius: 18px;
   padding: 1.5rem;
 }
-.ar-confirm-msg { margin: 0 0 1.25rem; font-size: 14px; line-height: 1.6; color: #cbd5e1; }
+.ar-confirm-msg { margin: 0 0 1.25rem; font-size: 14px; line-height: 1.6; color: var(--text); }
 .ar-confirm-btns { display: flex; justify-content: flex-end; gap: 10px; }
 
 .ar-confirm-yes {
