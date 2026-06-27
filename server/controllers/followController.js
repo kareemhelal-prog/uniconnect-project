@@ -42,12 +42,6 @@ exports.toggleFollow = async (req, res) => {
         "DELETE FROM Followers WHERE follower_id = ? AND following_id = ?",
         [req.user.id, following_id]
       );
-      // Clean up the paired notification so unfollow is silent
-      await promisePool.query(
-        "DELETE FROM Notifications WHERE sender_id = ? AND user_id = ? AND type = 'follow'",
-        [req.user.id, following_id]
-      );
-
       // Real-time: update the target's follower count for anyone viewing it
       emitToUser(following_id, "new_follower", {
         user_id: Number(following_id),

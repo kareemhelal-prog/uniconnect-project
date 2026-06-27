@@ -24,13 +24,10 @@ exports.toggleLike = async (req, res) => {
     const isLiked = existing.length > 0;
 
     if (isLiked) {
+      // Unlike: remove the like row only — leave the notification in DB so it
+      // acts as a permanent guard against re-notification on re-like.
       await promisePool.query(
         "DELETE FROM Likes WHERE user_id = ? AND post_id = ?",
-        [req.user.id, post_id]
-      );
-      // Clean up the paired notification so unlike is silent
-      await promisePool.query(
-        "DELETE FROM Notifications WHERE sender_id = ? AND reference_id = ? AND type = 'like'",
         [req.user.id, post_id]
       );
     } else {
@@ -43,7 +40,7 @@ exports.toggleLike = async (req, res) => {
         "SELECT user_id FROM Posts WHERE id = ?", [post_id]
       );
       if (likedPost && Number(likedPost.user_id) !== Number(req.user.id)) {
-        // Only create one notification per (liker, post) — skip if one already exists
+        // One notification per (liker, post) ever — skip if one already exists
         const [existingNotif] = await promisePool.query(
           "SELECT id FROM Notifications WHERE sender_id = ? AND reference_id = ? AND type = 'like' LIMIT 1",
           [req.user.id, post_id]
