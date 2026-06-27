@@ -28,24 +28,35 @@ exports.toggleLike = async (req, res) => {
         "DELETE FROM Likes WHERE user_id = ? AND post_id = ?",
         [req.user.id, post_id]
       );
+      // Clean up the paired notification so unlike is silent
+      await promisePool.query(
+        "DELETE FROM Notifications WHERE sender_id = ? AND reference_id = ? AND type = 'like'",
+        [req.user.id, post_id]
+      );
     } else {
       await promisePool.query(
         "INSERT INTO Likes (user_id, post_id) VALUES (?, ?)",
         [req.user.id, post_id]
       );
 
-      // Notify post owner (not self-like) — persists + emits new_notification
       const [[likedPost]] = await promisePool.query(
         "SELECT user_id FROM Posts WHERE id = ?", [post_id]
       );
-      if (likedPost) {
-        await notify({
-          userId: likedPost.user_id,
-          senderId: req.user.id,
-          type: "like",
-          message: "liked your post",
-          referenceId: post_id,
-        });
+      if (likedPost && Number(likedPost.user_id) !== Number(req.user.id)) {
+        // Only create one notification per (liker, post) — skip if one already exists
+        const [existingNotif] = await promisePool.query(
+          "SELECT id FROM Notifications WHERE sender_id = ? AND reference_id = ? AND type = 'like' LIMIT 1",
+          [req.user.id, post_id]
+        );
+        if (existingNotif.length === 0) {
+          await notify({
+            userId: likedPost.user_id,
+            senderId: req.user.id,
+            type: "like",
+            message: "liked your post",
+            referenceId: post_id,
+          });
+        }
       }
     }
 

@@ -52,6 +52,24 @@ const testConnection = async () => {
       // Deep-link comment notifications to the exact comment
       ensureColumn("Notifications", "reference_comment_id", "INT NULL"),
     ]);
+
+    // One-time cleanup: remove historical duplicate like/follow notifications,
+    // keeping only the oldest per (sender_id, user_id, type, reference_id) group.
+    try {
+      await promisePool.query(`
+        DELETE FROM Notifications
+        WHERE type IN ('like', 'follow')
+          AND id NOT IN (
+            SELECT min_id FROM (
+              SELECT MIN(id) AS min_id
+              FROM Notifications
+              WHERE type IN ('like', 'follow')
+              GROUP BY sender_id, user_id, type, COALESCE(reference_id, 0)
+            ) AS t
+          )
+      `);
+    } catch (_) { /* non-critical — ignore if table structure differs */ }
+
     console.log("✅ Schema check complete");
 
   } catch (error) {

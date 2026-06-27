@@ -1,4 +1,5 @@
 const { promisePool } = require("../config/db");
+const { notify } = require("../utils/notify");
 
 // =======================
 // CREATE POST
@@ -15,6 +16,7 @@ exports.createPost = async (req, res) => {
       "INSERT INTO Posts (user_id, title, content) VALUES (?, ?, ?)",
       [req.user.id, title, content]
     );
+    const postId = result.insertId;
 
     const [rows] = await promisePool.query(
       `SELECT Posts.*, Users.name, Users.username, Users.role,
@@ -22,19 +24,25 @@ exports.createPost = async (req, res) => {
               0 AS likes, 0 AS comments_count, FALSE AS liked
        FROM Posts JOIN Users ON Posts.user_id = Users.id
        WHERE Posts.id = ?`,
-      [result.insertId]
+      [postId]
     );
 
-    // Notify all followers that the author published a new post
+    // Notify followers AFTER the post row exists — store the post id so the
+    // notification can deep-link to it, and emit each in real-time.
     const [followers] = await promisePool.query(
       "SELECT follower_id FROM Followers WHERE following_id = ?", [req.user.id]
     );
-    if (followers.length > 0) {
-      const values = followers.map(f => [f.follower_id, req.user.id, 'post', 'added a new post']);
-      await promisePool.query(
-        "INSERT INTO Notifications (user_id, sender_id, type, message) VALUES ?", [values]
-      );
-    }
+    await Promise.all(
+      followers.map(f =>
+        notify({
+          userId: f.follower_id,
+          senderId: req.user.id,
+          type: "post",
+          message: "added a new post",
+          referenceId: postId,
+        })
+      )
+    );
 
     res.status(201).json({
       message: "Post created successfully",

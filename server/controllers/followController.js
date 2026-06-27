@@ -42,6 +42,11 @@ exports.toggleFollow = async (req, res) => {
         "DELETE FROM Followers WHERE follower_id = ? AND following_id = ?",
         [req.user.id, following_id]
       );
+      // Clean up the paired notification so unfollow is silent
+      await promisePool.query(
+        "DELETE FROM Notifications WHERE sender_id = ? AND user_id = ? AND type = 'follow'",
+        [req.user.id, following_id]
+      );
 
       // Real-time: update the target's follower count for anyone viewing it
       emitToUser(following_id, "new_follower", {
@@ -62,13 +67,19 @@ exports.toggleFollow = async (req, res) => {
       [req.user.id, following_id]
     );
 
-    // إشعار للشخص المتابَع — persists + emits new_notification
-    await notify({
-      userId: following_id,
-      senderId: req.user.id,
-      type: "follow",
-      message: "started following you",
-    });
+    // Only create one follow notification per (follower, followed) — skip if one already exists
+    const [existingFollowNotif] = await promisePool.query(
+      "SELECT id FROM Notifications WHERE sender_id = ? AND user_id = ? AND type = 'follow' LIMIT 1",
+      [req.user.id, following_id]
+    );
+    if (existingFollowNotif.length === 0) {
+      await notify({
+        userId: following_id,
+        senderId: req.user.id,
+        type: "follow",
+        message: "started following you",
+      });
+    }
 
     // Real-time: update the target's follower count for anyone viewing it
     emitToUser(following_id, "new_follower", {
