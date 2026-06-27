@@ -89,9 +89,48 @@ const testConnection = async () => {
 
     console.log("✅ Schema check complete");
 
+    // Run periodic cleanup on startup, then repeat every 45 days
+    runPeriodicCleanup();
+    setInterval(runPeriodicCleanup, 45 * 24 * 60 * 60 * 1000);
+
   } catch (error) {
     console.error("❌ Database connection failed:", error.message);
   }
 };
+
+// Removes stale rows that accumulate over time and serve no purpose after expiry.
+async function runPeriodicCleanup() {
+  try {
+    console.log("🧹 Running periodic DB cleanup...");
+
+    // 1. Read notifications older than 90 days that the user already saw
+    const [n] = await promisePool.query(`
+      DELETE FROM Notifications
+      WHERE is_read = 1
+        AND created_at < DATE_SUB(NOW(), INTERVAL 90 DAY)
+    `);
+
+    // 2. OTP rows that are either used or expired (no longer needed)
+    const [p] = await promisePool.query(`
+      DELETE FROM password_resets
+      WHERE is_used = 1
+         OR expires_at < NOW()
+    `);
+
+    // 3. Email log entries older than 6 months (kept for auditing, but not forever)
+    const [e] = await promisePool.query(`
+      DELETE FROM Email_Logs
+      WHERE created_at < DATE_SUB(NOW(), INTERVAL 6 MONTH)
+    `);
+
+    console.log(
+      `🧹 Cleanup done — notifications: ${n.affectedRows} deleted, ` +
+      `OTP rows: ${p.affectedRows} deleted, ` +
+      `email logs: ${e.affectedRows} deleted`
+    );
+  } catch (err) {
+    console.error("⚠️ Periodic cleanup error:", err.message);
+  }
+}
 
 module.exports = { pool, promisePool, testConnection };
