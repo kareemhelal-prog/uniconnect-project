@@ -65,9 +65,15 @@ const testConnection = async () => {
 
     // Composite indexes for the hottest query patterns (no-op if present)
     await Promise.all([
-      ensureIndex("Notifications",   "idx_notif_user_read",    "user_id, is_read"),
-      ensureIndex("Notifications",   "idx_notif_user_created", "user_id, created_at"),
-      ensureIndex("password_resets", "idx_pwreset_email",      "email, is_used"),
+      ensureIndex("Notifications",   "idx_notif_user_read",     "user_id, is_read"),
+      ensureIndex("Notifications",   "idx_notif_user_created",  "user_id, created_at"),
+      ensureIndex("password_resets", "idx_pwreset_email",       "email, is_used"),
+      // Feed ordering: `SELECT ... FROM Posts ORDER BY created_at DESC`
+      ensureIndex("Posts",           "idx_posts_created",       "created_at"),
+      // Loading a post's comments oldest-first / paginated
+      ensureIndex("Comments",        "idx_comments_post_created", "post_id, created_at"),
+      // Files library browsing ordered by newest
+      ensureIndex("Files",           "idx_files_created",       "created_at"),
     ]);
 
     // One-time cleanup: remove historical duplicate like/follow notifications,
