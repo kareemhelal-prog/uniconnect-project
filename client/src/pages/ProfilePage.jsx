@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PostCard from "../components/PostCard";
+import { getSocket } from "../socket";
 import "../styles/ProfilePage.css";
 
-const API = "http://localhost:5000/api";
+const API = "/api";
 const token = () => localStorage.getItem("token");
 const authHeaders = () => ({ Authorization: `Bearer ${token()}` });
 
 const resolveImg = (pic) => {
   if (!pic) return "";
   if (pic.startsWith("data:") || pic.startsWith("http")) return pic;
-  return `http://localhost:5000/${pic.replace(/^\//, "")}`;
+  return `/${pic.replace(/^\//, "")}`;
 };
 
 const TABS = ["Posts", "Files", "Groups", "Courses"];
@@ -201,6 +202,7 @@ function CoursesTab({ courses }) {
 
 export default function ProfilePage() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const isOwnProfile = !id;
 
   const [profile, setProfile]               = useState(null);
@@ -217,6 +219,11 @@ export default function ProfilePage() {
   const [shareCopied, setShareCopied]       = useState(false);
   const [inviteCopied, setInviteCopied]     = useState(false);
   const [modal, setModal]                   = useState(null); // "followers" | "following" | null
+
+  // Open the followers modal when arriving via ?tab=followers (e.g. from a follow notification)
+  useEffect(() => {
+    if (searchParams.get("tab") === "followers") setModal("followers");
+  }, [searchParams]);
 
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href).then(() => {
@@ -288,6 +295,19 @@ export default function ProfilePage() {
       .then(d => setFollowing(!!d.isFollowing))
       .catch(() => {});
   }, [id, isOwnProfile]);
+
+  // ── Real-time: live follower count for the profile being viewed ──
+  useEffect(() => {
+    const pid = id || profile?.id;
+    if (!pid) return;
+    const socket = getSocket();
+    const onFollower = (data) => {
+      if (Number(data.user_id) !== Number(pid)) return;
+      if (typeof data.followers === "number") setFollowersCount(data.followers);
+    };
+    socket.on("new_follower", onFollower);
+    return () => socket.off("new_follower", onFollower);
+  }, [id, profile?.id]);
 
   const handleFollow = async () => {
     if (followLoading || !id) return;

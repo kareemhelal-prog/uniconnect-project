@@ -3,7 +3,7 @@ import "../styles/ProjectsPage.css";
 import { FiSearch, FiX, FiUsers, FiUser, FiPlus, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { MdOutlineSchool, MdOutlineCategory } from "react-icons/md";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 const getToken = () => localStorage.getItem("token");
 const getCurrentUserId = () => {
   try {

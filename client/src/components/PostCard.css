@@ -659,3 +659,14 @@
   from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Highlighted comment (deep-link from notification) ── */
+.comment-item.comment-highlight {
+  animation: commentFlash 1.6s ease;
+  border-radius: 10px;
+}
+@keyframes commentFlash {
+  0%   { box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.9); background: rgba(0, 229, 255, 0.10); }
+  70%  { box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.5); background: rgba(0, 229, 255, 0.06); }
+  100% { box-shadow: 0 0 0 0 transparent; background: transparent; }
+}

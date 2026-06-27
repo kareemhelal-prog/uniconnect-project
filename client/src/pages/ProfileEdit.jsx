@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import GoogleAuthButton from "../components/GoogleAuthButton";
 import "../styles/ProfileEdit.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 const getToken = () => localStorage.getItem("token");
 
 const authFetch = (url, options = {}) =>

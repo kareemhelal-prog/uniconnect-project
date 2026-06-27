@@ -106,23 +106,58 @@ exports.getAllPosts = async (req, res) => {
 };
 
 // =======================
-// GET POST BY ID
+// GET POST BY ID  (full shape — same as feed, with nested comments)
 // =======================
 exports.getPostById = async (req, res) => {
   try {
-    const [post] = await promisePool.query(
-      `SELECT Posts.*, Users.name, Users.role
-       FROM Posts
-       JOIN Users ON Posts.user_id = Users.id
+    const userId = req.user.id;
+
+    const [posts] = await promisePool.query(
+      `SELECT Posts.*, Users.username, Users.name, Users.role,
+              COALESCE(Users.profile_picture,'') AS profile_picture,
+              (SELECT COUNT(*) FROM Likes    WHERE Likes.post_id    = Posts.id) AS likes,
+              (SELECT COUNT(*) FROM Comments WHERE Comments.post_id = Posts.id) AS comments_count,
+              EXISTS(SELECT 1 FROM Likes WHERE Likes.post_id = Posts.id AND Likes.user_id = ?) AS liked
+       FROM Posts JOIN Users ON Posts.user_id = Users.id
        WHERE Posts.id = ?`,
-      [req.params.id]
+      [userId, req.params.id]
     );
 
-    if (post.length === 0) {
+    if (posts.length === 0) {
       return res.status(404).json({ message: "Post not found" });
     }
 
-    res.json({ data: post[0] });
+    const post = { ...posts[0], liked: !!posts[0].liked };
+
+    // Nested comments (same structure as the feed)
+    const [comments] = await promisePool.query(
+      `SELECT c.id, c.post_id, c.content, c.created_at, c.parent_id,
+              u.id AS user_id, u.name AS user_name, u.username, u.role AS user_role,
+              COALESCE(u.profile_picture,'') AS user_profile_picture
+       FROM Comments c JOIN Users u ON c.user_id = u.id
+       WHERE c.post_id = ? ORDER BY c.created_at ASC`,
+      [req.params.id]
+    );
+
+    const byId = {}, top = [];
+    for (const c of comments) {
+      byId[c.id] = {
+        id: c.id, content: c.content, created_at: c.created_at, parent_id: c.parent_id,
+        user: {
+          id: c.user_id, name: c.user_name, username: c.username,
+          role: c.user_role, profile_picture: c.user_profile_picture,
+        },
+        replies: [],
+      };
+    }
+    for (const id in byId) {
+      const c = byId[id];
+      if (c.parent_id && byId[c.parent_id]) byId[c.parent_id].replies.push(c);
+      else if (!c.parent_id) top.push(c);
+    }
+    post.comments = top;
+
+    res.json({ data: post });
 
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

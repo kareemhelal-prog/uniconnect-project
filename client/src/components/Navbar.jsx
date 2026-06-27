@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import "./Navbar.css";
 import { useNavigate, useLocation } from "react-router-dom";
+import { getSocket } from "../socket";
 import {
   FiBell,
   FiSearch,
@@ -18,7 +19,7 @@ import {
 } from "react-icons/fi";
 import { HiOutlineLink } from "react-icons/hi";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 const LAUNCHER_PAGES_STUDENT = [
   { id: "profile",  label: "Profile",          icon: FiUser,       path: "/profile" },
@@ -63,7 +64,7 @@ const playNotificationSound = () => {
 const resolveAvatar = (pic) => {
   if (!pic) return "";
   if (pic.startsWith("data:") || pic.startsWith("http")) return pic;
-  return `http://localhost:5000/${pic.replace(/^\//, "")}`;
+  return `/${pic.replace(/^\//, "")}`;
 };
 
 function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
@@ -135,6 +136,21 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
     return () => clearInterval(id);
   }, [token]);
 
+  // ── Real-time: prepend incoming notifications instantly ──
+  useEffect(() => {
+    if (!token) return;
+    const socket = getSocket();
+    const onNew = (notif) => {
+      setSelfNotifs(prev => {
+        if (prev.some(n => n.id === notif.id)) return prev; // dedupe
+        return [notif, ...prev];
+      });
+      playNotificationSound();
+    };
+    socket.on("new_notification", onNew);
+    return () => socket.off("new_notification", onNew);
+  }, [token]);
+
   const unreadCount = selfNotifs.filter(n => !n.is_read).length;
 
   // ── Notification panel ───────────────────────────────────
@@ -178,6 +194,37 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
       prevUnreadRef.current = 0;
     } catch {}
     setNotifOpen(false);
+  };
+
+  // Mark a single notification read (optimistic + API)
+  const markNotifRead = (id) => {
+    setSelfNotifs(prev => prev.map(n => (n.id === id ? { ...n, is_read: 1 } : n)));
+    fetch(`${API_BASE}/notifications/${id}/read`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    }).catch(() => {});
+  };
+
+  // Zone 1 — actor name / avatar → their profile
+  const goToNotifActor = (e, n) => {
+    e.stopPropagation();
+    markNotifRead(n.id);
+    if (n.sender_id) goTo(`/profile/${n.sender_id}`);
+  };
+
+  // Zone 2 — message text → the relevant content
+  const goToNotifContent = (e, n) => {
+    e.stopPropagation();
+    markNotifRead(n.id);
+    if (n.type === "follow") {
+      goTo(`/profile?tab=followers`);
+    } else if (n.reference_id) {
+      const hash = n.type === "comment" && n.reference_comment_id
+        ? `#comment-${n.reference_comment_id}` : "";
+      goTo(`/posts/${n.reference_id}${hash}`);
+    } else {
+      goTo("/notifications");
+    }
   };
 
   // ── User Search ─────────────────────────────────────────
@@ -502,23 +549,49 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
             {selfNotifs.length === 0 ? (
               <div className="notif-empty">No notifications</div>
             ) : (
-              selfNotifs.slice(0, 8).map(n => (
-                <div
-                  key={n.id}
-                  className={`notif-item ${n.is_read ? "read" : "unread"}`}
-                >
-                  <span className="notif-icon">{notifIcon(n.type)}</span>
-                  <div className="notif-body">
-                    <div className="notif-item-title">
-                      {n.sender_name ? `${n.sender_name} ` : ""}{n.message}
+              selfNotifs.slice(0, 8).map(n => {
+                const senderVerified = n.sender_role === "doctor" || n.sender_role === "admin";
+                return (
+                  <div
+                    key={n.id}
+                    className={`notif-item ${n.is_read ? "read" : "unread"}`}
+                  >
+                    <span
+                      className="notif-icon notif-zone-actor"
+                      onClick={(e) => goToNotifActor(e, n)}
+                      title="View profile"
+                    >
+                      {notifIcon(n.type)}
+                    </span>
+                    <div className="notif-body">
+                      <div className="notif-item-title">
+                        {n.sender_name && (
+                          <span
+                            className="notif-actor-name notif-zone-actor"
+                            onClick={(e) => goToNotifActor(e, n)}
+                          >
+                            {n.sender_name}
+                            {senderVerified && <span className="notif-verified" title="Verified">✓</span>}
+                          </span>
+                        )}{" "}
+                        <span
+                          className="notif-msg-text notif-zone-content"
+                          onClick={(e) => goToNotifContent(e, n)}
+                        >
+                          {n.message}
+                        </span>
+                      </div>
+                      <div
+                        className="notif-item-time notif-zone-content"
+                        onClick={(e) => goToNotifContent(e, n)}
+                      >
+                        {n.created_at ? new Date(n.created_at).toLocaleString() : ""}
+                      </div>
                     </div>
-                    <div className="notif-item-time">
-                      {n.created_at ? new Date(n.created_at).toLocaleString() : ""}
-                    </div>
+                    {!n.is_read && <span className="notif-dot" />}
                   </div>
-                  {!n.is_read && <span className="notif-dot" />}
-                </div>
-              ))
+                );
+              })
             )}
           </div>
           <div className="notif-view-all" onClick={() => { goTo("/notifications"); setNotifOpen(false); }}>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/AcademicReviewsPage.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 function getToken() {
   return localStorage.getItem("token");

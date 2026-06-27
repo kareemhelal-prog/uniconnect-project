@@ -12,7 +12,7 @@ import NotificationsPage from "./Notifications";
 
 import "../styles/Home.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -144,6 +144,7 @@ const HomeDoctor = () => {
           id:       u.id,
           name:     u.name || "Doctor",
           email:    u.email || "",
+          username: u.username || "",
           initials: (u.name || "D").slice(0, 2).toUpperCase(),
           role:     u.role || "doctor",
           dept:     u.department || "",
@@ -152,7 +153,7 @@ const HomeDoctor = () => {
           profile_picture: pic,
           profilePic: pic.startsWith("data:") || pic.startsWith("http")
             ? pic
-            : pic ? `http://localhost:5000/${pic.replace(/^\//, "")}` : "",
+            : pic ? `/${pic.replace(/^\//, "")}` : "",
           stats: [
             { label: "Projects", value: 0 },
             { label: "Students", value: 0 },

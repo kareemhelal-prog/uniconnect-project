@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import '../styles/Files.css';
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 const getToken = () => localStorage.getItem("token");
 
 const SUBJECTS = ['All Subjects', 'Data Structures', 'Operating Systems', 'Machine Learning',

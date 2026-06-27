@@ -19,6 +19,11 @@ export default function LeftSidebar({ user = {} }) {
   const profilePic = user.profilePic || "";
   const status     = user.status     || "offline";
 
+  // Role-based identity badge: doctors/admins → email, students → academic ID
+  const isStaff = user.role === "doctor" || user.role === "admin";
+  const email   = (user.email || "").trim();
+  const academicId = (user.username || "").trim();
+
   return (
     <aside className="hp-card">
       <div className="hp-avatar-wrap">
@@ -34,9 +39,27 @@ export default function LeftSidebar({ user = {} }) {
       <h2 className="hp-name">{user.name || "—"}</h2>
       <p className="hp-role">{user.role || "—"}</p>
 
-      <div className="hp-id-badge">
-        <span className="hp-id-label">USER ID</span>
-        <span className="hp-id-value">#{user.id || "—"}</span>
+      <div className="hp-id-badge" title={isStaff ? email : academicId}>
+        {isStaff ? (
+          email ? (
+            <>
+              <span className="hp-id-icon" aria-hidden="true">✉</span>
+              <span className="hp-id-value hp-id-email">{email}</span>
+            </>
+          ) : (
+            <span className="hp-id-empty">Email not set</span>
+          )
+        ) : (
+          academicId ? (
+            <>
+              <span className="hp-id-icon" aria-hidden="true">🎓</span>
+              <span className="hp-id-label">Academic ID</span>
+              <span className="hp-id-value">{academicId}</span>
+            </>
+          ) : (
+            <span className="hp-id-empty">ID not set</span>
+          )
+        )}
       </div>
 
       <div className="hp-online">

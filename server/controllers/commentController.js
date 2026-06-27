@@ -1,4 +1,6 @@
 const { promisePool } = require("../config/db");
+const { notify } = require("../utils/notify");
+const { emitToPost } = require("../config/socket");
 
 // =======================
 // ADD COMMENT (or REPLY)
@@ -30,16 +32,21 @@ exports.addComment = async (req, res) => {
       const [[commentedPost]] = await promisePool.query(
         "SELECT user_id FROM Posts WHERE id = ?", [post_id]
       );
-      if (commentedPost && commentedPost.user_id !== req.user.id) {
-        await promisePool.query(
-          "INSERT INTO Notifications (user_id, sender_id, type, message, reference_id) VALUES (?, ?, 'comment', 'commented on your post', ?)",
-          [commentedPost.user_id, req.user.id, post_id]
-        );
+      if (commentedPost) {
+        await notify({
+          userId: commentedPost.user_id,
+          senderId: req.user.id,
+          type: "comment",
+          message: "commented on your post",
+          referenceId: post_id,
+          referenceCommentId: newComment.id,
+        });
       }
     }
 
-    res.status(201).json({
+    const payload = {
       id:         newComment.id,
+      post_id:    newComment.post_id,
       content:    newComment.content,
       created_at: newComment.created_at,
       parent_id:  newComment.parent_id,
@@ -51,7 +58,12 @@ exports.addComment = async (req, res) => {
         role:            newComment.user_role,
         profile_picture: newComment.user_profile_picture,
       },
-    });
+    };
+
+    // Real-time: broadcast the new comment to everyone viewing this post
+    emitToPost(post_id, "new_comment", payload);
+
+    res.status(201).json(payload);
 
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });

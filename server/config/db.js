@@ -49,6 +49,8 @@ const testConnection = async () => {
       ensureColumn("Users", "google_email",    "VARCHAR(255) NULL"),
       // Allow Google-only accounts to have no local password
       ensureColumn("Users", "password",        "VARCHAR(255) NULL"),
+      // Deep-link comment notifications to the exact comment
+      ensureColumn("Notifications", "reference_comment_id", "INT NULL"),
     ]);
     console.log("✅ Schema check complete");
 

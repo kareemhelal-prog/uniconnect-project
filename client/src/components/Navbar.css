@@ -948,3 +948,55 @@
   color: #555;
   font-size: 13px;
 }
+/* ── Notification clickable zones ───────────────── */
+.notif-zone-actor,
+.notif-zone-content {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.notif-actor-name {
+  font-weight: 700;
+  color: #e8e8ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.notif-zone-actor:hover .notif-actor-name,
+.notif-actor-name.notif-zone-actor:hover {
+  color: #00e5ff;
+  text-decoration: underline;
+}
+.notif-msg-text:hover {
+  color: #a855f7;
+  text-decoration: underline;
+}
+.notif-verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #06b6d4;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+.notif-item .notif-zone-content { min-height: 20px; }
+
+/* Larger tap targets on mobile */
+@media (max-width: 640px) {
+  .notif-actor-name,
+  .notif-msg-text {
+    display: inline-block;
+    min-height: 24px;
+    line-height: 1.5;
+  }
+  .notif-icon.notif-zone-actor {
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}

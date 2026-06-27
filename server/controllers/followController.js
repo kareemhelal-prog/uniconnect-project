@@ -1,4 +1,14 @@
 const { promisePool } = require("../config/db");
+const { notify } = require("../utils/notify");
+const { emitToUser } = require("../config/socket");
+
+// Helper: current follower count for a user
+async function followersCount(userId) {
+  const [[row]] = await promisePool.query(
+    "SELECT COUNT(*) AS count FROM Followers WHERE following_id = ?", [userId]
+  );
+  return row.count;
+}
 
 // =======================
 // TOGGLE FOLLOW (follow / unfollow)
@@ -33,6 +43,14 @@ exports.toggleFollow = async (req, res) => {
         [req.user.id, following_id]
       );
 
+      // Real-time: update the target's follower count for anyone viewing it
+      emitToUser(following_id, "new_follower", {
+        user_id: Number(following_id),
+        followers: await followersCount(following_id),
+        actor_id: req.user.id,
+        following: false,
+      });
+
       return res.json({
         message: "Unfollowed"
       });
@@ -44,11 +62,21 @@ exports.toggleFollow = async (req, res) => {
       [req.user.id, following_id]
     );
 
-    // إشعار للشخص المتابَع
-    await promisePool.query(
-      "INSERT INTO Notifications (user_id, sender_id, type, message) VALUES (?, ?, 'follow', 'started following you')",
-      [following_id, req.user.id]
-    );
+    // إشعار للشخص المتابَع — persists + emits new_notification
+    await notify({
+      userId: following_id,
+      senderId: req.user.id,
+      type: "follow",
+      message: "started following you",
+    });
+
+    // Real-time: update the target's follower count for anyone viewing it
+    emitToUser(following_id, "new_follower", {
+      user_id: Number(following_id),
+      followers: await followersCount(following_id),
+      actor_id: req.user.id,
+      following: true,
+    });
 
     res.json({
       message: "Followed"

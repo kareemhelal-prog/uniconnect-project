@@ -10,6 +10,7 @@ exports.getNotifications = async (req, res) => {
          n.*,
          u.username AS sender_username,
          u.name     AS sender_name,
+         u.role     AS sender_role,
          u.profile_picture AS sender_avatar
        FROM Notifications n
        LEFT JOIN Users u ON n.sender_id = u.id
@@ -41,6 +42,7 @@ exports.getUnreadNotifications = async (req, res) => {
          n.*,
          u.username AS sender_username,
          u.name     AS sender_name,
+         u.role     AS sender_role,
          u.profile_picture AS sender_avatar
        FROM Notifications n
        LEFT JOIN Users u ON n.sender_id = u.id

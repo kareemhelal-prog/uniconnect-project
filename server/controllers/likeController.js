@@ -1,4 +1,6 @@
 const { promisePool } = require("../config/db");
+const { notify } = require("../utils/notify");
+const { emitToPost } = require("../config/socket");
 
 // =======================
 // TOGGLE LIKE (like / unlike)
@@ -32,15 +34,18 @@ exports.toggleLike = async (req, res) => {
         [req.user.id, post_id]
       );
 
-      // Notify post owner (not self-like)
+      // Notify post owner (not self-like) — persists + emits new_notification
       const [[likedPost]] = await promisePool.query(
         "SELECT user_id FROM Posts WHERE id = ?", [post_id]
       );
-      if (likedPost && likedPost.user_id !== req.user.id) {
-        await promisePool.query(
-          "INSERT INTO Notifications (user_id, sender_id, type, message, reference_id) VALUES (?, ?, 'like', 'liked your post', ?)",
-          [likedPost.user_id, req.user.id, post_id]
-        );
+      if (likedPost) {
+        await notify({
+          userId: likedPost.user_id,
+          senderId: req.user.id,
+          type: "like",
+          message: "liked your post",
+          referenceId: post_id,
+        });
       }
     }
 
@@ -48,6 +53,14 @@ exports.toggleLike = async (req, res) => {
     const [[countRow]] = await promisePool.query(
       "SELECT COUNT(*) AS likes FROM Likes WHERE post_id = ?", [post_id]
     );
+
+    // Real-time: broadcast the authoritative like count to everyone on this post
+    emitToPost(post_id, "post_reaction", {
+      post_id: Number(post_id),
+      likes: countRow.likes,
+      actor_id: req.user.id,
+      liked: !isLiked,
+    });
 
     res.json({
       message: isLiked ? "Unliked" : "Liked",

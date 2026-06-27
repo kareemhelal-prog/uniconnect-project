@@ -225,3 +225,37 @@
   color: var(--text-muted);
   font-size: 15px;
 }
+/* ── Clickable notification zones ───────────────── */
+.notif-zone { cursor: pointer; }
+.notif-actor-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: color 0.15s;
+}
+.notif-actor-link:hover { color: #00e5ff; text-decoration: underline; }
+.notif-msg-link { transition: color 0.15s; }
+.notif-msg-link:hover { color: #a855f7; text-decoration: underline; }
+.avatar-placeholder.notif-zone:hover { box-shadow: 0 0 0 2px #00e5ff; }
+.notif-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #06b6d4;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .notif-actor-link,
+  .notif-msg-link,
+  .time-text.notif-zone {
+    display: inline-block;
+    min-height: 28px;
+    line-height: 1.6;
+  }
+}

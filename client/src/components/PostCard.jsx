@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { getSocket, joinPost, leavePost } from "../socket";
 import "./PostCard.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 const token = () => localStorage.getItem("token");
 const currentUserId = () => {
   const t = token();
@@ -18,16 +19,24 @@ const currentUserRole = () => {
 const resolveImg = (pic) => {
   if (!pic) return "";
   if (pic.startsWith("data:") || pic.startsWith("http")) return pic;
-  return `http://localhost:5000/${pic.replace(/^\//, "")}`;
+  return `/${pic.replace(/^\//, "")}`;
 };
 
 function VerifiedBadge() {
   return <span className="verified-badge" title="Verified account">✓</span>;
 }
 
-function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, depth = 0 }) {
+function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, depth = 0, highlightCommentId }) {
   const myId   = currentUserId();
   const myRole = currentUserRole();
+  const isHighlighted = highlightCommentId != null && Number(comment.id) === Number(highlightCommentId);
+  const highlightRef = React.useRef(null);
+
+  useEffect(() => {
+    if (isHighlighted && highlightRef.current) {
+      highlightRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }, [isHighlighted]);
   const isCommentOwner = myId != null && comment.user?.id != null && Number(comment.user.id) === Number(myId);
   const canDelete = isCommentOwner || myRole === "doctor" || myRole === "admin";
 
@@ -83,7 +92,11 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
   };
 
   return (
-    <div className={`comment-item${depth > 0 ? " comment-reply" : ""}`}>
+    <div
+      ref={highlightRef}
+      id={`comment-${comment.id}`}
+      className={`comment-item${depth > 0 ? " comment-reply" : ""}${isHighlighted ? " comment-highlight" : ""}`}
+    >
       <div
         className="comment-avatar-wrap"
         onClick={() => comment.user?.id && navigate(`/profile/${comment.user.id}`)}
@@ -174,6 +187,7 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
                 onEdit={onEdit}
                 navigate={navigate}
                 depth={depth + 1}
+                highlightCommentId={highlightCommentId}
               />
             ))}
           </div>
@@ -183,7 +197,7 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
   );
 }
 
-const PostCard = ({ post, onUpdate }) => {
+const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommentId = null }) => {
   const navigate = useNavigate();
   const myId = currentUserId();
   const isOwner = post.user_id != null && myId != null && Number(post.user_id) === Number(myId);
@@ -192,7 +206,7 @@ const PostCard = ({ post, onUpdate }) => {
 
   const [liked, setLiked]               = useState(!!post.liked);
   const [likesCount, setLikesCount]     = useState(Number(post.likes || post.likes_count) || 0);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(!!defaultShowComments);
   const [commentText, setCommentText]   = useState("");
   const [comments, setComments]         = useState(post.comments || []);
   const [isFollowing, setIsFollowing]   = useState(false);
@@ -211,6 +225,46 @@ const PostCard = ({ post, onUpdate }) => {
       .then(d => setIsFollowing(!!d.isFollowing))
       .catch(() => {});
   }, [post.user_id, isOwner]);
+
+  // ── Real-time: live likes & comments for this post ──
+  useEffect(() => {
+    if (post.id == null) return;
+    const socket = getSocket();
+    joinPost(post.id);
+
+    const onReaction = (data) => {
+      if (Number(data.post_id) !== Number(post.id)) return;
+      if (typeof data.likes === "number") setLikesCount(data.likes);
+    };
+
+    const onNewComment = (c) => {
+      if (Number(c.post_id) !== Number(post.id)) return;
+      setComments(prev => {
+        // dedupe — the actor already appended it locally
+        const exists = (list) =>
+          list.some(x => x.id === c.id || (x.replies && exists(x.replies)));
+        if (exists(prev)) return prev;
+        if (c.parent_id) {
+          const addReply = (list) =>
+            list.map(p =>
+              p.id === c.parent_id
+                ? { ...p, replies: [...(p.replies || []), { ...c, replies: [] }] }
+                : { ...p, replies: p.replies ? addReply(p.replies) : [] }
+            );
+          return addReply(prev);
+        }
+        return [...prev, { ...c, replies: [] }];
+      });
+    };
+
+    socket.on("post_reaction", onReaction);
+    socket.on("new_comment", onNewComment);
+    return () => {
+      socket.off("post_reaction", onReaction);
+      socket.off("new_comment", onNewComment);
+      leavePost(post.id);
+    };
+  }, [post.id]);
 
   const handleLike = async () => {
     // Optimistic update first
@@ -410,6 +464,7 @@ const PostCard = ({ post, onUpdate }) => {
               onEdit={handleCommentEdit}
               navigate={navigate}
               depth={0}
+              highlightCommentId={highlightCommentId}
             />
           ))}
           <div className="comment-input-row">
