@@ -113,12 +113,49 @@
   align-items: center;
   gap: 6px;
   margin-right: 12px;
+  transition: transform 0.2s ease;
+}
+
+.nav-logo:hover {
+  transform: scale(1.06);
 }
 
 .logo-icon {
   font-size: 20px;
   color: #22d3ee;
   flex-shrink: 0;
+}
+
+/* ── Animated spinning logo mark ── */
+.logo-mark {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform-origin: center;
+  animation: logoSpin 7s linear infinite;
+  filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.45));
+  transition: filter 0.25s ease;
+}
+
+@keyframes logoSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* mouse interaction: spin faster + brighter glow */
+.nav-logo:hover .logo-img {
+  animation-duration: 1.6s;
+  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.85));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-img { animation: none; }
 }
 
 .logo-text {

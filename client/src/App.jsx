@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import React, { useState, useEffect } from 'react'
 import UniConnectLoader from './pages/LoadingPage'
 import Login from './pages/Login'
@@ -31,6 +31,54 @@ function PrivateRoute({ children }) {
   return token ? children : <Navigate to="/login" />
 }
 
+// Maps the current route to a browser-tab title. Exact paths first, then
+// dynamic-route prefixes. Pages that set their own document.title still win,
+// since their effect runs after this one.
+const TITLES = {
+  '/login': 'Login',
+  '/register': 'Register',
+  '/forgot-password': 'Forgot Password',
+  '/otp-verification': 'OTP Verification',
+  '/reset-password': 'Reset Password',
+  '/notaccept': 'Account Pending',
+  '/home': 'Home',
+  '/homedoctor': 'Home',
+  '/homeinvestor': 'Home',
+  '/dashboard': 'Dashboard',
+  '/profile': 'Profile',
+  '/profile/edit': 'Edit Profile',
+  '/edit-profile': 'Edit Profile',
+  '/groups': 'Groups',
+  '/my-groups': 'My Groups',
+  '/create-group': 'Create Group',
+  '/projects': 'Projects',
+  '/reviews': 'Academic Reviews',
+  '/files': 'Files',
+  '/notifications': 'Notifications',
+  '/search': 'Search',
+  '/admin/users': 'User Management',
+}
+
+function titleForPath(path) {
+  const p = path.toLowerCase().replace(/\/+$/, '') || '/'
+  if (TITLES[p]) return TITLES[p]
+  if (p.startsWith('/profile/edit')) return 'Edit Profile'
+  if (p.startsWith('/profile')) return 'Profile'
+  if (p.startsWith('/groups/')) return 'Group'
+  if (p.startsWith('/doctor/')) return 'Doctor Profile'
+  if (p.startsWith('/posts/')) return 'Post'
+  return 'UniConnect'
+}
+
+function TitleManager() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    const name = titleForPath(pathname)
+    document.title = name === 'UniConnect' ? 'UniConnect' : `${name} | UniConnect`
+  }, [pathname])
+  return null
+}
+
 function App() {
   const [isLoading, setIsLoading] = useState(true)
 
@@ -43,6 +91,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <TitleManager />
       <Routes>
         {/* Public Routes */}
         <Route path="/"                  element={<Navigate to="/login" />} />

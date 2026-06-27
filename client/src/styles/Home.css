@@ -15,6 +15,9 @@ body {
   height: 100vh;
   overflow-y: auto;
   background: var(--bg);
+  /* establish a stacking context so the animated background (z-index:-1)
+     stays above this background but behind all page content */
+  isolation: isolate;
 }
 
 .home-layout {

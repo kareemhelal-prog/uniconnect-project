@@ -1,18 +1,16 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import "./LeftSidebar.css";
 import { MdBook, MdPeople, MdNotifications } from "react-icons/md";
 
 const NAV = [
-  { key: "courses", icon: <MdBook size={16} />, label: "My Courses" },
-  { key: "friends", icon: <MdPeople size={16} />, label: "Friends" },
-  {
-    key: "notifs",
-    icon: <MdNotifications size={16} />,
-    label: "Notifications",
-  },
+  { key: "courses", icon: <MdBook size={16} />,          label: "My Courses",    path: "/groups" },
+  { key: "friends", icon: <MdPeople size={16} />,        label: "Friends",       path: "/profile?tab=followers" },
+  { key: "notifs",  icon: <MdNotifications size={16} />, label: "Notifications", path: "/notifications" },
 ];
 
 export default function LeftSidebar({ user = {} }) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(null); // ← null = مفيش حاجة متحددة
 
   const initials   = user.initials   || "?";
@@ -83,7 +81,7 @@ export default function LeftSidebar({ user = {} }) {
           <button
             key={n.key}
             className={`hp-nav-item ${activeTab === n.key ? "active" : ""}`}
-            onClick={() => setActiveTab(n.key)}
+            onClick={() => { setActiveTab(n.key); navigate(n.path); }}
           >
             {n.icon} <span className="hp-nav-label">{n.label}</span>
           </button>

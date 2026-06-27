@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import "./Navbar.css";
+import logo from "../assets/logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import { getSocket } from "../socket";
 import {
@@ -17,7 +18,6 @@ import {
   FiLogOut,
   FiBook,
 } from "react-icons/fi";
-import { HiOutlineLink } from "react-icons/hi";
 
 const API_BASE = "/api";
 
@@ -320,7 +320,9 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
     <nav className="navbar">
       {/* Logo */}
       <div className="nav-logo" onClick={() => goTo(homePath)} style={{ cursor: "pointer" }}>
-        <HiOutlineLink className="logo-icon" />
+        <span className="logo-mark" aria-hidden="true">
+          <img src={logo} className="logo-img" alt="UniConnect" />
+        </span>
         <span className="logo-text">UniConnect</span>
       </div>
 

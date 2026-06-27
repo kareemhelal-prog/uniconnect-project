@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import AcademicBackground from "../components/AcademicBackground";
 import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
 import Sidebar from "../components/Sidebar";
@@ -218,6 +219,7 @@ const HomeDoctor = () => {
 
   return (
     <div className="home-page">
+      <AcademicBackground />
       {showToast && (
         <div className="success-toast">
           <span className="toast-check">✓</span>
