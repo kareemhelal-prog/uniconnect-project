@@ -4,7 +4,7 @@ import "./LeftSidebar.css";
 import { MdBook, MdPeople, MdNotifications } from "react-icons/md";
 
 const NAV = [
-  { key: "courses", icon: <MdBook size={16} />,          label: "My Courses",    path: "/groups" },
+  { key: "courses", icon: <MdBook size={16} />,          label: "My Courses",    path: "/courses" },
   { key: "friends", icon: <MdPeople size={16} />,        label: "Friends",       path: "/profile?tab=followers" },
   { key: "notifs",  icon: <MdNotifications size={16} />, label: "Notifications", path: "/notifications" },
 ];

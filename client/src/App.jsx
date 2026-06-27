@@ -25,6 +25,7 @@ import SearchResults from './pages/SearchResults'
 import Notifications from './pages/Notifications'
 import NotFound from './pages/NotFound'
 import Files from './pages/Files'
+import CoursesPage from './pages/CoursesPage'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -52,6 +53,7 @@ const TITLES = {
   '/my-groups': 'My Groups',
   '/create-group': 'Create Group',
   '/projects': 'Projects',
+  '/courses': 'My Courses',
   '/reviews': 'Academic Reviews',
   '/files': 'Files',
   '/notifications': 'Notifications',
@@ -136,6 +138,9 @@ function App() {
 
         {/* Files */}
         <Route path="/files"             element={<PrivateRoute><Files /></PrivateRoute>} />
+
+        {/* Courses */}
+        <Route path="/courses"           element={<PrivateRoute><CoursesPage /></PrivateRoute>} />
 
         {/* Notifications */}
         <Route path="/notifications"     element={<PrivateRoute><Notifications /></PrivateRoute>} />

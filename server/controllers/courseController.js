@@ -83,6 +83,32 @@ exports.getMyCourses = async (req, res) => {
 };
 
 // =======================
+// GET ALL COURSES (browse + enroll)
+// =======================
+exports.getAllCourses = async (req, res) => {
+  try {
+    const [rows] = await promisePool.query(
+      `SELECT
+         c.*,
+         u.name AS doctor_name,
+         u.username AS doctor_username,
+         (SELECT COUNT(*) FROM Course_Enrollments ce WHERE ce.course_id = c.id) AS students_count,
+         EXISTS(
+           SELECT 1 FROM Course_Enrollments ce
+           WHERE ce.course_id = c.id AND ce.student_id = ?
+         ) AS is_enrolled
+       FROM Courses c
+       JOIN Users u ON c.doctor_id = u.id
+       ORDER BY c.created_at DESC`,
+      [req.user.id]
+    );
+    res.json({ data: rows });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// =======================
 // JOIN COURSE
 // =======================
 exports.joinCourse = async (req, res) => {

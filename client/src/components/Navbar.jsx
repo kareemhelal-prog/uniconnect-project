@@ -17,24 +17,27 @@ import {
   FiSettings,
   FiLogOut,
   FiBook,
+  FiCompass,
 } from "react-icons/fi";
 
 const API_BASE = "/api";
 
 const LAUNCHER_PAGES_STUDENT = [
-  { id: "profile",  label: "Profile",          icon: FiUser,       path: "/profile" },
-  { id: "projects", label: "Projects",         icon: FiFolderPlus, path: "/projects" },
-  { id: "files",    label: "Files",            icon: FiFile,       path: "/files" },
-  { id: "groups",   label: "Groups",           icon: FiUsers,      path: "/groups" },
-  { id: "reviews",  label: "Academic Reviews", icon: FiStar,       path: "/reviews" },
+  { id: "profile",   label: "Profile",          icon: FiUser,     path: "/profile" },
+  { id: "courses",   label: "My Courses",       icon: FiBook,     path: "/courses" },
+  { id: "files",     label: "Files",            icon: FiFile,     path: "/files" },
+  { id: "groups",    label: "Groups",           icon: FiCompass,  path: "/groups" },
+  { id: "my-groups", label: "My Groups",        icon: FiUsers,    path: "/my-groups" },
+  { id: "reviews",   label: "Academic Reviews", icon: FiStar,     path: "/reviews" },
 ];
 
 const LAUNCHER_PAGES_DOCTOR = [
-  { id: "profile",   label: "Profile",    icon: FiUser,  path: "/profile" },
-  { id: "groups",    label: "My Courses", icon: FiBook,  path: "/groups" },
-  { id: "files",     label: "Files",      icon: FiFile,  path: "/files" },
-  { id: "my-groups", label: "My Groups",  icon: FiUsers, path: "/my-groups" },
-  { id: "reviews",   label: "Reviews",    icon: FiStar,  path: "/reviews" },
+  { id: "profile",   label: "Profile",    icon: FiUser,    path: "/profile" },
+  { id: "courses",   label: "My Courses", icon: FiBook,    path: "/courses" },
+  { id: "files",     label: "Files",      icon: FiFile,    path: "/files" },
+  { id: "groups",    label: "Groups",     icon: FiCompass, path: "/groups" },
+  { id: "my-groups", label: "My Groups",  icon: FiUsers,   path: "/my-groups" },
+  { id: "reviews",   label: "Reviews",    icon: FiStar,    path: "/reviews" },
 ];
 
 const notifIcon = (type) => {

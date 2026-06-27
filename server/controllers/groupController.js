@@ -5,12 +5,16 @@ exports.getAllGroups = async (req, res) => {
     const [groups] = await promisePool.query(`
       SELECT
         \`Groups\`.*,
-        COUNT(Group_Members.user_id) AS members_count
+        COUNT(Group_Members.user_id) AS members_count,
+        EXISTS(
+          SELECT 1 FROM Group_Members gm
+          WHERE gm.group_id = \`Groups\`.id AND gm.user_id = ?
+        ) AS is_member
       FROM \`Groups\`
       LEFT JOIN Group_Members ON \`Groups\`.id = Group_Members.group_id
       GROUP BY \`Groups\`.id
       ORDER BY \`Groups\`.created_at DESC
-    `);
+    `, [req.user.id]);
     res.json({ message: "Groups fetched successfully", data: groups });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
