@@ -27,6 +27,7 @@ import NotFound from './pages/NotFound'
 import Files from './pages/Files'
 import CoursesPage from './pages/CoursesPage'
 import SettingsPage from './pages/SettingsPage'
+import LandingPage from './pages/LandingPage'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -61,6 +62,7 @@ const TITLES = {
   '/search': 'Search',
   '/admin/users': 'User Management',
   '/settings': 'Settings',
+  '/': 'Welcome',
 }
 
 function titleForPath(path) {
@@ -98,7 +100,7 @@ function App() {
       <TitleManager />
       <Routes>
         {/* Public Routes */}
-        <Route path="/"                  element={<Navigate to="/login" />} />
+        <Route path="/"                  element={<LandingPage />} />
         <Route path="/login"             element={<Login />} />
         <Route path="/register"          element={<Register />} />
         <Route path="/forgot-password"   element={<ForgotPassword />} />
