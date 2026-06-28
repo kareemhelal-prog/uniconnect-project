@@ -130,9 +130,13 @@ exports.updateProfile = async (req, res) => {
       [name || null, bio || null, phone_number || null, profile_picture || null, req.params.id]
     );
 
+    // academic_year and faculty are intentionally NOT updatable here — the year
+    // defines the student's cohort (what content they see) and is controlled
+    // only by the admin / year-promotion flow; faculty is fixed to the
+    // department. Only `major` (free-text) stays editable.
     await promisePool.query(
-      "UPDATE Profile_Studies SET faculty = ?, major = ?, academic_year = ? WHERE user_id = ?",
-      [faculty || null, major || null, academic_year || null, req.params.id]
+      "UPDATE Profile_Studies SET major = COALESCE(?, major) WHERE user_id = ?",
+      [major || null, req.params.id]
     );
 
     res.json({ message: "Profile updated successfully" });

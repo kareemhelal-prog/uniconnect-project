@@ -10,6 +10,8 @@ const { authenticateToken } = require('../middleware/authMiddleware');
 // Auth
 router.post('/register', authController.register);
 router.post('/login',    authController.login);
+router.post('/complete-registration', authenticateToken, authController.completeRegistration);
+router.post('/onboarding-complete',    authenticateToken, authController.completeOnboarding);
 
 // Google OAuth
 router.post('/google',         googleAuthController.googleLogin);          // login / register

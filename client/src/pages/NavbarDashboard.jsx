@@ -18,6 +18,8 @@ import {
   FiMail,
   FiActivity,
   FiBook,
+  FiUserCheck,
+  FiUserPlus,
 } from "react-icons/fi";
 import { RiAdminLine } from "react-icons/ri";
 import { HiOutlineLink, HiOutlineSpeakerphone } from "react-icons/hi";
@@ -25,6 +27,7 @@ import axios from "../api/axios";
 
 const ROUTES = {
   dashboard: "dashboard",
+  review: "review",
   users: "users",
   posts: "posts",
   reports: "reports",
@@ -39,6 +42,7 @@ const ROUTES = {
 
 const MENU_ITEMS = [
   { label: "Dashboard", icon: FiHome, pageKey: ROUTES.dashboard },
+  { label: "Account Review", icon: FiUserCheck, pageKey: ROUTES.review },
   { label: "Users", icon: FiUsers, pageKey: ROUTES.users },
   { label: "Posts", icon: FiFileText, pageKey: ROUTES.posts },
   { label: "Reports", icon: FiFlag, pageKey: ROUTES.reports },
@@ -58,6 +62,7 @@ const NOTIF_ICON_MAP = {
   post: FiFileText,
   review: FiStar,
   mention: FiBell,
+  account: FiUserPlus,
 };
 
 const NOTIF_TITLE_MAP = {
@@ -67,6 +72,7 @@ const NOTIF_TITLE_MAP = {
   post: "New Post",
   review: "New Review",
   mention: "You were mentioned",
+  account: "New Account — Review",
 };
 
 function timeAgo(dateStr) {
@@ -89,6 +95,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
   const [notifications, setNotifications] = useState([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingNotifs, setLoadingNotifs] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -117,6 +124,20 @@ function Navbar({ activePage, onNavigate, onLogout }) {
     };
     fetchNotifs();
   }, []);
+
+  // Pending-account count for the sidebar badge. Re-checked when the admin
+  // navigates (e.g. after approving/rejecting on the review page).
+  useEffect(() => {
+    let alive = true;
+    api_fetchPending();
+    async function api_fetchPending() {
+      try {
+        const res = await axios.get("/admin/pending");
+        if (alive) setPendingCount((res.data.users || []).length);
+      } catch (_) { /* non-admin or error — ignore */ }
+    }
+    return () => { alive = false; };
+  }, [activePage]);
 
   const unreadCount = notifications.filter(
     (n) => !readNotifs.includes(n.id) && !n.is_read
@@ -148,14 +169,15 @@ function Navbar({ activePage, onNavigate, onLogout }) {
     setNotifOpen(false);
   };
 
-  const handleNotifClick = async (id) => {
+  const handleNotifClick = async (id, type) => {
     try {
       await axios.patch(`/notifications/${id}/read`);
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }
     markRead(id);
-    navigateTo(null);
+    // Account-review notifications deep-link to the review page.
+    navigateTo(type === "account" ? ROUTES.review : null);
   };
 
   const handleLogoutClick = () => {
@@ -227,7 +249,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
                       <div
                         key={n.id}
                         className={`notif-item ${isUnread ? "unread" : "read"}`}
-                        onClick={() => handleNotifClick(n.id)}
+                        onClick={() => handleNotifClick(n.id, n.type)}
                       >
                         <div className="notif-icon-wrap">
                           <Icon size={18} />
@@ -291,6 +313,9 @@ function Navbar({ activePage, onNavigate, onLogout }) {
               >
                 <Icon size={16} className="sidebar-menu-icon" />
                 <span>{label}</span>
+                {pageKey === ROUTES.review && pendingCount > 0 && (
+                  <span className="sidebar-menu-badge">{pendingCount}</span>
+                )}
                 {isActive && <span className="sidebar-menu-indicator" />}
               </button>
             );

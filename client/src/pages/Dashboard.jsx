@@ -21,6 +21,7 @@ const SafeLogin = React.lazy(() =>
 
 const ROUTES = {
   dashboard: "dashboard",
+  review: "review",
   users: "users",
   posts: "posts",
   reports: "reports",
@@ -36,6 +37,7 @@ const safeLazy = (importer) =>
   React.lazy(() => importer().catch(() => ({ default: NotFound })));
 
 const PAGE_COMPONENTS = {
+  [ROUTES.review]:        safeLazy(() => import("./AccountReview.jsx")),
   [ROUTES.users]:         safeLazy(() => import("./UserManagement.jsx")),
   [ROUTES.posts]:         safeLazy(() => import("./postsManagement.jsx")),
   [ROUTES.reports]:       safeLazy(() => import("./ReportsManagement.jsx")),
@@ -92,6 +94,7 @@ function DashboardPage({ onNavigate }) {
     groups: 0,
     projects: 0,
     pendingReports: 0,
+    pendingAccounts: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -124,6 +127,14 @@ function DashboardPage({ onNavigate }) {
   }
 
   const cardsConfig = [
+    {
+      id: "card-pending-accounts",
+      label: "Pending Review",
+      value: stats.pendingAccounts,
+      iconCode: "&#128100;",
+      colorType: stats.pendingAccounts > 0 ? "pink" : "green",
+      page: ROUTES.review,
+    },
     {
       id: "card-total-users",
       label: "Total Users",

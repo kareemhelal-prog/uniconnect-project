@@ -20,6 +20,16 @@ router.delete('/users/:id',                 adminController.deleteUser);
 router.put('/users/:id/role',               adminController.changeUserRole);
 router.post('/users/:id/reset-password',    adminController.resetUserPassword);
 
+// Account approval workflow
+router.get('/pending',                      adminController.getPendingUsers);
+router.put('/users/:id/approve',            adminController.approveUser);
+router.put('/users/:id/reject',             adminController.rejectUser);
+
+// Student registry
+router.get('/registry',                     adminController.getRegistry);
+router.post('/registry/import',             adminController.importRegistry);
+router.delete('/registry/:id',              adminController.deleteRegistryEntry);
+
 router.get('/reports',                      adminController.getAllReports);
 router.put('/reports/:id/resolve',          adminController.resolveReport);
 router.put('/reports/:id/dismiss',          adminController.dismissReport);

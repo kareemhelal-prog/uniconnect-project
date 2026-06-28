@@ -91,14 +91,14 @@ exports.googleLogin = async (req, res) => {
   try {
     // a) Already linked by google_id?
     let [rows] = await promisePool.query(
-      "SELECT id, name, email, username, role FROM Users WHERE google_id = ? LIMIT 1",
+      "SELECT id, name, email, username, role, account_status, needs_profile, is_onboarded FROM Users WHERE google_id = ? LIMIT 1",
       [g.googleId]
     );
 
     // b) Otherwise match an existing account by email → auto-link it
     if (rows.length === 0) {
       [rows] = await promisePool.query(
-        "SELECT id, name, email, username, role FROM Users WHERE email = ? LIMIT 1",
+        "SELECT id, name, email, username, role, account_status, needs_profile, is_onboarded FROM Users WHERE email = ? LIMIT 1",
         [g.email]
       );
       if (rows.length > 0) {
@@ -109,43 +109,42 @@ exports.googleLogin = async (req, res) => {
       }
     }
 
-    // c) No account anywhere → create a new student account
+    // c) No account anywhere → create a *stub* that must finish the wizard.
+    //    We don't pick a role/cohort here; the wizard does that next.
     if (rows.length === 0) {
-      const connection = await promisePool.getConnection();
-      try {
-        await connection.beginTransaction();
-        const username = await generateUniqueUsername(g.email);
-
-        const [insert] = await connection.query(
-          `INSERT INTO Users (name, email, username, role, google_id, google_email, profile_picture)
-           VALUES (?, ?, ?, 'student', ?, ?, ?)`,
-          [g.name, g.email, username, g.googleId, g.email, g.picture]
-        );
-        const userId = insert.insertId;
-
-        // Default student profile so profile pages work out of the box
-        await connection.query(
-          `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year)
-           VALUES (?, 'General Faculty', 'Not specified', 1)`,
-          [userId]
-        );
-
-        await connection.commit();
-        rows = [{ id: userId, name: g.name, email: g.email, username, role: "student" }];
-      } catch (e) {
-        await connection.rollback();
-        throw e;
-      } finally {
-        connection.release();
-      }
+      const username = await generateUniqueUsername(g.email);
+      const [insert] = await promisePool.query(
+        `INSERT INTO Users (name, email, username, role, google_id, google_email, profile_picture, account_status, needs_profile)
+         VALUES (?, ?, ?, 'student', ?, ?, ?, 'pending', 1)`,
+        [g.name, g.email, username, g.googleId, g.email, g.picture]
+      );
+      rows = [{ id: insert.insertId, name: g.name, email: g.email, username, role: "student", account_status: "pending", needs_profile: 1, is_onboarded: 0 }];
     }
 
     const user = rows[0];
+
+    // Still needs to complete the registration wizard (Google sign-ups).
+    if (user.needs_profile) {
+      return res.json({
+        needsProfile: true,
+        token: signToken(user), // lets the wizard call /auth/complete-registration
+        user: { id: user.id, name: user.name, email: user.email, username: user.username },
+      });
+    }
+
+    // ── Approval gate (same as password login) ──
+    if (user.account_status === "pending") {
+      return res.status(403).json({ code: "pending", message: "Your account is still under review. We'll verify your details and activate it within 2 days." });
+    }
+    if (user.account_status === "rejected") {
+      return res.status(403).json({ code: "rejected", message: "Your registration was not approved. Please contact the administration." });
+    }
+
     const token = signToken(user);
     return res.json({
       message: "Login successful",
       token,
-      user: { id: user.id, name: user.name, email: user.email, username: user.username, role: user.role },
+      user: { id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, is_onboarded: user.is_onboarded },
     });
   } catch (error) {
     console.error("❌ GOOGLE LOGIN ERROR:", error);

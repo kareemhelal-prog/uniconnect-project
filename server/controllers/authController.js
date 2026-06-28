@@ -12,57 +12,154 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// ==========================================
-// 1. REGISTER
-// ==========================================
-exports.register = async (req, res) => {
-  const { email, password, username, role, academicYear, specialization, phone_number } = req.body;
-  const name = req.body.name || username;
+// Normalize a name for comparison: trim, lowercase, collapse internal spaces.
+const normalizeName = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
 
-  if (!email || !password || !username || !role) {
-    return res.status(400).json({ message: "Please fill all required fields" });
+// Build a unique username from a base, appending a numeric suffix on collision.
+// Runs inside the registration transaction so it sees uncommitted rows.
+async function uniqueUsername(connection, base) {
+  const clean = String(base || "user").toLowerCase().replace(/[^a-z0-9._]/g, "").slice(0, 40) || "user";
+  let candidate = clean;
+  for (let i = 0; i < 50; i++) {
+    const [rows] = await connection.query("SELECT id FROM Users WHERE username = ? LIMIT 1", [candidate]);
+    if (rows.length === 0) return candidate;
+    candidate = `${clean}${i + 1}`;
+  }
+  return `${clean}${Date.now().toString().slice(-5)}`;
+}
+
+// Notify every admin that a new account is awaiting review. Runs inside the
+// caller's transaction. reference_id points at the new user so the admin's
+// notification can deep-link to the review screen.
+async function notifyAdminsOfSignup(connection, { userId, name, role }) {
+  const [admins] = await connection.query("SELECT id FROM Users WHERE role = 'admin'");
+  if (admins.length === 0) return;
+  const message = `${name || "A new user"} (${role}) signed up and is awaiting review.`;
+  const values = admins.map((a) => [a.id, userId, "account", userId, message]);
+  await connection.query(
+    "INSERT INTO Notifications (user_id, sender_id, type, reference_id, message) VALUES ?",
+    [values]
+  );
+}
+
+// Validate a student's submitted identity against the official registry.
+// Returns { ok:true, registryRow, track } on success, or
+// { ok:false, status, body } describing the exact failure. The caller owns
+// the transaction (and any rollback). Shared by email register + Google finish.
+async function resolveStudentRegistry(connection, { fullName, academicId, academicYear, track }) {
+  if (!fullName || !academicId || !academicYear) {
+    return { ok: false, status: 400, body: { message: "Name, academic ID and year are required" } };
+  }
+  // Track is required for 3rd/4th year, ignored (forced null) for 1st/2nd.
+  if (academicYear === "3" || academicYear === "4") {
+    if (!["software", "networks"].includes(track)) {
+      return { ok: false, status: 400, body: { message: "Specialization is required for 3rd and 4th year" } };
+    }
+  } else {
+    track = null;
   }
 
+  const [reg] = await connection.query(
+    "SELECT * FROM student_registry WHERE academic_id = ? LIMIT 1",
+    [academicId]
+  );
+  if (reg.length === 0) {
+    return { ok: false, status: 422, body: { code: "registry_not_found", message: "This academic ID was not found in the university records. Please enter it exactly as registered." } };
+  }
+  const registryRow = reg[0];
+
+  if (normalizeName(registryRow.full_name) !== normalizeName(fullName)) {
+    return { ok: false, status: 422, body: { code: "name_mismatch", message: "The name does not match this academic ID in the university records." } };
+  }
+  if (registryRow.claimed_by) {
+    return { ok: false, status: 409, body: { code: "already_claimed", message: "This academic ID has already been registered." } };
+  }
+  if (String(registryRow.academic_year) !== academicYear) {
+    return { ok: false, status: 422, body: { code: "year_mismatch", message: "The selected academic year does not match the university records." } };
+  }
+  if (registryRow.track && registryRow.track !== track) {
+    return { ok: false, status: 422, body: { code: "track_mismatch", message: "The selected specialization does not match the university records." } };
+  }
+  return { ok: true, registryRow, track };
+}
+
+// ==========================================
+// 1. REGISTER  (multi-role, registry-validated, admin-approved)
+// ==========================================
+// Students are validated against `student_registry` (id + name + year + track
+// must match an unclaimed official record). All new accounts start as
+// 'pending' and cannot log in until an admin approves them.
+exports.register = async (req, res) => {
+  const { email, password, role, phone_number } = req.body;
+  const fullName     = String(req.body.name || req.body.fullName || "").trim();
+  const academicId   = String(req.body.studentId || req.body.academicId || "").trim();
+  const academicYear = req.body.academicYear ? String(req.body.academicYear) : null;
+  let   track        = req.body.track || null;
+
+  // ── Shared required fields ──
+  if (!email || !password || !role) {
+    return res.status(400).json({ message: "Please fill all required fields" });
+  }
   if (password.length < 7) {
     return res.status(400).json({ message: "Password must be at least 7 characters" });
   }
-
-  if (role === "student" && (!academicYear || !specialization)) {
-    return res.status(400).json({ message: "Academic year and Specialization are required for students" });
+  if (!["student", "doctor", "investor"].includes(role)) {
+    return res.status(400).json({ message: "Invalid role" });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ message: "Please enter a valid email address" });
   }
 
   const connection = await promisePool.getConnection();
   try {
     await connection.beginTransaction();
 
-    const [users] = await connection.query(
-      "SELECT id FROM Users WHERE email = ? OR username = ?",
-      [email, username]
-    );
-
-    if (users.length > 0) {
-      await connection.rollback();
-      return res.status(409).json({ message: "Email or Username already exists" });
+    // ── Student: validate against the university registry ──
+    let registryRow = null;
+    if (role === "student") {
+      const check = await resolveStudentRegistry(connection, { fullName, academicId, academicYear, track });
+      if (!check.ok) {
+        await connection.rollback();
+        return res.status(check.status).json(check.body);
+      }
+      registryRow = check.registryRow;
+      track = check.track;
     }
 
+    // ── Email uniqueness ──
+    const [emailRows] = await connection.query("SELECT id FROM Users WHERE email = ? LIMIT 1", [email]);
+    if (emailRows.length > 0) {
+      await connection.rollback();
+      return res.status(409).json({ message: "This email is already registered" });
+    }
+
+    // ── Derive a unique username ──
+    const usernameBase =
+      req.body.username?.trim() ||
+      (role === "student" ? `s${academicId}` : (email.split("@")[0] || "user"));
+    const username = await uniqueUsername(connection, usernameBase);
+
     const hashedPassword = await bcrypt.hash(password, 10);
+    const name = fullName || username;
 
     const [userResult] = await connection.query(
-      `INSERT INTO Users (name, email, password, username, role, phone_number) VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO Users (name, email, password, username, role, phone_number, account_status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
       [name, email, hashedPassword, username, role, phone_number || null]
     );
-
     const userId = userResult.insertId;
 
     if (role === "student") {
       await connection.query(
-        `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year) VALUES (?, ?, ?, ?)`,
-        [userId, "General Faculty", specialization, academicYear]
+        `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year, track) VALUES (?, ?, ?, ?, ?)`,
+        [userId, "General Faculty", track || "General", academicYear, track]
       );
+      // Claim the registry record so the same ID can't be reused.
+      await connection.query("UPDATE student_registry SET claimed_by = ? WHERE id = ?", [userId, registryRow.id]);
     } else if (role === "doctor") {
       await connection.query(
         `INSERT INTO Doctor_Profiles (user_id, faculty, specialization) VALUES (?, ?, ?)`,
-        [userId, "General Faculty", specialization || "General"]
+        [userId, "General Faculty", "General"]
       );
     } else if (role === "investor") {
       await connection.query(
@@ -71,8 +168,10 @@ exports.register = async (req, res) => {
       );
     }
 
+    await notifyAdminsOfSignup(connection, { userId, name, role });
+
     await connection.commit();
-    return res.status(201).json({ message: "User registered successfully", userId });
+    return res.status(201).json({ message: "submitted_for_review", status: "pending", userId });
 
   } catch (error) {
     await connection.rollback();
@@ -80,6 +179,113 @@ exports.register = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   } finally {
     connection.release();
+  }
+};
+
+// ==========================================
+// 1b. COMPLETE REGISTRATION  (for Google sign-ups)  — auth required
+// ==========================================
+// A Google sign-up creates a stub account (needs_profile = 1). The wizard then
+// collects role + (for students) the registry-validated cohort and calls this
+// to finish the account, leaving it 'pending' for admin review.
+exports.completeRegistration = async (req, res) => {
+  const userId = req.user.id;
+  const { role, phone_number } = req.body;
+  const fullName     = String(req.body.name || req.body.fullName || "").trim();
+  const academicId   = String(req.body.studentId || req.body.academicId || "").trim();
+  const academicYear = req.body.academicYear ? String(req.body.academicYear) : null;
+  let   track        = req.body.track || null;
+
+  if (!["student", "doctor", "investor"].includes(role)) {
+    return res.status(400).json({ message: "Please choose a valid role" });
+  }
+
+  const connection = await promisePool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    // Only an unfinished stub may complete its profile (idempotency guard).
+    const [[user]] = await connection.query(
+      "SELECT id, name, needs_profile FROM Users WHERE id = ? LIMIT 1",
+      [userId]
+    );
+    if (!user) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Account not found" });
+    }
+    if (!user.needs_profile) {
+      await connection.rollback();
+      return res.status(409).json({ message: "This account is already set up" });
+    }
+
+    let registryRow = null;
+    if (role === "student") {
+      const check = await resolveStudentRegistry(connection, { fullName, academicId, academicYear, track });
+      if (!check.ok) {
+        await connection.rollback();
+        return res.status(check.status).json(check.body);
+      }
+      registryRow = check.registryRow;
+      track = check.track;
+    }
+
+    // Finalize the stub: set role, name/phone, keep it pending, clear the flag.
+    await connection.query(
+      `UPDATE Users
+       SET role = ?, name = COALESCE(NULLIF(?, ''), name),
+           phone_number = COALESCE(?, phone_number),
+           account_status = 'pending', needs_profile = 0
+       WHERE id = ?`,
+      [role, fullName, phone_number || null, userId]
+    );
+
+    if (role === "student") {
+      await connection.query(
+        `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year, track)
+         VALUES (?, 'General Faculty', ?, ?, ?)
+         ON DUPLICATE KEY UPDATE major = VALUES(major), academic_year = VALUES(academic_year), track = VALUES(track)`,
+        [userId, track || "General", academicYear, track]
+      );
+      await connection.query("UPDATE student_registry SET claimed_by = ? WHERE id = ?", [userId, registryRow.id]);
+    } else if (role === "doctor") {
+      await connection.query(
+        `INSERT INTO Doctor_Profiles (user_id, faculty, specialization) VALUES (?, 'General Faculty', 'General')
+         ON DUPLICATE KEY UPDATE faculty = VALUES(faculty)`,
+        [userId]
+      );
+    } else if (role === "investor") {
+      await connection.query(
+        `INSERT INTO Investor_Profiles (user_id, company_name) VALUES (?, 'Independent Investor')
+         ON DUPLICATE KEY UPDATE company_name = VALUES(company_name)`,
+        [userId]
+      );
+    }
+
+    await notifyAdminsOfSignup(connection, { userId, name: fullName || user.name, role });
+
+    await connection.commit();
+    return res.status(200).json({ message: "submitted_for_review", status: "pending" });
+  } catch (error) {
+    await connection.rollback();
+    console.error("❌ COMPLETE REGISTRATION ERROR:", error);
+    return res.status(500).json({ message: "Server error" });
+  } finally {
+    connection.release();
+  }
+};
+
+// ==========================================
+// 1c. COMPLETE ONBOARDING  — auth required
+// ==========================================
+// Called once the approved user finishes the welcome flow (photo / friends /
+// groups) so they go straight to their home page on later logins.
+exports.completeOnboarding = async (req, res) => {
+  try {
+    await promisePool.query("UPDATE Users SET is_onboarded = 1 WHERE id = ?", [req.user.id]);
+    return res.json({ success: true });
+  } catch (error) {
+    console.error("❌ ONBOARDING ERROR:", error);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -95,7 +301,7 @@ exports.login = async (req, res) => {
 
   try {
     const [users] = await promisePool.query(
-      "SELECT id, name, email, username, password, role FROM Users WHERE email = ?",
+      "SELECT id, name, email, username, password, role, account_status, rejection_reason, is_onboarded FROM Users WHERE email = ?",
       [email]
     );
 
@@ -118,6 +324,20 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: "Wrong password" });
     }
 
+    // ── Approval gate ── credentials are valid, but the account must be approved.
+    if (user.account_status === "pending") {
+      return res.status(403).json({
+        code: "pending",
+        message: "Your account is still under review. We'll verify your details and activate it within 2 days.",
+      });
+    }
+    if (user.account_status === "rejected") {
+      return res.status(403).json({
+        code: "rejected",
+        message: user.rejection_reason || "Your registration was not approved. Please contact the administration.",
+      });
+    }
+
     if (!process.env.JWT_SECRET) {
       throw new Error("JWT_SECRET is not defined");
     }
@@ -131,7 +351,7 @@ exports.login = async (req, res) => {
     return res.json({
       message: "Login successful",
       token,
-      user: { id: user.id, name: user.name, email: user.email, username: user.username, role: user.role }
+      user: { id: user.id, name: user.name, email: user.email, username: user.username, role: user.role, is_onboarded: user.is_onboarded }
     });
 
   } catch (error) {

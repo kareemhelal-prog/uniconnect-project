@@ -55,6 +55,10 @@ export default function ProfileEdit() {
   const [phone,       setPhone]       = useState("");
   const [faculty,     setFaculty]     = useState("");
   const [year,        setYear]        = useState("Year 1");
+  const [role,        setRole]        = useState("");
+  const [track,       setTrack]       = useState("");
+  const [email,       setEmail]       = useState("");
+  const [academicId,  setAcademicId]  = useState("");
   const [currentPass, setCurrentPass] = useState("");
   const [newPass,     setNewPass]     = useState("");
   const [confirmPass, setConfirmPass] = useState("");
@@ -88,6 +92,10 @@ export default function ProfileEdit() {
         setPhone(u.phone_number || "");
         setFaculty(u.faculty || "");
         setYear(u.academic_year ? `Year ${u.academic_year}` : "Year 1");
+        setRole(u.role || "");
+        setTrack(u.track || "");
+        setEmail(u.email || "");
+        setAcademicId(u.academic_id || u.username || "");
         if (u.profile_picture) setAvatar(u.profile_picture);
       })
       .catch(() => {})
@@ -151,8 +159,8 @@ export default function ProfileEdit() {
         pictureData = await compressAndEncodeImage(avatarFile);
       }
 
-      const yearNum = year.replace("Year ", "").replace("Graduate", "5");
-
+      // faculty / academic_year are read-only (set by the university), so we
+      // don't send them — the backend ignores year changes regardless.
       const res = await authFetch(`${API_BASE}/users/${userId}/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -161,15 +169,17 @@ export default function ProfileEdit() {
           bio,
           phone_number: phone,
           profile_picture: pictureData,
-          faculty,
-          major: faculty,
-          academic_year: yearNum,
         }),
       });
 
       if (!res.ok) throw new Error("Save failed");
 
       if (newPass) {
+        if (!currentPass) {
+          showMsg("Enter your current password to set a new one", "error");
+          setSaving(false);
+          return;
+        }
         if (newPass !== confirmPass) {
           showMsg("Passwords do not match", "error");
           setSaving(false);
@@ -180,8 +190,20 @@ export default function ProfileEdit() {
           setSaving(false);
           return;
         }
-        // password change via auth reset flow — show message
-        showMsg("Profile saved! Password change requires email verification.", "success");
+        // Verify the old password server-side, then change it.
+        const pwRes = await authFetch(`${API_BASE}/auth/profile/change-password`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass }),
+        });
+        const pwData = await pwRes.json().catch(() => ({}));
+        if (!pwRes.ok || pwData.success === false) {
+          showMsg(pwData.message || "Current password is incorrect", "error");
+          setSaving(false);
+          return;
+        }
+        setCurrentPass(""); setNewPass(""); setConfirmPass("");
+        showMsg("Profile and password updated successfully!", "success");
       } else {
         showMsg("Profile saved successfully!", "success");
       }
@@ -300,22 +322,12 @@ export default function ProfileEdit() {
                 <span className="ep-char-count">{bio.length}/200</span>
               </div>
 
-              <div className="ep-row">
-                <div className="ep-field ep-field--half">
-                  <label className="ep-label">Phone Number</label>
-                  <div className="ep-input-wrap">
-                    <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-                    </svg>
-                    <input className="ep-input" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+20 1xx xxx xxxx" />
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
-        {/* SECTION 2: Academic Information */}
+        {/* SECTION 2: Academic Information (students only — read-only, set by the university) */}
+        {role === "student" && (
         <section className="ep-section ep-section--academic">
           <div className="ep-section-header">
             <div className="ep-section-icon ep-section-icon--academic">
@@ -325,41 +337,114 @@ export default function ProfileEdit() {
             </div>
             <div>
               <h2 className="ep-section-title">Academic Information</h2>
-              <p className="ep-section-desc">Tell us about your academic background.</p>
+              <p className="ep-section-desc">Verified by your university — managed by the administration.</p>
+            </div>
+          </div>
+
+          <div className="ep-row">
+            <div className="ep-field ep-field--half">
+              <label className="ep-label">Academic ID</label>
+              <div className="ep-locked-field">
+                <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h3M15 12h3M7 16h10"/>
+                </svg>
+                <span className="ep-locked-value">{academicId || "—"}</span>
+                <svg className="ep-lock-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+            </div>
+
+            <div className="ep-field ep-field--half">
+              <label className="ep-label">University Email</label>
+              <div className="ep-locked-field">
+                <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 6-10 7L2 6"/>
+                </svg>
+                <span className="ep-locked-value">{email || "—"}</span>
+                <svg className="ep-lock-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
             </div>
           </div>
 
           <div className="ep-row">
             <div className="ep-field ep-field--grow">
               <label className="ep-label">Faculty &amp; Department</label>
-              <div className="ep-input-wrap">
+              <div className="ep-locked-field">
                 <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
                 </svg>
-                <input className="ep-input" value={faculty} onChange={e => setFaculty(e.target.value)} placeholder="Faculty & Department" />
+                <span className="ep-locked-value">Information Technology Department</span>
+                <svg className="ep-lock-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
               </div>
             </div>
 
             <div className="ep-field ep-field--year">
               <label className="ep-label">Academic Year</label>
-              <div className="ep-select-wrap">
+              <div className="ep-locked-field">
                 <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                <select className="ep-select" value={year} onChange={e => setYear(e.target.value)}>
-                  <option>Year 1</option>
-                  <option>Year 2</option>
-                  <option>Year 3</option>
-                  <option>Year 4</option>
-                  <option>Graduate</option>
-                </select>
-                <svg className="ep-select-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="6 9 12 15 18 9"/>
+                <span className="ep-locked-value">{year}</span>
+                <svg className="ep-lock-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
               </div>
             </div>
           </div>
+
+          {track && (
+            <div className="ep-row">
+              <div className="ep-field ep-field--grow">
+                <label className="ep-label">Specialization</label>
+                <div className="ep-locked-field">
+                  <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                  </svg>
+                  <span className="ep-locked-value">{track === "networks" ? "Networks" : "Software"}</span>
+                  <svg className="ep-lock-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="ep-row">
+            <div className="ep-field ep-field--grow">
+              <label className="ep-label">Phone Number</label>
+              <div className="ep-input-wrap">
+                <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.82a16 16 0 0 0 6.29 6.29l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+                <input
+                  className="ep-input"
+                  type="tel"
+                  inputMode="tel"
+                  name="uc-contact-phone"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-form-type="other"
+                  value={phone}
+                  onChange={e => setPhone(e.target.value)}
+                  placeholder="+20 1xx xxx xxxx"
+                />
+              </div>
+            </div>
+          </div>
+
+          <p className="ep-academic-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            Your department, year and specialization are set by the university and can't be edited here.
+          </p>
         </section>
+        )}
 
         {/* SECTION: Linked Accounts */}
         <section className="ep-section">
@@ -426,12 +511,28 @@ export default function ProfileEdit() {
           </div>
 
           <div className="ep-field">
+            <label className="ep-label">Current Password</label>
+            <div className="ep-input-wrap">
+              <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <input className="ep-input" type={showCurrent ? "text" : "password"} name="uc-current-pass" autoComplete="off" data-lpignore="true" data-form-type="other" value={currentPass} onChange={e => setCurrentPass(e.target.value)} placeholder="Enter your current password" />
+              <button className="ep-eye-btn" onClick={() => setShowCurrent(v => !v)}>
+                {showCurrent
+                  ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                }
+              </button>
+            </div>
+          </div>
+
+          <div className="ep-field">
             <label className="ep-label">New Password</label>
             <div className="ep-input-wrap">
               <svg className="ep-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
-              <input className="ep-input" type={showNew ? "text" : "password"} value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="New password (optional)" />
+              <input className="ep-input" type={showNew ? "text" : "password"} name="uc-new-pass" autoComplete="new-password" data-lpignore="true" data-form-type="other" value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="New password (optional)" />
               <button className="ep-eye-btn" onClick={() => setShowNew(v => !v)}>
                 {showNew
                   ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -450,6 +551,10 @@ export default function ProfileEdit() {
               <input
                 className={`ep-input ${confirmPass && confirmPass !== newPass ? "ep-input--error" : ""}`}
                 type={showConfirm ? "text" : "password"}
+                name="uc-confirm-pass"
+                autoComplete="new-password"
+                data-lpignore="true"
+                data-form-type="other"
                 value={confirmPass}
                 onChange={e => setConfirmPass(e.target.value)}
                 placeholder="Confirm new password"

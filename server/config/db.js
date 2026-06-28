@@ -32,6 +32,15 @@ async function ensureColumn(table, column, definition) {
   }
 }
 
+// Safely create a table if it doesn't already exist
+async function ensureTable(name, definition) {
+  try {
+    await promisePool.query(`CREATE TABLE IF NOT EXISTS ${name} (${definition})`);
+  } catch (err) {
+    console.error(`⚠️  ensureTable(${name}) failed:`, err.message);
+  }
+}
+
 // Safely add an index if it doesn't already exist
 async function ensureIndex(table, indexName, columns) {
   try {
@@ -63,7 +72,37 @@ const testConnection = async () => {
       ensureColumn("Notifications", "reference_comment_id", "INT NULL"),
       // Real download counter for files
       ensureColumn("Files", "download_count", "INT NOT NULL DEFAULT 0"),
+      // ── Account approval workflow ──
+      // Separate "approval" (admin review) from "is_active" (ban). New signups
+      // start as 'pending' and cannot log in until an admin approves them.
+      ensureColumn("Users", "account_status",  "ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending'"),
+      ensureColumn("Users", "rejection_reason","VARCHAR(255) NULL"),
+      ensureColumn("Users", "reviewed_by",     "INT NULL"),
+      ensureColumn("Users", "reviewed_at",     "DATETIME NULL"),
+      // ── Student cohort: track only applies to years 3 & 4 ──
+      ensureColumn("Profile_Studies", "track", "ENUM('software','networks') NULL"),
+      // Google sign-ups that haven't finished the registration wizard yet.
+      ensureColumn("Users", "needs_profile", "TINYINT(1) NOT NULL DEFAULT 0"),
+      // First-login onboarding (welcome → photo → friends → groups) after approval.
+      ensureColumn("Users", "is_onboarded", "TINYINT(1) NOT NULL DEFAULT 0"),
+      // Admins get a notification when a new account needs review.
+      ensureColumn("Notifications", "type", "ENUM('like','comment','follow','post','review','mention','account') DEFAULT NULL"),
     ]);
+
+    // University student registry — official records uploaded by the admin.
+    // Registration is validated against this list (id + name must match), and a
+    // record can only be claimed once.
+    await ensureTable("student_registry", `
+      id            INT AUTO_INCREMENT PRIMARY KEY,
+      academic_id   VARCHAR(20)  NOT NULL,
+      full_name     VARCHAR(150) NOT NULL,
+      academic_year ENUM('1','2','3','4') NOT NULL,
+      track         ENUM('software','networks') NULL,
+      claimed_by    INT NULL,
+      created_at    TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      UNIQUE KEY uq_registry_academic_id (academic_id),
+      KEY idx_registry_claimed (claimed_by)
+    `);
 
     // Composite indexes for the hottest query patterns (no-op if present)
     await Promise.all([
@@ -76,7 +115,23 @@ const testConnection = async () => {
       ensureIndex("Comments",        "idx_comments_post_created", "post_id, created_at"),
       // Files library browsing ordered by newest
       ensureIndex("Files",           "idx_files_created",       "created_at"),
+      // Admin pending-review queue: `WHERE account_status='pending'`
+      ensureIndex("Users",           "idx_users_status",        "account_status"),
+      // Cohort segregation lookups by (year, track)
+      ensureIndex("Profile_Studies", "idx_studies_cohort",      "academic_year, track"),
     ]);
+
+    // Existing accounts (created before this workflow) must stay usable — flip
+    // any NULL/legacy rows to 'approved' so the gate only affects new signups.
+    try {
+      await promisePool.query(
+        "UPDATE Users SET account_status = 'approved' WHERE account_status IS NULL OR (created_at < '2026-06-28' AND account_status = 'pending')"
+      );
+      // Pre-existing accounts shouldn't be forced through the new onboarding.
+      await promisePool.query(
+        "UPDATE Users SET is_onboarded = 1 WHERE created_at < '2026-06-28' OR role = 'admin'"
+      );
+    } catch (_) { /* column may not exist on first boot ordering — ignored */ }
 
     // One-time cleanup: remove historical duplicate like/follow notifications,
     // keeping only the oldest per (sender_id, user_id, type, reference_id) group.

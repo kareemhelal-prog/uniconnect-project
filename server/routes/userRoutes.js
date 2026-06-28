@@ -16,13 +16,15 @@ router.get("/me", async (req, res) => {
   try {
     const { promisePool } = require("../config/db");
     const [[user]] = await promisePool.query(
-      `SELECT u.id, u.name, u.username, u.email, u.role,
+      `SELECT u.id, u.name, u.username, u.email, u.role, u.phone_number,
               u.profile_picture, u.bio,
-              ps.faculty, ps.major, ps.academic_year,
+              ps.faculty, ps.major, ps.academic_year, ps.track,
+              sr.academic_id,
               dp.specialization AS doctor_specialization,
               dp.faculty AS doctor_faculty
        FROM Users u
        LEFT JOIN Profile_Studies ps ON ps.user_id = u.id
+       LEFT JOIN student_registry sr ON sr.claimed_by = u.id
        LEFT JOIN Doctor_Profiles dp ON dp.user_id = u.id
        WHERE u.id = ?`,
       [req.user.id]
