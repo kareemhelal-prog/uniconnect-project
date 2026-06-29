@@ -1,0 +1,109 @@
+/* ============================================================
+   Shared animated auth background (Login + Register).
+   Fixed full-screen layer behind page content.
+   ============================================================ */
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 70% 60% at 15% 0%, rgba(99,102,241,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 55% at 85% 100%, rgba(168,85,247,0.20) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 40% at 60% 50%, rgba(34,211,238,0.10) 0%, transparent 60%),
+    #050510;
+}
+
+/* Drifting grid */
+.auth-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(99,102,241,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99,102,241,0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, #000 30%, transparent 75%);
+  animation: auth-grid-drift 20s linear infinite;
+}
+@keyframes auth-grid-drift {
+  from { background-position: 0 0, 0 0; }
+  to   { background-position: 46px 46px, 46px 46px; }
+}
+
+/* Orbs */
+.auth-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(110px);
+}
+.auth-blob-blue {
+  width: 46%; height: 46%;
+  top: -12%; left: -10%;
+  background: rgba(56, 132, 255, 0.30);
+  animation: auth-orb-a 14s ease-in-out infinite;
+}
+.auth-blob-purple {
+  width: 46%; height: 46%;
+  bottom: -12%; right: -10%;
+  background: rgba(168, 85, 247, 0.28);
+  animation: auth-orb-b 17s ease-in-out infinite;
+}
+@keyframes auth-orb-a {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(40px, 30px) scale(1.08); }
+}
+@keyframes auth-orb-b {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(-44px, -30px) scale(1.1); }
+}
+
+/* Aurora ring */
+.auth-aurora {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 140vmax; height: 140vmax;
+  transform: translate(-50%, -50%);
+  background:
+    conic-gradient(from 0deg,
+      transparent 0deg,
+      rgba(34, 211, 238, 0.10) 60deg,
+      transparent 120deg,
+      rgba(168, 85, 247, 0.10) 200deg,
+      transparent 260deg,
+      rgba(236, 72, 153, 0.08) 320deg,
+      transparent 360deg);
+  filter: blur(40px);
+  animation: auth-aurora-spin 40s linear infinite;
+}
+@keyframes auth-aurora-spin {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Floating activity icons */
+.auth-floats { position: absolute; inset: 0; overflow: hidden; }
+.auth-float {
+  position: absolute;
+  display: block;
+  filter: drop-shadow(0 0 8px currentColor);
+  animation: auth-float-drift var(--dur, 9s) ease-in-out var(--delay, 0s) infinite;
+}
+.auth-float svg { width: 100%; height: 100%; display: block; }
+@keyframes auth-float-drift {
+  0%, 100% { transform: translateY(0) rotate(-6deg); }
+  50%      { transform: translateY(-26px) rotate(6deg); }
+}
+
+/* Cursor spotlight */
+.auth-cursor-glow {
+  position: fixed;
+  width: 420px; height: 420px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(99,102,241,0.16) 0%, rgba(34,211,238,0.06) 40%, transparent 70%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-bg-grid, .auth-blob, .auth-aurora, .auth-float { animation: none; }
+}

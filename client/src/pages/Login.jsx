@@ -29,7 +29,7 @@ export default function Login() {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [remember, setRemember] = useState(false);
-  const [userType, setUserType] = useState("university");
+  const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [msg, setMsg]           = useState(null);
   const [showForgot, setShowForgot] = useState(false);
@@ -126,35 +126,19 @@ export default function Login() {
     e.preventDefault();
 
     if (!email.trim() || !password) {
-      showMsg("Please enter your email and password", "error");
-      return;
-    }
-
-    if (!email.includes("@")) {
-      showMsg("Invalid email", "error");
+      showMsg("Please enter your academic ID / email and password", "error");
       return;
     }
 
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', { email, password });
+      // `email` may be a university email OR an academic ID — the backend
+      // resolves either to the account.
+      const response = await api.post('/auth/login', { identifier: email.trim(), email: email.trim(), password });
       const { token, user } = response.data;
 
-      // لو اختار University Member بس الـ role رجع investor
-      if (userType === "university" && user.role === "investor") {
-        showMsg("Please select 'Investor' to login with this account", "error");
-        setLoading(false);
-        return;
-      }
-
-      // لو اختار Investor بس الـ role رجع student أو doctor
-      if (userType === "investor" && (user.role === "student" || user.role === "doctor")) {
-        showMsg("Please select 'University Member' to login with this account", "error");
-        setLoading(false);
-        return;
-      }
-
+      // The account's role decides where the user lands — no manual selection.
       localStorage.setItem('token', token);
       localStorage.setItem('role', user.role);
 
@@ -228,38 +212,36 @@ export default function Login() {
 
             <form className="uc-form" onSubmit={handleLogin} noValidate>
               <input
-                type="email"
-                placeholder="University Email"
+                type="text"
+                placeholder="Academic ID or University Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="uc-input"
+                autoComplete="username"
               />
 
-              <div className="uc-role-selector">
-                <button
-                  type="button"
-                  className={`uc-role-btn ${userType === "university" ? "active" : ""}`}
-                  onClick={() => setUserType("university")}
-                >
-                  🎓 University Member
-                </button>
-                <button
-                  type="button"
-                  className={`uc-role-btn ${userType === "investor" ? "active" : ""}`}
-                  onClick={() => setUserType("investor")}
-                >
-                  💼 Investor
-                </button>
-              </div>
-
               <div className="uc-pass-row">
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="uc-input uc-input-flex"
-                />
+                <div className="uc-pass-field">
+                  <input
+                    type={showPass ? "text" : "password"}
+                    placeholder="Password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="uc-input"
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    className="uc-pass-eye"
+                    onClick={() => setShowPass((v) => !v)}
+                    aria-label={showPass ? "Hide password" : "Show password"}
+                  >
+                    {showPass
+                      ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
                 <div className="uc-remember">
                   <span className="uc-remember-label">Remember Me</span>
                   <label className="uc-toggle">

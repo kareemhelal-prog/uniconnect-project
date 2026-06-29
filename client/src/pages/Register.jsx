@@ -4,6 +4,7 @@ import "../styles/Register.css";
 import logoImg from "../assets/logo.png";
 import api from "../api/axios";
 import GoogleAuthButton from "../components/GoogleAuthButton";
+import AuthBackground from "../components/AuthBackground";
 
 /* ─── Inline icons ─── */
 const I = {
@@ -228,8 +229,7 @@ export default function Register() {
   if (step === "submitted") {
     return (
       <>
-        <div className="page-bg" aria-hidden="true" />
-        <div className="page-overlay" aria-hidden="true" />
+        <AuthBackground />
         <div className="register-page">
           <div className="register-wrapper">
             {Brand}

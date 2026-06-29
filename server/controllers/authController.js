@@ -293,16 +293,23 @@ exports.completeOnboarding = async (req, res) => {
 // 2. LOGIN
 // ==========================================
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  // Accept a university email, a username, or a raw academic ID.
+  const identifier = String(req.body.identifier || req.body.email || "").trim();
 
-  if (!email || !password) {
-    return res.status(400).json({ message: "Email and password required" });
+  if (!identifier || !password) {
+    return res.status(400).json({ message: "Academic ID / email and password are required" });
   }
 
   try {
     const [users] = await promisePool.query(
-      "SELECT id, name, email, username, password, role, account_status, rejection_reason, is_onboarded FROM Users WHERE email = ?",
-      [email]
+      `SELECT u.id, u.name, u.email, u.username, u.password, u.role,
+              u.account_status, u.rejection_reason, u.is_onboarded
+       FROM Users u
+       LEFT JOIN student_registry sr ON sr.claimed_by = u.id
+       WHERE u.email = ? OR u.username = ? OR sr.academic_id = ?
+       LIMIT 1`,
+      [identifier, identifier, identifier]
     );
 
     if (users.length === 0) {
