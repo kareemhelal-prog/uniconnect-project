@@ -47,6 +47,177 @@ exports.getStats = async (req, res) => {
 };
 
 // =======================
+// LIVE FEED  (real-time site activity, polled by the admin Live page)
+// =======================
+// Returns the most recent site_events. Supports incremental polling via
+// ?after=<id> so the client only fetches events newer than the last one it saw.
+exports.getLiveFeed = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const after = parseInt(req.query.after) || 0;
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 40, 1), 100);
+    const type  = (req.query.type || "").trim();
+
+    const where  = [];
+    const params = [];
+    if (after) { where.push("e.id > ?");          params.push(after); }
+    if (type)  { where.push("e.event_type = ?");  params.push(type); }
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    const [events] = await promisePool.query(
+      `SELECT e.id, e.actor_id, e.event_type, e.target_type, e.target_id,
+              e.summary, e.created_at,
+              COALESCE(u.name, e.actor_name) AS actor_name,
+              u.role AS actor_role, u.profile_picture AS actor_avatar
+       FROM site_events e
+       LEFT JOIN Users u ON u.id = e.actor_id
+       ${whereSql}
+       ORDER BY e.id DESC
+       LIMIT ?`,
+      [...params, limit]
+    );
+
+    res.json({ success: true, events });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Users seen within the last N minutes (default 5) → "online now".
+exports.getOnlineUsers = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const minutes = Math.min(Math.max(parseInt(req.query.minutes) || 5, 1), 60);
+
+    const [users] = await promisePool.query(
+      `SELECT id, name, username, role, profile_picture, last_seen
+       FROM Users
+       WHERE last_seen IS NOT NULL
+         AND last_seen > (NOW() - INTERVAL ? MINUTE)
+       ORDER BY last_seen DESC
+       LIMIT 100`,
+      [minutes]
+    );
+
+    res.json({ success: true, online: users, count: users.length });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Aggregated series for the dashboard charts.
+exports.getAnalytics = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const [usersByDay] = await promisePool.query(`
+      SELECT DATE(created_at) AS day, COUNT(*) AS count
+      FROM Users
+      WHERE created_at > (NOW() - INTERVAL 30 DAY)
+      GROUP BY DATE(created_at) ORDER BY day
+    `);
+
+    const [postsByDay] = await promisePool.query(`
+      SELECT DATE(created_at) AS day, COUNT(*) AS count
+      FROM Posts
+      WHERE created_at > (NOW() - INTERVAL 30 DAY)
+      GROUP BY DATE(created_at) ORDER BY day
+    `);
+
+    const [roleDist] = await promisePool.query(`
+      SELECT role, COUNT(*) AS count FROM Users GROUP BY role
+    `);
+
+    const [eventsByType] = await promisePool.query(`
+      SELECT event_type, COUNT(*) AS count
+      FROM site_events
+      WHERE created_at > (NOW() - INTERVAL 7 DAY)
+      GROUP BY event_type ORDER BY count DESC
+    `);
+
+    res.json({ success: true, analytics: { usersByDay, postsByDay, roleDist, eventsByType } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// =======================
+// OVERVIEW  (single round-trip payload for the premium dashboard)
+// =======================
+// Bundles totals, period-over-period deltas, 14-day sparklines, role
+// distribution, online count and the latest events so the dashboard renders
+// from one request instead of fanning out to /stats + /analytics + /online.
+exports.getOverview = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const win = Math.min(Math.max(parseInt(req.query.days) || 7, 1), 90);
+
+    const [[totals]] = await promisePool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM Users)                                            AS users,
+        (SELECT COUNT(*) FROM Posts)                                            AS posts,
+        (SELECT COUNT(*) FROM \`Groups\`)                                       AS \`groups\`,
+        (SELECT COUNT(*) FROM Projects)                                         AS projects,
+        (SELECT COUNT(*) FROM Reports WHERE status = 'pending')                 AS pendingReports,
+        (SELECT COUNT(*) FROM Users   WHERE account_status = 'pending')         AS pendingAccounts,
+        (SELECT COUNT(*) FROM Users   WHERE last_seen > (NOW() - INTERVAL 5 MINUTE)) AS online
+    `);
+
+    // Current window vs the immediately preceding window, per metric.
+    const deltaFor = async (table) => {
+      const [[r]] = await promisePool.query(
+        `SELECT
+           SUM(created_at > (NOW() - INTERVAL ? DAY)) AS cur,
+           SUM(created_at <= (NOW() - INTERVAL ? DAY) AND created_at > (NOW() - INTERVAL ? DAY)) AS prev
+         FROM ${table}`,
+        [win, win, win * 2]
+      );
+      return { cur: Number(r.cur || 0), prev: Number(r.prev || 0) };
+    };
+
+    const seriesFor = async (table) => {
+      const [rows] = await promisePool.query(
+        `SELECT DATE(created_at) AS day, COUNT(*) AS count
+         FROM ${table}
+         WHERE created_at > (NOW() - INTERVAL 14 DAY)
+         GROUP BY DATE(created_at) ORDER BY day`
+      );
+      return rows;
+    };
+
+    const [dUsers, dPosts, dGroups, dProjects, sUsers, sPosts, roleRes, recentRes] =
+      await Promise.all([
+        deltaFor("Users"), deltaFor("Posts"), deltaFor("`Groups`"), deltaFor("Projects"),
+        seriesFor("Users"), seriesFor("Posts"),
+        promisePool.query(`SELECT role, COUNT(*) AS count FROM Users GROUP BY role`),
+        promisePool.query(`
+          SELECT e.id, e.event_type, e.summary, e.created_at,
+                 COALESCE(u.name, e.actor_name) AS actor_name,
+                 u.profile_picture AS actor_avatar
+          FROM site_events e LEFT JOIN Users u ON u.id = e.actor_id
+          ORDER BY e.id DESC LIMIT 8`),
+      ]);
+
+    res.json({
+      success: true,
+      overview: {
+        totals,
+        window: win,
+        deltas:   { users: dUsers, posts: dPosts, groups: dGroups, projects: dProjects },
+        spark:    { users: sUsers, posts: sPosts },
+        roleDist: roleRes[0],
+        recent:   recentRes[0],
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// =======================
 // SEARCH
 // =======================
 exports.search = async (req, res) => {
@@ -593,5 +764,166 @@ exports.deleteAnnouncement = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// =======================
+// CONTENT MANAGEMENT (Posts / Projects / Groups)
+// =======================
+
+// Unified posts+comments feed for the Posts moderation page.
+// Returns rows shaped { id, title, author, type, created_at } with pagination.
+exports.getAdminPosts = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const page   = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit  = Math.max(parseInt(req.query.limit) || 10, 1);
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || "").trim();
+    const type   = (req.query.type || "").trim();
+
+    const base = `
+      FROM (
+        SELECT p.id,
+               COALESCE(NULLIF(TRIM(p.title), ''), LEFT(p.content, 80)) AS title,
+               u.name AS author, 'post' AS type, p.created_at
+        FROM Posts p JOIN Users u ON u.id = p.user_id
+        UNION ALL
+        SELECT c.id, LEFT(c.content, 80) AS title,
+               u.name AS author, 'comment' AS type, c.created_at
+        FROM Comments c JOIN Users u ON u.id = c.user_id
+      ) x`;
+
+    const where = [], params = [];
+    if (type === "post" || type === "comment") { where.push("x.type = ?"); params.push(type); }
+    if (search) { where.push("(x.title LIKE ? OR x.author LIKE ?)"); params.push(`%${search}%`, `%${search}%`); }
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+    const [[{ total }]] = await promisePool.query(`SELECT COUNT(*) AS total ${base} ${whereSql}`, params);
+    const [posts] = await promisePool.query(
+      `SELECT x.* ${base} ${whereSql} ORDER BY x.created_at DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({ success: true, posts, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteAdminPost = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+    const [r] = await promisePool.query("DELETE FROM Posts WHERE id = ?", [req.params.id]);
+    await logActivity(req.user.id, "delete", `Post #${req.params.id}`, "Deleted post");
+    res.json({ success: true, deleted: r.affectedRows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deletePostComments = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+    const [r] = await promisePool.query("DELETE FROM Comments WHERE post_id = ?", [req.params.id]);
+    await logActivity(req.user.id, "delete", `Post #${req.params.id}`, `Deleted ${r.affectedRows} comment(s)`);
+    res.json({ success: true, deleted: r.affectedRows });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getAdminProjects = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const page   = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit  = Math.max(parseInt(req.query.limit) || 10, 1);
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || "").trim();
+    const category = (req.query.category || "").trim();
+
+    const where = ["1=1"], params = [];
+    if (search)   { where.push("(p.title LIKE ? OR p.description LIKE ? OR u.name LIKE ?)"); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    if (category && category.toLowerCase() !== "all") { where.push("LOWER(p.category) = ?"); params.push(category.toLowerCase()); }
+    const whereSql = `WHERE ${where.join(" AND ")}`;
+
+    const [[{ total }]] = await promisePool.query(
+      `SELECT COUNT(*) AS total FROM Projects p LEFT JOIN Users u ON u.id = p.creator_id ${whereSql}`, params
+    );
+    const [projects] = await promisePool.query(
+      `SELECT p.id, p.title, p.description, p.category, p.created_at,
+              COALESCE(u.name, 'Unknown') AS creator_name,
+              COALESCE(u.username, '—')   AS creator_username,
+              (SELECT COUNT(*) FROM Project_Members pm WHERE pm.project_id = p.id) AS members_count
+       FROM Projects p LEFT JOIN Users u ON u.id = p.creator_id
+       ${whereSql}
+       ORDER BY p.created_at DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({ success: true, projects, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteAdminProject = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+    await promisePool.query("DELETE FROM Projects WHERE id = ?", [req.params.id]);
+    await logActivity(req.user.id, "delete", `Project #${req.params.id}`, "Deleted project");
+    res.json({ success: true, message: "Project deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.getAdminGroups = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+
+    const page   = Math.max(parseInt(req.query.page)  || 1, 1);
+    const limit  = Math.max(parseInt(req.query.limit) || 10, 1);
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || "").trim();
+    const groupType = (req.query.group_type || "").trim().toLowerCase();
+
+    const where = ["1=1"], params = [];
+    if (search) { where.push("(g.name LIKE ? OR g.description LIKE ? OR u.name LIKE ?)"); params.push(`%${search}%`, `%${search}%`, `%${search}%`); }
+    if (groupType === "private") where.push("g.is_private = 1");
+    else if (groupType === "public") where.push("g.is_private = 0");
+    const whereSql = `WHERE ${where.join(" AND ")}`;
+
+    const [[{ total }]] = await promisePool.query(
+      `SELECT COUNT(*) AS total FROM \`Groups\` g LEFT JOIN Users u ON u.id = g.creator_id ${whereSql}`, params
+    );
+    const [groups] = await promisePool.query(
+      `SELECT g.id, g.name, g.description, g.created_at,
+              COALESCE(u.name, 'Unknown') AS creator_name,
+              CASE WHEN g.is_private THEN 'private' ELSE 'public' END AS group_type,
+              NULL AS academic_year,
+              (SELECT COUNT(*) FROM Group_Members gm WHERE gm.group_id = g.id) AS members_count
+       FROM \`Groups\` g LEFT JOIN Users u ON u.id = g.creator_id
+       ${whereSql}
+       ORDER BY g.created_at DESC LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({ success: true, groups, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+exports.deleteAdminGroup = async (req, res) => {
+  try {
+    if (!isAdmin(req, res)) return;
+    await promisePool.query("DELETE FROM `Groups` WHERE id = ?", [req.params.id]);
+    await logActivity(req.user.id, "delete", `Group #${req.params.id}`, "Deleted group");
+    res.json({ success: true, message: "Group deleted" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };

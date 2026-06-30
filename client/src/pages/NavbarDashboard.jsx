@@ -20,13 +20,17 @@ import {
   FiBook,
   FiUserCheck,
   FiUserPlus,
+  FiRadio,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { RiAdminLine } from "react-icons/ri";
-import { HiOutlineLink, HiOutlineSpeakerphone } from "react-icons/hi";
+import { HiOutlineSpeakerphone } from "react-icons/hi";
 import axios from "../api/axios";
 
 const ROUTES = {
   dashboard: "dashboard",
+  feed: "feed",
+  live: "live",
   review: "review",
   users: "users",
   posts: "posts",
@@ -42,6 +46,8 @@ const ROUTES = {
 
 const MENU_ITEMS = [
   { label: "Dashboard", icon: FiHome, pageKey: ROUTES.dashboard },
+  { label: "Home Feed", icon: FiMessageSquare, pageKey: ROUTES.feed },
+  { label: "Live Monitor", icon: FiRadio, pageKey: ROUTES.live },
   { label: "Account Review", icon: FiUserCheck, pageKey: ROUTES.review },
   { label: "Users", icon: FiUsers, pageKey: ROUTES.users },
   { label: "Posts", icon: FiFileText, pageKey: ROUTES.posts },
@@ -206,7 +212,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
         </button>
 
         <div className="nav-logo">
-          <HiOutlineLink className="logo-icon" />
+          <img src="/logo.png" className="logo-img" alt="UniConnect logo" />
           <span className="logo-text">UniConnect</span>
         </div>
 
@@ -292,7 +298,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <HiOutlineLink size={18} /> UniConnect
+            <img src="/logo.png" className="sidebar-logo-img" alt="" /> UniConnect
           </div>
           <button
             className="sidebar-close"

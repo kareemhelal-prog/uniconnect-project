@@ -2,6 +2,7 @@ const { promisePool } = require("../config/db");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
+const { logEvent } = require("../utils/logEvent");
 require("dotenv").config();
 
 const transporter = nodemailer.createTransport({
@@ -171,6 +172,7 @@ exports.register = async (req, res) => {
     await notifyAdminsOfSignup(connection, { userId, name, role });
 
     await connection.commit();
+    logEvent({ actorId: userId, actorName: name, type: "signup", targetType: "user", targetId: userId, summary: `New ${role} signed up — awaiting review` });
     return res.status(201).json({ message: "submitted_for_review", status: "pending", userId });
 
   } catch (error) {
@@ -264,6 +266,7 @@ exports.completeRegistration = async (req, res) => {
     await notifyAdminsOfSignup(connection, { userId, name: fullName || user.name, role });
 
     await connection.commit();
+    logEvent({ actorId: userId, actorName: fullName || user.name, type: "signup", targetType: "user", targetId: userId, summary: `New ${role} signed up via Google — awaiting review` });
     return res.status(200).json({ message: "submitted_for_review", status: "pending" });
   } catch (error) {
     await connection.rollback();
@@ -354,6 +357,8 @@ exports.login = async (req, res) => {
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
     );
+
+    logEvent({ actorId: user.id, actorName: user.name, type: "login", targetType: "user", targetId: user.id, summary: `${user.role} logged in` });
 
     return res.json({
       message: "Login successful",

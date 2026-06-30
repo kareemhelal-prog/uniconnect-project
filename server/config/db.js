@@ -87,7 +87,37 @@ const testConnection = async () => {
       ensureColumn("Users", "is_onboarded", "TINYINT(1) NOT NULL DEFAULT 0"),
       // Admins get a notification when a new account needs review.
       ensureColumn("Notifications", "type", "ENUM('like','comment','follow','post','review','mention','account') DEFAULT NULL"),
+      // ── Real-time admin monitoring ──
+      // Heartbeat: refreshed (throttled) on every authenticated request so the
+      // admin can see who is currently online.
+      ensureColumn("Users", "last_seen", "DATETIME NULL"),
     ]);
+
+    // Site-wide activity stream — every notable user action is appended here so
+    // the admin Live Feed can replay "what's happening right now". Distinct from
+    // Activity_Logs (which is the admin's own audit trail). event_type is a free
+    // VARCHAR (not an ENUM) so new event kinds can be added without a migration.
+    await ensureTable("site_events", `
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      actor_id    INT NULL,
+      actor_name  VARCHAR(150) NULL,
+      event_type  VARCHAR(40)  NOT NULL,
+      target_type VARCHAR(40)  NULL,
+      target_id   INT NULL,
+      summary     VARCHAR(255) NULL,
+      created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_events_created (created_at),
+      KEY idx_events_type (event_type),
+      KEY idx_events_actor (actor_id)
+    `);
+
+    // Platform settings — single-row key/value store the admin can toggle
+    // (registration open, maintenance mode, banned words, etc.).
+    await ensureTable("platform_settings", `
+      setting_key   VARCHAR(50) PRIMARY KEY,
+      setting_value TEXT NULL,
+      updated_at    TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+    `);
 
     // University student registry — official records uploaded by the admin.
     // Registration is validated against this list (id + name must match), and a
@@ -119,6 +149,8 @@ const testConnection = async () => {
       ensureIndex("Users",           "idx_users_status",        "account_status"),
       // Cohort segregation lookups by (year, track)
       ensureIndex("Profile_Studies", "idx_studies_cohort",      "academic_year, track"),
+      // Online-users lookup: `WHERE last_seen > NOW() - INTERVAL n MINUTE`
+      ensureIndex("Users",           "idx_users_last_seen",     "last_seen"),
     ]);
 
     // Existing accounts (created before this workflow) must stay usable — flip

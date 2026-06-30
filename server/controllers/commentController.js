@@ -1,6 +1,7 @@
 const { promisePool } = require("../config/db");
 const { notify } = require("../utils/notify");
 const { emitToPost } = require("../config/socket");
+const { logEvent } = require("../utils/logEvent");
 
 // =======================
 // ADD COMMENT (or REPLY)
@@ -62,6 +63,8 @@ exports.addComment = async (req, res) => {
 
     // Real-time: broadcast the new comment to everyone viewing this post
     emitToPost(post_id, "new_comment", payload);
+
+    logEvent({ actorId: req.user.id, type: parent_id ? "comment_reply" : "comment_create", targetType: "post", targetId: post_id, summary: String(content).slice(0, 120) });
 
     res.status(201).json(payload);
 

@@ -1,4 +1,5 @@
 const { promisePool } = require("../config/db");
+const { logEvent } = require("../utils/logEvent");
 
 // خرائط تحويل بين شكل الـ ENUM في الداتابيز وشكل العرض في الفرونت
 const reasonToDb = {
@@ -54,6 +55,8 @@ exports.createReport = async (req, res) => {
        VALUES (?, ?, ?, ?)`,
       [req.user.id, reported_type, reported_item_id, reasonToDb[reason]]
     );
+
+    logEvent({ actorId: req.user.id, type: "report_create", targetType: reported_type, targetId: reported_item_id, summary: `Reported a ${reported_type} (${reason})` });
 
     res.status(201).json({
       message: "Report submitted successfully",

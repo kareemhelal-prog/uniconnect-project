@@ -1,4 +1,5 @@
 const { promisePool } = require("../config/db");
+const { logEvent } = require("../utils/logEvent");
 
 // =======================
 // CREATE REVIEW
@@ -43,6 +44,8 @@ exports.createReview = async (req, res) => {
        VALUES (?, ?, ?, ?, ?)`,
       [doctor_id, req.user.id, rating, comment, is_anonymous]
     );
+
+    logEvent({ actorId: req.user.id, type: "review_create", targetType: "doctor", targetId: doctor_id, summary: `Reviewed a doctor (${rating}★)` });
 
     res.status(201).json({
       message: "Review created successfully",

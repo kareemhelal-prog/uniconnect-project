@@ -31,6 +31,7 @@ router.get("/my-groups", groupController.getMyGroups);
 // =======================
 router.delete("/leave", groupController.leaveGroup);
 
+router.get("/:id/members", groupController.getGroupMembers);
 router.get("/:id", getGroupById);
 router.post("/", createGroup);
 router.post("/:id/join", joinGroup);

@@ -1,5 +1,6 @@
 const { promisePool } = require("../config/db");
 const { notify } = require("../utils/notify");
+const { logEvent } = require("../utils/logEvent");
 
 // =======================
 // CREATE POST
@@ -44,6 +45,8 @@ exports.createPost = async (req, res) => {
       )
     );
 
+    logEvent({ actorId: req.user.id, type: "post_create", targetType: "post", targetId: postId, summary: (title || content || "").slice(0, 120) });
+
     res.status(201).json({
       message: "Post created successfully",
       data: { ...rows[0], liked: false, comments: [] },
@@ -64,10 +67,13 @@ exports.getAllPosts = async (req, res) => {
     const [posts] = await promisePool.query(
       `SELECT Posts.*, Users.username, Users.name, Users.role,
               COALESCE(Users.profile_picture,'') AS profile_picture,
+              ps.academic_year, ps.track,
               (SELECT COUNT(*) FROM Likes    WHERE Likes.post_id    = Posts.id) AS likes,
               (SELECT COUNT(*) FROM Comments WHERE Comments.post_id = Posts.id) AS comments_count,
               EXISTS(SELECT 1 FROM Likes WHERE Likes.post_id = Posts.id AND Likes.user_id = ?) AS liked
-       FROM Posts JOIN Users ON Posts.user_id = Users.id
+       FROM Posts
+       JOIN Users ON Posts.user_id = Users.id
+       LEFT JOIN Profile_Studies ps ON ps.user_id = Users.id
        ORDER BY Posts.created_at DESC`,
       [userId]
     );

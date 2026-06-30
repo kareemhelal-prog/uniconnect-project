@@ -1,4 +1,5 @@
 const { promisePool } = require('../config/db');
+const { logEvent } = require('../utils/logEvent');
 
 // ==============================
 // Create Project
@@ -17,6 +18,8 @@ const createProject = async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [creator_id, title, description, category || 'IT', status || 'idea', required_funding || 0, github_link || null, demo_url || null]
     );
+
+    logEvent({ actorId: creator_id, type: 'project_create', targetType: 'project', targetId: result.insertId, summary: `Created project "${title}"` });
 
     res.status(201).json({ message: 'Project created successfully', project_id: result.insertId });
   } catch (err) {

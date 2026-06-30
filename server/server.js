@@ -22,6 +22,8 @@ const profileRoutes   = require("./routes/profileRoutes");
 const projectRoutes   = require("./routes/projectRoutes");
 const reviewRoutes    = require("./routes/reviewRoutes");
 const courseRoutes    = require("./routes/courseRoutes");
+const reportRoutes      = require("./routes/reportRoutes");
+const emailAlertsRoutes = require("./routes/emailAlertsRoutes");
 const app = express();
 const adminRoutes = require("./routes/adminRoutes");
 
@@ -46,6 +48,10 @@ app.use("/api/profile",  profileRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/reviews",  reviewRoutes);
 app.use("/api/courses",  courseRoutes);
+app.use("/api/reports",  reportRoutes);
+// Email-alerts router carries its own auth+admin guards; mount the more
+// specific path BEFORE the generic /api/admin router so it matches first.
+app.use("/api/admin/emails", emailAlertsRoutes);
 app.use("/api/admin",    adminRoutes);
 
 app.get("/health", (req, res) => {

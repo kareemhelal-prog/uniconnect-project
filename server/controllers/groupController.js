@@ -1,4 +1,5 @@
 const { promisePool } = require("../config/db");
+const { logEvent } = require("../utils/logEvent");
 
 exports.getAllGroups = async (req, res) => {
   try {
@@ -39,6 +40,8 @@ exports.createGroup = async (req, res) => {
       [result.insertId, req.user.id]
     );
 
+    logEvent({ actorId: req.user.id, type: "group_create", targetType: "group", targetId: result.insertId, summary: `Created group "${name}"` });
+
     res.status(201).json({ message: "Group created successfully", groupId: result.insertId });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -65,6 +68,8 @@ exports.joinGroup = async (req, res) => {
       `INSERT INTO Group_Members (group_id, user_id, role) VALUES (?, ?, 'member')`,
       [group_id, req.user.id]
     );
+
+    logEvent({ actorId: req.user.id, type: "group_join", targetType: "group", targetId: group_id, summary: "Joined a group" });
 
     res.json({ message: "Joined group successfully" });
   } catch (error) {
