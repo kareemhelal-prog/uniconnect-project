@@ -216,6 +216,7 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
   const [editContent, setEditContent]   = useState(post.content || "");
   const [imgError, setImgError]         = useState(false);
   const [sendingComment, setSendingComment] = useState(false);
+  const [shared, setShared]             = useState(false);
 
   useEffect(() => {
     if (isOwner || !post.user_id) return;
@@ -358,6 +359,35 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
     } catch {}
   };
 
+  const handleShare = async () => {
+    const url = `${window.location.origin}/posts/${post.id}`;
+    const shareData = {
+      title: post.title || "UniConnect post",
+      text: post.content ? String(post.content).slice(0, 120) : "Check out this post on UniConnect",
+      url,
+    };
+    // Native share sheet (mobile / supported browsers); fall back to copying
+    // the link to the clipboard.
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+      throw new Error("no-native-share");
+    } catch (err) {
+      // User cancelling the native sheet throws too — don't show "copied" then.
+      if (err && err.name === "AbortError") return;
+      try {
+        await navigator.clipboard.writeText(url);
+      } catch {
+        // Very old browsers: last-resort prompt so the user can copy manually.
+        window.prompt("Copy this link:", url);
+      }
+      setShared(true);
+      setTimeout(() => setShared(false), 2000);
+    }
+  };
+
   const handleEdit = async () => {
     if (!editContent.trim()) return;
     try {
@@ -452,7 +482,9 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
         <button className="action-btn comment-btn" onClick={() => setShowComments(s => !s)}>
           💬 Comment
         </button>
-        <button className="action-btn share-btn">↗ Share</button>
+        <button className={`action-btn share-btn${shared ? " shared" : ""}`} onClick={handleShare}>
+          {shared ? "✓ Link copied!" : "↗ Share"}
+        </button>
       </div>
 
       {showComments && (

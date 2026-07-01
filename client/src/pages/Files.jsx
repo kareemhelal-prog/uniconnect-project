@@ -114,8 +114,11 @@ const BgDecor = ({ decorRef }) => (
 
 const Files = () => {
   const me = getCurrentUser();
+  const isStaff = me && (me.role === 'doctor' || me.role === 'admin');
 
   const [files, setFiles] = useState([]);
+  const [myCourses, setMyCourses] = useState([]);
+  const [uploadCourse, setUploadCourse] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState('All Subjects');
@@ -161,6 +164,16 @@ const Files = () => {
     document.title = "Files - UniConnect";
     fetchFiles();
   }, [selectedSubject, selectedYear, selectedFileType]);
+
+  // A doctor/admin can attach an upload to one of their assigned courses; the
+  // course encodes the batch (year/track), so the file lands in that cohort.
+  useEffect(() => {
+    if (!isStaff) return;
+    fetch(`${API_BASE}/courses/my`, { headers: { Authorization: `Bearer ${getToken()}` } })
+      .then(r => r.json())
+      .then(d => setMyCourses(d.data || []))
+      .catch(() => {});
+  }, [isStaff]);
 
   useEffect(() => setCurrentPage(1), [searchTerm, selectedSubject, selectedYear, selectedFileType]);
 
@@ -268,6 +281,7 @@ const Files = () => {
       year:    selectedYear !== 'All Years' ? selectedYear : '',
       description: '',
     });
+    setUploadCourse('');
     setPickedFile(null);
     setShowUpload(true);
   };
@@ -277,6 +291,9 @@ const Files = () => {
 
     const formData = new FormData();
     formData.append('file', pickedFile);
+    // When a course is chosen, the backend derives the cohort from it, so the
+    // year/subject fields are optional context.
+    if (uploadCourse)           formData.append('course_id', uploadCourse);
     if (uploadForm.subject)     formData.append('subject', uploadForm.subject);
     if (uploadForm.year)        formData.append('academic_year', uploadForm.year);
     if (uploadForm.description) formData.append('description', uploadForm.description);
@@ -503,6 +520,26 @@ const Files = () => {
               <span className="dz-name">{pickedFile ? pickedFile.name : 'Click to choose a file'}</span>
               <span className="dz-hint">{pickedFile ? 'Click to choose a different file' : 'PDF, DOC, PPT, XLSX — up to 50MB'}</span>
             </div>
+
+            {isStaff && myCourses.length > 0 && (
+              <>
+                <label className="field-label">Course &amp; Batch (optional)</label>
+                <select
+                  className="field-input"
+                  value={uploadCourse}
+                  onChange={(e) => setUploadCourse(e.target.value)}
+                >
+                  <option value="">— Not tied to a course —</option>
+                  {myCourses.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {(c.course_code ? c.course_code + ' — ' : '') + c.title}
+                      {c.academic_year ? ` (Year ${c.academic_year}${c.track ? ' · ' + c.track : ''})` : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="field-hint">Attaching a course files this into that course's materials for its batch.</p>
+              </>
+            )}
 
             <label className="field-label">Subject</label>
             <select className="field-input" value={uploadForm.subject} onChange={(e) => setUploadForm(f => ({ ...f, subject: e.target.value }))}>

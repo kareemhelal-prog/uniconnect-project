@@ -1,5 +1,6 @@
 const { promisePool } = require('../config/db');
 const { logEvent } = require('../utils/logEvent');
+const { getUserCohort, buildCohortFilter, canViewCohort, normalizeCohortInput } = require('../utils/cohort');
 
 // ==============================
 // Create Project
@@ -13,10 +14,17 @@ const createProject = async (req, res) => {
   }
 
   try {
+    // A student's project is tagged with their own cohort.
+    let pYear = null, pTrack = null;
+    if (req.user.role === 'student') {
+      const cohort = await getUserCohort(req.user);
+      if (cohort) { pYear = cohort.year; pTrack = cohort.track; }
+    }
+
     const [result] = await promisePool.query(
-      `INSERT INTO Projects (creator_id, title, description, category, status, required_funding, github_link, demo_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [creator_id, title, description, category || 'IT', status || 'idea', required_funding || 0, github_link || null, demo_url || null]
+      `INSERT INTO Projects (creator_id, title, description, category, status, required_funding, github_link, demo_url, academic_year, track)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [creator_id, title, description, category || 'IT', status || 'idea', required_funding || 0, github_link || null, demo_url || null, pYear, pTrack]
     );
 
     logEvent({ actorId: creator_id, type: 'project_create', targetType: 'project', targetId: result.insertId, summary: `Created project "${title}"` });
@@ -47,9 +55,27 @@ const getAllProjects = async (req, res) => {
   if (category) { query += ' AND p.category = ?'; params.push(category); }
   if (status)   { query += ' AND p.status = ?';   params.push(status); }
 
-  query += ' ORDER BY p.created_at DESC';
-
   try {
+    // Students are locked to their own cohort. Non-students (investors/doctors/
+    // admins) may browse a specific cohort via ?year=&track= (investor portal
+    // sends this); with no cohort chosen they see everything.
+    const cohort = await getUserCohort(req.user);
+    if (cohort) {
+      const cf = buildCohortFilter('p', cohort);
+      query += ` AND ${cf.clause}`; params.push(...cf.params);
+    } else {
+      const norm = normalizeCohortInput(req.query.year, req.query.track);
+      if (norm.year && norm.track) {
+        query += ' AND (p.academic_year IS NULL OR (p.academic_year = ? AND p.track = ?))';
+        params.push(norm.year, norm.track);
+      } else if (norm.year) {
+        query += ' AND (p.academic_year IS NULL OR p.academic_year = ?)';
+        params.push(norm.year);
+      }
+    }
+
+    query += ' ORDER BY p.created_at DESC';
+
     const [rows] = await promisePool.query(query, params);
     res.json(rows);
   } catch (err) {
@@ -75,6 +101,12 @@ const getProjectById = async (req, res) => {
     );
 
     if (!project) return res.status(404).json({ message: 'Project not found' });
+
+    // Cohort guard: a student can't open another cohort's project by id.
+    const cohort = await getUserCohort(req.user);
+    if (!canViewCohort(cohort, project)) {
+      return res.status(403).json({ message: 'This project belongs to a different cohort' });
+    }
 
     const [members] = await promisePool.query(
       `SELECT u.id, u.name, u.profile_picture

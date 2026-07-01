@@ -1,8 +1,15 @@
 const { promisePool } = require("../config/db");
 const { logEvent } = require("../utils/logEvent");
+const { getUserCohort, buildCohortFilter, canViewCohort } = require("../utils/cohort");
 
 exports.getAllGroups = async (req, res) => {
   try {
+    // Cohort segregation: students only see their own cohort's groups (+ global).
+    const cohort = await getUserCohort(req.user);
+    const filter = buildCohortFilter("`Groups`", cohort);
+    const whereSql = filter ? `WHERE ${filter.clause}` : "";
+    const filterParams = filter ? filter.params : [];
+
     const [groups] = await promisePool.query(`
       SELECT
         \`Groups\`.*,
@@ -13,9 +20,10 @@ exports.getAllGroups = async (req, res) => {
         ) AS is_member
       FROM \`Groups\`
       LEFT JOIN Group_Members ON \`Groups\`.id = Group_Members.group_id
+      ${whereSql}
       GROUP BY \`Groups\`.id
       ORDER BY \`Groups\`.created_at DESC
-    `, [req.user.id]);
+    `, [req.user.id, ...filterParams]);
     res.json({ message: "Groups fetched successfully", data: groups });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -29,10 +37,17 @@ exports.createGroup = async (req, res) => {
       return res.status(400).json({ message: "Name and description are required" });
     }
 
+    // Tag the group with its cohort (student → own cohort; others → global).
+    let gYear = null, gTrack = null;
+    if (req.user.role === "student") {
+      const cohort = await getUserCohort(req.user);
+      if (cohort) { gYear = cohort.year; gTrack = cohort.track; }
+    }
+
     const [result] = await promisePool.query(
-      `INSERT INTO \`Groups\` (creator_id, name, description, group_image, is_private)
-       VALUES (?, ?, ?, ?, ?)`,
-      [req.user.id, name, description, group_image || null, is_private || false]
+      `INSERT INTO \`Groups\` (creator_id, name, description, group_image, is_private, academic_year, track)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [req.user.id, name, description, group_image || null, is_private || false, gYear, gTrack]
     );
 
     await promisePool.query(
@@ -143,6 +158,12 @@ exports.getGroupById = async (req, res) => {
 
     if (groups.length === 0) {
       return res.status(404).json({ message: "Group not found" });
+    }
+
+    // Cohort guard: a student can't open another cohort's group by id.
+    const cohort = await getUserCohort(req.user);
+    if (!canViewCohort(cohort, groups[0])) {
+      return res.status(403).json({ message: "This group belongs to a different cohort" });
     }
 
     res.json({ message: "Group fetched", data: groups[0] });

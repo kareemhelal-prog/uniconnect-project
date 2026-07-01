@@ -51,6 +51,17 @@ async function ensureIndex(table, indexName, columns) {
   }
 }
 
+// Safely add a UNIQUE index if it doesn't already exist. Needed so idempotent
+// `INSERT ... ON DUPLICATE KEY UPDATE` seeds have a key to conflict on.
+async function ensureUniqueIndex(table, indexName, columns) {
+  try {
+    await promisePool.query(`CREATE UNIQUE INDEX ${indexName} ON ${table} (${columns})`);
+    console.log(`  ✅ Added unique index ${table}.${indexName}`);
+  } catch (err) {
+    // ER_DUP_KEYNAME = already exists; anything else (missing table) ignored
+  }
+}
+
 const testConnection = async () => {
   try {
     console.log("📡 Connecting to MySQL...");
@@ -91,6 +102,30 @@ const testConnection = async () => {
       // Heartbeat: refreshed (throttled) on every authenticated request so the
       // admin can see who is currently online.
       ensureColumn("Users", "last_seen", "DATETIME NULL"),
+      // ── Cohort segregation of content (year + track) ──
+      // Content is tagged with the cohort it belongs to; students only see their
+      // own cohort (+ untagged/global rows). NULL = global (visible to everyone).
+      // Track only applies to years 3 & 4.
+      ensureColumn("Posts",    "academic_year", "ENUM('1','2','3','4') NULL"),
+      ensureColumn("Posts",    "track",         "ENUM('software','networks') NULL"),
+      ensureColumn("`Groups`", "academic_year", "ENUM('1','2','3','4') NULL"),
+      ensureColumn("`Groups`", "track",         "ENUM('software','networks') NULL"),
+      ensureColumn("Projects", "academic_year", "ENUM('1','2','3','4') NULL"),
+      ensureColumn("Projects", "track",         "ENUM('software','networks') NULL"),
+      ensureColumn("Files",    "track",         "ENUM('software','networks') NULL"),
+      // ── Courses / Materials (admin-managed curriculum) ──
+      // A course belongs to a cohort (year + track + semester). The admin owns
+      // CRUD and assigns exactly ONE doctor per course; doctor_id is nullable
+      // (an unassigned course exists but has no owner yet). course_code is the
+      // official curriculum code and the seed's idempotency key.
+      ensureColumn("Courses", "course_code",   "VARCHAR(20) NULL"),
+      ensureColumn("Courses", "academic_year", "ENUM('1','2','3','4') NULL"),
+      ensureColumn("Courses", "track",         "ENUM('software','networks') NULL"),
+      ensureColumn("Courses", "semester",      "TINYINT NULL"),
+      ensureColumn("Courses", "doctor_id",     "INT NULL"),
+      // A course's materials are ordinary Files tagged with the course they
+      // belong to (NULL = a normal library file, not tied to any course).
+      ensureColumn("Files",   "course_id",     "INT NULL"),
     ]);
 
     // Site-wide activity stream — every notable user action is appended here so
@@ -151,7 +186,21 @@ const testConnection = async () => {
       ensureIndex("Profile_Studies", "idx_studies_cohort",      "academic_year, track"),
       // Online-users lookup: `WHERE last_seen > NOW() - INTERVAL n MINUTE`
       ensureIndex("Users",           "idx_users_last_seen",     "last_seen"),
+      // Course materials lookup: `WHERE course_id = ?`
+      ensureIndex("Files",           "idx_files_course",        "course_id"),
+      // Student "my courses" lookup by cohort
+      ensureIndex("Courses",         "idx_courses_cohort",      "academic_year, track, semester"),
     ]);
+
+    // course_code is the curriculum key the seed conflicts on (idempotency).
+    await ensureUniqueIndex("Courses", "uq_courses_code", "course_code");
+
+    // Seed the official curriculum (idempotent — safe to run every boot).
+    try {
+      await require("./seedCourses")(promisePool);
+    } catch (err) {
+      console.error("⚠️  Course seed failed:", err.message);
+    }
 
     // Existing accounts (created before this workflow) must stay usable — flip
     // any NULL/legacy rows to 'approved' so the gate only affects new signups.
@@ -164,6 +213,26 @@ const testConnection = async () => {
         "UPDATE Users SET is_onboarded = 1 WHERE created_at < '2026-06-28' OR role = 'admin'"
       );
     } catch (_) { /* column may not exist on first boot ordering — ignored */ }
+
+    // Backfill: tag pre-existing content with its author's cohort so the
+    // year/track segregation also applies to content created before this
+    // feature. Only fills rows still untagged (academic_year IS NULL), and the
+    // JOIN to Profile_Studies naturally limits it to student authors — content
+    // by doctors/admins/investors (no Profile_Studies) stays global.
+    try {
+      await promisePool.query(
+        "UPDATE Posts p JOIN Profile_Studies ps ON ps.user_id = p.user_id SET p.academic_year = ps.academic_year, p.track = ps.track WHERE p.academic_year IS NULL AND ps.academic_year IS NOT NULL"
+      );
+      await promisePool.query(
+        "UPDATE `Groups` g JOIN Profile_Studies ps ON ps.user_id = g.creator_id SET g.academic_year = ps.academic_year, g.track = ps.track WHERE g.academic_year IS NULL AND ps.academic_year IS NOT NULL"
+      );
+      await promisePool.query(
+        "UPDATE Projects pr JOIN Profile_Studies ps ON ps.user_id = pr.creator_id SET pr.academic_year = ps.academic_year, pr.track = ps.track WHERE pr.academic_year IS NULL AND ps.academic_year IS NOT NULL"
+      );
+      await promisePool.query(
+        "UPDATE Files f JOIN Profile_Studies ps ON ps.user_id = f.uploader_id SET f.academic_year = ps.academic_year, f.track = ps.track WHERE f.academic_year IS NULL AND ps.academic_year IS NOT NULL"
+      );
+    } catch (_) { /* cohort columns may not exist yet on first boot — ignored */ }
 
     // One-time cleanup: remove historical duplicate like/follow notifications,
     // keeping only the oldest per (sender_id, user_id, type, reference_id) group.

@@ -1,6 +1,7 @@
 const { promisePool } = require("../config/db");
 const path = require("path");
 const fs   = require("fs");
+const { getUserCohort, buildCohortFilter, normalizeCohortInput } = require("../utils/cohort");
 
 // =======================
 // GET ALL FILES (with filters)
@@ -40,6 +41,11 @@ exports.getFiles = async (req, res) => {
       query += " AND f.file_type = ?";
       params.push(file_type);
     }
+
+    // Cohort segregation: students only see their own cohort's files (+ global).
+    const cohort = await getUserCohort(req.user);
+    const cf = buildCohortFilter("f", cohort);
+    if (cf) { query += ` AND ${cf.clause}`; params.push(...cf.params); }
 
     query += " GROUP BY f.id ORDER BY f.created_at DESC";
 
@@ -117,19 +123,59 @@ exports.uploadFile = async (req, res) => {
 
     const file_url = `/uploads/files/${filename}`;
 
+    // Tag the file with its cohort: a student's upload is forced to their own
+    // cohort; a doctor/admin picks the target year/track (else global).
+    let fYear = null, fTrack = null;
+    if (req.user.role === "student") {
+      const cohort = await getUserCohort(req.user);
+      if (cohort) { fYear = cohort.year; fTrack = cohort.track; }
+    } else {
+      const norm = normalizeCohortInput(academic_year, req.body.track);
+      fYear = norm.year; fTrack = norm.track;
+    }
+
+    // Course material? A file may be attached to a curriculum course. Only the
+    // course's assigned doctor (or an admin) may do so, and the material always
+    // inherits the course's own cohort — so it lands in the right batch and
+    // can't be mis-tagged.
+    let courseId = null;
+    let courseSubject = null;
+    if (req.body.course_id) {
+      const [[course]] = await promisePool.query(
+        "SELECT id, doctor_id, academic_year, track, title FROM Courses WHERE id = ?",
+        [req.body.course_id]
+      );
+      if (!course) return res.status(404).json({ message: "Course not found" });
+      const isAdmin = req.user.role === "admin";
+      const isOwnerDoctor = req.user.role === "doctor" && course.doctor_id === req.user.id;
+      if (!isAdmin && !isOwnerDoctor) {
+        return res.status(403).json({ message: "You can only add materials to a course assigned to you" });
+      }
+      courseId = course.id;
+      fYear = course.academic_year;
+      fTrack = course.track;
+      courseSubject = course.title;
+    }
+
+    // A doctor may give a material a friendly display name; otherwise fall back
+    // to the uploaded file's original name.
+    const displayName = (req.body.title && String(req.body.title).trim()) || originalname;
+
     const [result] = await promisePool.query(
-      `INSERT INTO Files 
-         (uploader_id, file_name, file_url, file_type, file_size, subject, academic_year, description)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO Files
+         (uploader_id, file_name, file_url, file_type, file_size, subject, academic_year, track, description, course_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.id,
-        originalname,
+        displayName,
         file_url,
         mimetype,
         size,
-        subject   || null,
-        academic_year || null,
-        description   || null
+        subject   || courseSubject || null,
+        fYear,
+        fTrack,
+        description   || null,
+        courseId
       ]
     );
 

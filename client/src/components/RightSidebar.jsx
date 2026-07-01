@@ -1,14 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../api/axios";
+import CourseIcon, { courseVisual } from "./CourseIcon";
 import "./RightSidebar.css";
-
-const subjects = [
-  { id: 1, name: "اكتب هنا 1", icon: "🤖", color: "#a78bfa" },
-  { id: 2, name: "اكتب هنا 2", icon: "🏛️", color: "#60a5fa" },
-  { id: 3, name: "اكتب هنا 3", icon: "⚗️", color: "#34d399" },
-  { id: 4, name: "اكتب هنا 4", icon: "📊", color: "#fbbf24" },
-  { id: 5, name: "اكتب هنا 5", icon: "📐", color: "#f87171" },
-  { id: 6, name: "اكتب هنا 6", icon: "⚡", color: "#38bdf8" },
-];
 
 const dayNames = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -19,9 +13,22 @@ const todayId = `${todayReal.getFullYear()}-${String(
 
 const RightSidebar = ({ importantDays = [] }) => {
   const importantSet = new Set(importantDays);
+  const navigate = useNavigate();
 
   const [hovered, setHovered] = useState(null);
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Real courses for the "My Courses" shortcut (student's cohort / doctor's assigned).
+  useEffect(() => {
+    let alive = true;
+    api.get("/courses/my")
+      .then((r) => { if (alive) setCourses((r.data.data || []).slice(0, 6)); })
+      .catch(() => {})
+      .finally(() => { if (alive) setLoadingCourses(false); });
+    return () => { alive = false; };
+  }, []);
   const [selectedDayState, setSelectedDayState] = useState({
     id: todayId,
     year: todayReal.getFullYear(),
@@ -78,32 +85,51 @@ const RightSidebar = ({ importantDays = [] }) => {
   return (
     <aside className="right-sidebar">
       <div className="subjects-section">
-        <h3 className="section-title">Subject Groups</h3>
-        <div className="subjects-grid">
-          {subjects.map((s, i) => {
-            const isActive = hovered === i;
-            return (
-              <div
-                key={s.id}
-                className={`subject-card ${
-                  isActive ? "subject-card--active" : ""
-                }`}
-                style={{
-                  "--card-color": s.color,
-                  borderColor: isActive ? s.color : `${s.color}33`,
-                  background: isActive ? `${s.color}12` : "none",
-                  boxShadow: isActive ? `0 0 10px ${s.color}33` : "none",
-                  color: isActive ? s.color : "#888",
-                }}
-                onMouseEnter={() => setHovered(i)}
-                onMouseLeave={() => setHovered(null)}
-              >
-                <span className="subject-icon">{s.icon}</span>
-                <span className="subject-name">{s.name}</span>
-              </div>
-            );
-          })}
+        <div className="subjects-head">
+          <h3 className="section-title">My Courses</h3>
+          <button className="subjects-viewall" onClick={() => navigate("/courses")}>
+            View all
+          </button>
         </div>
+
+        {loadingCourses ? (
+          <div className="subjects-grid">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="subject-card subject-card--skeleton" />
+            ))}
+          </div>
+        ) : courses.length === 0 ? (
+          <p className="subjects-empty">No courses yet</p>
+        ) : (
+          <div className="subjects-grid">
+            {courses.map((c, i) => {
+              const vis = courseVisual(c);
+              const isActive = hovered === i;
+              return (
+                <div
+                  key={c.id}
+                  className={`subject-card ${isActive ? "subject-card--active" : ""}`}
+                  style={{
+                    "--card-color": vis.c1,
+                    borderColor: isActive ? vis.c1 : `${vis.c1}33`,
+                    background: isActive ? `${vis.c1}12` : "none",
+                    boxShadow: isActive ? `0 0 10px ${vis.c1}33` : "none",
+                    color: isActive ? vis.c1 : "var(--text-muted, #888)",
+                  }}
+                  title={c.title}
+                  onClick={() => navigate("/courses")}
+                  onMouseEnter={() => setHovered(i)}
+                  onMouseLeave={() => setHovered(null)}
+                >
+                  <span className="subject-icon" style={{ color: vis.c1 }}>
+                    <CourseIcon course={c} size={18} />
+                  </span>
+                  <span className="subject-name">{c.course_code || c.title}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="calendar-section">

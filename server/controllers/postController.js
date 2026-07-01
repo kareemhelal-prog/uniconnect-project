@@ -1,6 +1,7 @@
 const { promisePool } = require("../config/db");
 const { notify } = require("../utils/notify");
 const { logEvent } = require("../utils/logEvent");
+const { getUserCohort, buildCohortFilter, canViewCohort, normalizeCohortInput } = require("../utils/cohort");
 
 // =======================
 // CREATE POST
@@ -13,9 +14,22 @@ exports.createPost = async (req, res) => {
       return res.status(400).json({ message: "Content is required" });
     }
 
+    // Tag the post with its target cohort:
+    //  - student → their own cohort (auto).
+    //  - doctor/admin → the cohort they chose (target_year/target_track); if
+    //    none chosen the post stays global (NULL) and reaches every year.
+    let pYear = null, pTrack = null;
+    if (req.user.role === "student") {
+      const cohort = await getUserCohort(req.user);
+      if (cohort) { pYear = cohort.year; pTrack = cohort.track; }
+    } else if (req.user.role === "doctor" || req.user.role === "admin") {
+      const norm = normalizeCohortInput(req.body.target_year, req.body.target_track);
+      pYear = norm.year; pTrack = norm.track;
+    }
+
     const [result] = await promisePool.query(
-      "INSERT INTO Posts (user_id, title, content) VALUES (?, ?, ?)",
-      [req.user.id, title, content]
+      "INSERT INTO Posts (user_id, title, content, academic_year, track) VALUES (?, ?, ?, ?, ?)",
+      [req.user.id, title, content, pYear, pTrack]
     );
     const postId = result.insertId;
 
@@ -64,18 +78,26 @@ exports.getAllPosts = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Cohort segregation: a student only sees posts tagged with their cohort
+    // (or global/untagged posts). Doctors/admins/investors see everything.
+    const cohort = await getUserCohort(req.user);
+    const filter = buildCohortFilter("Posts", cohort);
+    const whereSql = filter ? `WHERE ${filter.clause}` : "";
+    const filterParams = filter ? filter.params : [];
+
     const [posts] = await promisePool.query(
       `SELECT Posts.*, Users.username, Users.name, Users.role,
               COALESCE(Users.profile_picture,'') AS profile_picture,
-              ps.academic_year, ps.track,
+              ps.academic_year AS author_year, ps.track AS author_track,
               (SELECT COUNT(*) FROM Likes    WHERE Likes.post_id    = Posts.id) AS likes,
               (SELECT COUNT(*) FROM Comments WHERE Comments.post_id = Posts.id) AS comments_count,
               EXISTS(SELECT 1 FROM Likes WHERE Likes.post_id = Posts.id AND Likes.user_id = ?) AS liked
        FROM Posts
        JOIN Users ON Posts.user_id = Users.id
        LEFT JOIN Profile_Studies ps ON ps.user_id = Users.id
+       ${whereSql}
        ORDER BY Posts.created_at DESC`,
-      [userId]
+      [userId, ...filterParams]
     );
 
     const formatted = posts.map(p => ({ ...p, liked: !!p.liked }));
@@ -139,6 +161,12 @@ exports.getPostById = async (req, res) => {
 
     if (posts.length === 0) {
       return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Cohort guard: a student can't open a post outside their cohort by id.
+    const cohort = await getUserCohort(req.user);
+    if (!canViewCohort(cohort, posts[0])) {
+      return res.status(403).json({ message: "This post belongs to a different cohort" });
     }
 
     const post = { ...posts[0], liked: !!posts[0].liked };
@@ -249,6 +277,14 @@ exports.getPostsByUser = async (req, res) => {
     const { userId } = req.params;
     const currentUserId = req.user.id;
 
+    // Cohort segregation: when a student opens another user's profile (e.g. a
+    // doctor's), they only see that user's posts within their own cohort (or
+    // global). Doctors/admins/investors see everything.
+    const cohort = await getUserCohort(req.user);
+    const filter = buildCohortFilter("Posts", cohort);
+    const cohortSql = filter ? ` AND ${filter.clause}` : "";
+    const cohortParams = filter ? filter.params : [];
+
     const [posts] = await promisePool.query(
       `SELECT Posts.*, Users.username, Users.name, Users.role,
               COALESCE(Users.profile_picture,'') AS profile_picture,
@@ -256,8 +292,8 @@ exports.getPostsByUser = async (req, res) => {
               (SELECT COUNT(*) FROM Comments WHERE Comments.post_id = Posts.id) AS comments_count,
               EXISTS(SELECT 1 FROM Likes WHERE Likes.post_id = Posts.id AND Likes.user_id = ?) AS liked
        FROM Posts JOIN Users ON Posts.user_id = Users.id
-       WHERE Posts.user_id = ? ORDER BY Posts.created_at DESC`,
-      [currentUserId, userId]
+       WHERE Posts.user_id = ?${cohortSql} ORDER BY Posts.created_at DESC`,
+      [currentUserId, userId, ...cohortParams]
     );
 
     const formatted = posts.map(p => ({ ...p, liked: !!p.liked }));

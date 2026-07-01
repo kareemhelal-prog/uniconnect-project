@@ -345,6 +345,12 @@
   color: var(--green);
 }
 
+.share-btn.shared {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.45);
+  color: var(--green);
+}
+
 /* ─── Comments ───────────────────────────── */
 .comments-section {
   margin-top: 12px;

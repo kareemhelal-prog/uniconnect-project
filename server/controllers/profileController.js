@@ -1,4 +1,5 @@
 const { promisePool } = require("../config/db");
+const { getUserCohort, buildCohortFilter } = require("../utils/cohort");
 
 async function safeCount(query, params) {
   try {
@@ -33,7 +34,15 @@ async function fetchUserSafe(userId) {
   return null;
 }
 
-async function fetchPosts(userId, viewerId) {
+// `viewer` is req.user ({ id, role }). Cohort segregation: when a student
+// views a profile, only that profile's posts within the student's cohort (or
+// global) are returned. Doctors/admins/investors see everything.
+async function fetchPosts(userId, viewer) {
+  const cohort = await getUserCohort(viewer);
+  const filter = buildCohortFilter("p", cohort);
+  const cohortSql    = filter ? ` AND ${filter.clause}` : "";
+  const cohortParams = filter ? filter.params : [];
+
   const [rows] = await promisePool.query(
     `SELECT p.id, p.user_id, p.title, p.content, p.created_at,
             u.name, u.username, u.role, COALESCE(u.profile_picture,'') AS profile_picture,
@@ -43,8 +52,8 @@ async function fetchPosts(userId, viewerId) {
      FROM Posts p JOIN Users u ON p.user_id = u.id
      LEFT JOIN Likes    l ON l.post_id = p.id
      LEFT JOIN Comments c ON c.post_id = p.id
-     WHERE p.user_id = ? GROUP BY p.id ORDER BY p.created_at DESC`,
-    [viewerId, userId]
+     WHERE p.user_id = ?${cohortSql} GROUP BY p.id ORDER BY p.created_at DESC`,
+    [viewer.id, userId, ...cohortParams]
   ).catch(() => [[]]);
   return rows.map(p => ({ ...p, liked: !!p.liked, comments: [] }));
 }
@@ -67,7 +76,7 @@ exports.getProfile = async (req, res) => {
     }
 
     const [posts, followers, following, groups, uploadedFiles] = await Promise.all([
-      fetchPosts(userId, userId),
+      fetchPosts(userId, req.user),
       safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE following_id = ?", [userId]),
       safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE follower_id = ?",  [userId]),
       safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",     [userId]),
@@ -94,9 +103,8 @@ exports.getUserById = async (req, res) => {
     const user = await fetchUserSafe(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const viewerId = req.user.id;
     const [posts, followers, following, groups, uploadedFiles] = await Promise.all([
-      fetchPosts(userId, viewerId),
+      fetchPosts(userId, req.user),
       safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE following_id = ?", [userId]),
       safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE follower_id = ?",  [userId]),
       safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",     [userId]),

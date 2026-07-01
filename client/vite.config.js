@@ -1,16 +1,26 @@
-import { defineConfig } from 'vite'
+import { defineConfig, createLogger } from 'vite'
 import react from '@vitejs/plugin-react'
 
 const API_TARGET = 'http://localhost:5000'
 
-// Transient connection errors are expected in dev: the API server may be
-// restarting (nodemon), stopped, or a WebSocket upgrade may abort when a tab
-// closes. Without a handler, http-proxy re-throws and Vite floods the console
-// with full stack traces. We swallow the known-benign codes and keep anything
-// genuinely unexpected to a single concise line.
-const BENIGN = new Set(['ECONNREFUSED', 'ECONNABORTED', 'ECONNRESET', 'EPIPE', 'ETIMEDOUT']);
+// --- Quiet, benign dev-proxy noise -----------------------------------------
+// In development the API is proxied to the backend. Two classes of messages
+// clutter the console but mean nothing is actually wrong:
+//   1. WebSocket aborts/resets — socket.io reconnecting, or a tab closing
+//      ("ws proxy error", "write ECONNABORTED", "ECONNRESET").
+//   2. Connection refusals while the backend restarts (nodemon) or is stopped
+//      ("ECONNREFUSED").
+// Vite logs (1) itself via its internal ws handler, so a custom logger that
+// drops these lines is the only way to silence them without hiding real errors.
+const PROXY_NOISE = /ws proxy|ECONNABORTED|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE/
 
-let warnedBackendDown = false;
+const logger = createLogger()
+const _error = logger.error.bind(logger)
+const _warn = logger.warn.bind(logger)
+logger.error = (msg, opts) => { if (typeof msg === 'string' && PROXY_NOISE.test(msg)) return; _error(msg, opts) }
+logger.warn = (msg, opts) => { if (typeof msg === 'string' && PROXY_NOISE.test(msg)) return; _warn(msg, opts) }
+
+let warnedBackendDown = false
 
 function quietProxy(target, extra = {}) {
   return {
@@ -19,34 +29,28 @@ function quietProxy(target, extra = {}) {
     ...extra,
     configure(proxy) {
       proxy.on('error', (err, _req, res) => {
-        if (BENIGN.has(err.code)) {
-          // Hint once that the backend is unreachable, then stay silent.
-          if (err.code === 'ECONNREFUSED' && !warnedBackendDown) {
-            warnedBackendDown = true;
-            console.warn(`\x1b[33m[proxy] API server not reachable at ${target} — is the backend running? (cd server && npm run dev)\x1b[0m`);
-          }
-          // Close the HTTP response cleanly so the request doesn't hang.
-          // For WS upgrades, res is a raw socket — just destroy it.
-          try {
-            if (res && typeof res.writeHead === 'function' && !res.headersSent) {
-              res.writeHead(502, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify({ message: 'Backend unavailable' }));
-            } else if (res && typeof res.destroy === 'function') {
-              res.destroy();
-            }
-          } catch { /* socket already gone */ }
-          return;
+        // Hint once (via plain console, so it survives the noise filter) that
+        // the backend is unreachable, then close the response/socket cleanly.
+        if (err.code === 'ECONNREFUSED' && !warnedBackendDown) {
+          warnedBackendDown = true
+          console.warn(`\x1b[33m[proxy] API server not reachable at ${target} — is the backend running? (cd server && npm run dev)\x1b[0m`)
         }
-        console.warn(`\x1b[33m[proxy] ${err.code || err.message}\x1b[0m`);
-      });
-
-      // Reset the "backend down" notice once a request succeeds again.
-      proxy.on('proxyRes', () => { warnedBackendDown = false; });
+        try {
+          if (res && typeof res.writeHead === 'function' && !res.headersSent) {
+            res.writeHead(502, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ message: 'Backend unavailable' }))
+          } else if (res && typeof res.destroy === 'function') {
+            res.destroy()
+          }
+        } catch { /* socket already gone */ }
+      })
+      proxy.on('proxyRes', () => { warnedBackendDown = false })
     },
-  };
+  }
 }
 
 export default defineConfig({
+  customLogger: logger,
   plugins: [react()],
   server: {
     host: true,          // expose on the local network (phone access)

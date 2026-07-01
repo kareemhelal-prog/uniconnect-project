@@ -58,18 +58,27 @@ function CreatePostModal({ onClose, onPost }) {
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState("");
+  // Audience: which cohort this post targets. "all" = visible to every year.
+  const [audYear,  setAudYear]  = useState("all");
+  const [audTrack, setAudTrack] = useState("all");
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
     setLoading(true);
     setError("");
     try {
+      const body = { title: title.trim() || "New Post", content: content.trim() };
+      // Only send a target when a specific year is chosen (else it's global).
+      if (audYear !== "all") {
+        body.target_year = audYear;
+        // Track applies only to years 3 & 4; "all" = the whole year (both tracks).
+        if ((audYear === "3" || audYear === "4") && audTrack !== "all") {
+          body.target_track = audTrack;
+        }
+      }
       const res = await authFetch(`${API_BASE}/posts`, {
         method: "POST",
-        body: JSON.stringify({
-          title:   title.trim() || "New Post",
-          content: content.trim(),
-        }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) throw new Error("Failed to create post");
       const json = await res.json();
@@ -107,6 +116,35 @@ function CreatePostModal({ onClose, onPost }) {
             onChange={(e) => setContent(e.target.value)}
             rows={5}
           />
+
+          <label className="modal-label" style={{ marginTop: "12px" }}>AUDIENCE</label>
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <select
+              className="modal-input"
+              style={{ flex: 1, minWidth: "140px" }}
+              value={audYear}
+              onChange={(e) => setAudYear(e.target.value)}
+            >
+              <option value="all">All years (everyone)</option>
+              <option value="1">Year 1 only</option>
+              <option value="2">Year 2 only</option>
+              <option value="3">Year 3</option>
+              <option value="4">Year 4</option>
+            </select>
+            {(audYear === "3" || audYear === "4") && (
+              <select
+                className="modal-input"
+                style={{ flex: 1, minWidth: "140px" }}
+                value={audTrack}
+                onChange={(e) => setAudTrack(e.target.value)}
+              >
+                <option value="all">Both tracks</option>
+                <option value="software">Software</option>
+                <option value="networks">Networks</option>
+              </select>
+            )}
+          </div>
+
           {error && <p className="modal-error">{error}</p>}
         </div>
         <div className="modal-footer-btns">
