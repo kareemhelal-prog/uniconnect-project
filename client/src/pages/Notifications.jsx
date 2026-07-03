@@ -47,7 +47,7 @@ export default function Notifications() {
   // Zone 1 — actor name / avatar → their profile
   const goToActor = (notif) => {
     markRead(notif.id);
-    if (notif.sender_id) navigate(`/profile/${notif.sender_id}`);
+    if (notif.sender_id) navigate(`/profile/${notif.sender_username || notif.sender_id}`);
   };
 
   // Zone 2 — message text → the relevant content

@@ -9,24 +9,29 @@ async function safeCount(query, params) {
   } catch { return 0; }
 }
 
-async function fetchUserSafe(userId) {
+// Accepts either a numeric id or a username. Numeric-looking keys match by id,
+// anything else matches by username — so profile URLs can be /profile/<username>.
+async function fetchUserSafe(key) {
+  const numeric = /^\d+$/.test(String(key));
+  const clause = numeric ? "u.id = ?" : "u.username = ?";
   try {
     const [[user]] = await promisePool.query(
-      `SELECT u.id, u.name, u.role,
+      `SELECT u.id, u.name, u.username, u.role,
               COALESCE(u.bio, '') AS bio,
               COALESCE(u.profile_picture, '') AS profile_picture,
               ps.faculty, ps.major, ps.academic_year
        FROM Users u
        LEFT JOIN Profile_Studies ps ON ps.user_id = u.id
-       WHERE u.id = ?`,
-      [userId]
+       WHERE ${clause}`,
+      [key]
     );
     if (user) return user;
   } catch (e1) {
     console.warn("⚠ Full profile query failed:", e1.message);
   }
   try {
-    const [[user]] = await promisePool.query(`SELECT id, name, role FROM Users WHERE id = ?`, [userId]);
+    const [[user]] = await promisePool.query(
+      `SELECT id, name, username, role FROM Users WHERE ${numeric ? "id" : "username"} = ?`, [key]);
     if (user) return { ...user, bio: "", profile_picture: "", faculty: null, major: null, academic_year: null };
   } catch (e2) {
     console.error("❌ Minimal query failed:", e2.message);
@@ -95,20 +100,21 @@ exports.getProfile = async (req, res) => {
 // =======================
 exports.getUserById = async (req, res) => {
   try {
-    const userId = req.params.id;
-    if (!userId || isNaN(Number(userId))) {
-      return res.status(400).json({ message: "Invalid user ID" });
-    }
+    const key = req.params.id; // numeric id OR username
+    if (!key) return res.status(400).json({ message: "Invalid user" });
 
-    const user = await fetchUserSafe(userId);
+    // Resolve the account first so username lookups work and every follow-up
+    // query uses the real numeric id.
+    const user = await fetchUserSafe(key);
     if (!user) return res.status(404).json({ message: "User not found" });
+    const uid = user.id;
 
     const [posts, followers, following, groups, uploadedFiles] = await Promise.all([
-      fetchPosts(userId, req.user),
-      safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE following_id = ?", [userId]),
-      safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE follower_id = ?",  [userId]),
-      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",     [userId]),
-      safeCount("SELECT COUNT(*) AS count FROM Files         WHERE uploader_id = ?", [userId]),
+      fetchPosts(uid, req.user),
+      safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE following_id = ?", [uid]),
+      safeCount("SELECT COUNT(*) AS count FROM Followers    WHERE follower_id = ?",  [uid]),
+      safeCount("SELECT COUNT(*) AS count FROM Group_Members WHERE user_id = ?",     [uid]),
+      safeCount("SELECT COUNT(*) AS count FROM Files         WHERE uploader_id = ?", [uid]),
     ]);
 
     res.json({ ...user, followers, following, groups, uploadedFiles, posts });

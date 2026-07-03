@@ -215,7 +215,7 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
   const goToNotifActor = (e, n) => {
     e.stopPropagation();
     markNotifRead(n.id);
-    if (n.sender_id) goTo(`/profile/${n.sender_id}`);
+    if (n.sender_id) goTo(`/profile/${n.sender_username || n.sender_id}`);
   };
 
   // Zone 2 — message text → the relevant content
@@ -369,7 +369,7 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
                 <div
                   key={u.id}
                   className="search-result-item"
-                  onClick={() => { goTo(`/profile/${u.id}`); setSearchOpen(false); setSearchQuery(""); }}
+                  onClick={() => { goTo(`/profile/${u.username || u.id}`); setSearchOpen(false); setSearchQuery(""); }}
                 >
                   <div className="search-result-avatar">
                     {pic

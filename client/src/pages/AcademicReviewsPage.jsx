@@ -300,7 +300,7 @@ const saveEdit = async (id) => {
       setTimeout(() => setAnonWarn(false), 3000);
       return;
     }
-    navigate(`/profile/${r.student_id}`);
+    navigate(`/profile/${r.student_username || r.student_id}`);
   };
 
   // ── Helpers ───────────────────────────────────────────────

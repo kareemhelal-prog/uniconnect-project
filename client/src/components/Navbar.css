@@ -176,8 +176,10 @@
 /* ── Animated spinning logo mark ── */
 .logo-mark {
   display: inline-flex;
-  width: 24px;
-  height: 24px;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   flex-shrink: 0;
 }
 
@@ -186,23 +188,18 @@
   height: 100%;
   object-fit: contain;
   transform-origin: center;
-  animation: logoSpin 7s linear infinite;
-  filter: drop-shadow(0 0 5px rgba(168, 85, 247, 0.45));
-  transition: filter 0.25s ease;
+  filter: drop-shadow(0 0 4px rgba(168, 85, 247, 0.4));
+  transition: transform 0.6s ease, filter 0.25s ease;
 }
 
-@keyframes logoSpin {
-  to { transform: rotate(360deg); }
-}
-
-/* mouse interaction: spin faster + brighter glow */
+/* Steady logo — a single spin + brighter glow only on hover. */
 .nav-logo:hover .logo-img {
-  animation-duration: 1.6s;
-  filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.85));
+  transform: rotate(360deg);
+  filter: drop-shadow(0 0 9px rgba(168, 85, 247, 0.8));
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .logo-img { animation: none; }
+  .nav-logo:hover .logo-img { transform: none; }
 }
 
 .logo-text {

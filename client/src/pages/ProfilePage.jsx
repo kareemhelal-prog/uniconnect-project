@@ -111,7 +111,7 @@ function FollowersModal({ profileId, type, onClose }) {
               <div key={u.id} className="pp-modal-user-row">
                 <div
                   className="pp-modal-avatar"
-                  onClick={() => { navigate(`/profile/${u.id}`); onClose(); }}
+                  onClick={() => { navigate(`/profile/${u.username || u.id}`); onClose(); }}
                 >
                   {pic
                     ? <img src={pic} alt="" onError={e => { e.target.style.display = "none"; e.target.nextSibling.style.display = "flex"; }} />
@@ -122,7 +122,7 @@ function FollowersModal({ profileId, type, onClose }) {
                 </div>
                 <div
                   className="pp-modal-info"
-                  onClick={() => { navigate(`/profile/${u.id}`); onClose(); }}
+                  onClick={() => { navigate(`/profile/${u.username || u.id}`); onClose(); }}
                 >
                   <span className="pp-modal-name">
                     {u.name}
@@ -257,17 +257,24 @@ export default function ProfilePage() {
   }, [id]);
 
   useEffect(() => {
+    // Returns true only when a real profile was loaded, so we don't render an
+    // empty shell (or pull stats) for a non-existent user id.
     const fetchAll = async () => {
       try {
         const url = id ? `${API}/profile/${id}` : `${API}/profile`;
         const res  = await fetch(url, { headers: authHeaders() });
+        if (!res.ok) { setProfile(null); return false; }        // 404 / 400 → not found
         const data = await res.json();
+        if (!data || !data.id) { setProfile(null); return false; }
         setProfile(data);
         setFollowersCount(data.followers || 0);
         setFollowingCount(data.following || 0);
         setPosts(data.posts || []);
+        return true;
       } catch (err) {
         console.error("Profile fetch failed:", err);
+        setProfile(null);
+        return false;
       } finally {
         setLoading(false);
       }
@@ -297,24 +304,25 @@ export default function ProfilePage() {
       } catch {}
     };
 
-    fetchAll();
-    fetchFiles();
-    fetchGroups();
-    fetchCourses();
+    // Only load the stats once we know the profile actually exists.
+    (async () => {
+      const ok = await fetchAll();
+      if (ok) { fetchFiles(); fetchGroups(); fetchCourses(); }
+    })();
   }, [id]);
 
-  // Check follow state for other users' profiles
+  // Check follow state for other users' profiles (uses the resolved numeric id)
   useEffect(() => {
-    if (isOwnProfile || !id) return;
-    fetch(`${API}/follow/is-following/${id}`, { headers: authHeaders() })
+    if (isOwnProfile || !profile?.id) return;
+    fetch(`${API}/follow/is-following/${profile.id}`, { headers: authHeaders() })
       .then(r => r.json())
       .then(d => setFollowing(!!d.isFollowing))
       .catch(() => {});
-  }, [id, isOwnProfile]);
+  }, [profile?.id, isOwnProfile]);
 
   // ── Real-time: live follower count for the profile being viewed ──
   useEffect(() => {
-    const pid = id || profile?.id;
+    const pid = profile?.id;
     if (!pid) return;
     const socket = getSocket();
     const onFollower = (data) => {
@@ -323,16 +331,16 @@ export default function ProfilePage() {
     };
     socket.on("new_follower", onFollower);
     return () => socket.off("new_follower", onFollower);
-  }, [id, profile?.id]);
+  }, [profile?.id]);
 
   const handleFollow = async () => {
-    if (followLoading || !id) return;
+    if (followLoading || !profile?.id) return;
     setFollowLoading(true);
     try {
       await fetch(`${API}/follow`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify({ following_id: Number(id) }),
+        body: JSON.stringify({ following_id: Number(profile.id) }),
       });
       const wasFollowing = following;
       setFollowing(f => !f);
@@ -366,7 +374,7 @@ export default function ProfilePage() {
 
   const avatarSrc  = resolveImg(profile.profile_picture || "");
   const isVerified = profile.role === "doctor" || profile.role === "admin";
-  const profileId  = id || profile.id;
+  const profileId  = profile.id; // always the numeric id (URL param may be a username)
 
   return (
     <>

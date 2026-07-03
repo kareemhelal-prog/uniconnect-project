@@ -99,7 +99,7 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
     >
       <div
         className="comment-avatar-wrap"
-        onClick={() => comment.user?.id && navigate(`/profile/${comment.user.id}`)}
+        onClick={() => comment.user?.id && navigate(`/profile/${comment.user.username || comment.user.id}`)}
         style={{ cursor: "pointer" }}
       >
         {pic
@@ -114,7 +114,7 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
         <div className="comment-bubble-header">
           <span
             className="comment-author clickable-name"
-            onClick={() => comment.user?.id && navigate(`/profile/${comment.user.id}`)}
+            onClick={() => comment.user?.id && navigate(`/profile/${comment.user.username || comment.user.id}`)}
           >
             {comment.user?.name || "Unknown"}
             {isVerified && <VerifiedBadge />}
@@ -406,7 +406,7 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
       <div className="post-header">
         <div
           className="post-avatar-wrap"
-          onClick={() => post.user_id && navigate(`/profile/${post.user_id}`)}
+          onClick={() => post.user_id && navigate(`/profile/${post.username || post.user_id}`)}
           style={{ cursor: "pointer" }}
         >
           {postPic && !imgError
@@ -419,7 +419,7 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
         <div className="post-meta-info">
           <span
             className="post-author-name clickable-name"
-            onClick={() => post.user_id && navigate(`/profile/${post.user_id}`)}
+            onClick={() => post.user_id && navigate(`/profile/${post.username || post.user_id}`)}
           >
             {post.author || post.name}
             {isVerified && <VerifiedBadge />}
