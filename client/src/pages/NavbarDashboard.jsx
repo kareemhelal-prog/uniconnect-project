@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/NavbarDashboard.css";
 import { MdSettings } from "react-icons/md";
 import {
@@ -93,6 +94,7 @@ function timeAgo(dateStr) {
 }
 
 function Navbar({ activePage, onNavigate, onLogout }) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bellRing, setBellRing] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -366,7 +368,9 @@ function Navbar({ activePage, onNavigate, onLogout }) {
                 className="profile-card-item"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigateTo(null);
+                  setProfileOpen(false);
+                  setSidebarOpen(false);
+                  navigate("/settings");
                 }}
               >
                 <MdSettings size={16} className="profile-card-icon" />

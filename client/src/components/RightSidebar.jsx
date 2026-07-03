@@ -117,7 +117,7 @@ const RightSidebar = ({ importantDays = [] }) => {
                     color: isActive ? vis.c1 : "var(--text-muted, #888)",
                   }}
                   title={c.title}
-                  onClick={() => navigate("/courses")}
+                  onClick={() => navigate(`/courses?open=${c.id}`)}
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
                 >

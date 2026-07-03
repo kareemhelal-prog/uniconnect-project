@@ -33,7 +33,7 @@ exports.getStats = async (req, res) => {
         (SELECT COUNT(*) FROM \`Groups\`) as groups,
         (SELECT COUNT(*) FROM Projects) as projects,
         (SELECT COUNT(*) FROM Reports WHERE status = 'pending') as pendingReports,
-        (SELECT COUNT(*) FROM Users WHERE account_status = 'pending') as pendingAccounts
+        (SELECT COUNT(*) FROM Users WHERE account_status = 'pending' AND (needs_profile IS NULL OR needs_profile = 0)) as pendingAccounts
     `);
 
     res.json({
@@ -162,7 +162,7 @@ exports.getOverview = async (req, res) => {
         (SELECT COUNT(*) FROM \`Groups\`)                                       AS \`groups\`,
         (SELECT COUNT(*) FROM Projects)                                         AS projects,
         (SELECT COUNT(*) FROM Reports WHERE status = 'pending')                 AS pendingReports,
-        (SELECT COUNT(*) FROM Users   WHERE account_status = 'pending')         AS pendingAccounts,
+        (SELECT COUNT(*) FROM Users   WHERE account_status = 'pending' AND (needs_profile IS NULL OR needs_profile = 0)) AS pendingAccounts,
         (SELECT COUNT(*) FROM Users   WHERE last_seen > (NOW() - INTERVAL 5 MINUTE)) AS online
     `);
 
@@ -355,6 +355,10 @@ exports.deleteUser = async (req, res) => {
       "SELECT name FROM Users WHERE id = ?", [req.params.id]
     );
 
+    // Keep curriculum courses — just unassign this doctor from them (the rest
+    // of the user's data is removed automatically by ON DELETE CASCADE).
+    await promisePool.query("UPDATE Courses SET doctor_id = NULL WHERE doctor_id = ?", [req.params.id]);
+
     await promisePool.query(
       "DELETE FROM Users WHERE id = ?",
       [req.params.id]
@@ -459,12 +463,14 @@ exports.getPendingUsers = async (req, res) => {
       SELECT
         u.id, u.name, u.email, u.username, u.role, u.phone_number, u.created_at,
         ps.academic_year, ps.track,
-        sr.academic_id, sr.full_name AS registry_name,
+        COALESCE(ps.academic_id, sr.academic_id) AS academic_id,
+        sr.full_name AS registry_name,
         sr.academic_year AS registry_year, sr.track AS registry_track
       FROM Users u
       LEFT JOIN Profile_Studies  ps ON ps.user_id   = u.id
       LEFT JOIN student_registry sr ON sr.claimed_by = u.id
       WHERE u.account_status = 'pending'
+        AND (u.needs_profile IS NULL OR u.needs_profile = 0)
       ORDER BY u.created_at ASC
     `);
 
@@ -512,6 +518,7 @@ exports.rejectUser = async (req, res) => {
     if (users.length === 0) return res.status(404).json({ success: false, message: "User not found" });
 
     await promisePool.query("UPDATE student_registry SET claimed_by = NULL WHERE claimed_by = ?", [req.params.id]);
+    await promisePool.query("UPDATE Courses SET doctor_id = NULL WHERE doctor_id = ?", [req.params.id]);
     await promisePool.query("DELETE FROM Users WHERE id = ?", [req.params.id]);
 
     await logActivity(req.user.id, "reject_user", users[0].name || `User #${req.params.id}`, reason ? `Rejected & deleted: ${reason}` : "Rejected & deleted");

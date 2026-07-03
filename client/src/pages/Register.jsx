@@ -131,7 +131,7 @@ export default function Register() {
   const validateDetails = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Full name is required.";
-    if (role === "student" && !form.studentId.trim()) e.studentId = "Academic ID is required.";
+    if (role === "student" && !/^\d{7}$/.test(form.studentId.trim())) e.studentId = "Academic ID must be exactly 7 digits.";
     if (!form.phone.trim()) e.phone = "Phone number is required.";
     if (!googleMode) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email.";
@@ -176,12 +176,19 @@ export default function Register() {
   const handleBackendError = (err) => {
     const data = err.response?.data || {};
     const code = data.code;
+
+    // The Google account already finished registration — it's not a form error.
+    // Clear the stale Google token and send them to log in.
+    if (code === "already_completed") {
+      sessionStorage.removeItem("gToken");
+      setGeneral(data.message || "This account is already registered. Please log in.");
+      setTimeout(() => navigate("/login"), 2200);
+      return;
+    }
+
     const map = {
-      registry_not_found: { field: "studentId", step: "details" },
-      name_mismatch:      { field: "name",      step: "details" },
-      already_claimed:    { field: "studentId", step: "details" },
-      year_mismatch:      { field: "academicYear", step: "settings" },
-      track_mismatch:     { field: "track",     step: "settings" },
+      bad_academic_id: { field: "studentId",    step: "details" },
+      track_required:  { field: "track",        step: "settings" },
     };
     if (code && map[code]) {
       setErrors((e) => ({ ...e, [map[code].field]: data.message }));
@@ -203,11 +210,19 @@ export default function Register() {
     if (!googleMode) { payload.email = form.email.trim(); payload.password = form.password; }
 
     try {
+      let data;
       if (googleMode) {
-        await api.post("/auth/complete-registration", payload, { headers: { Authorization: `Bearer ${gToken}` } });
+        ({ data } = await api.post("/auth/complete-registration", payload, { headers: { Authorization: `Bearer ${gToken}` } }));
         sessionStorage.removeItem("gToken");
       } else {
-        await api.post("/auth/register", payload);
+        ({ data } = await api.post("/auth/register", payload));
+      }
+      // Investors are approved instantly and get a token → log them straight in.
+      if (data?.token) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("role", data.user?.role || "investor");
+        navigate("/HomeInvestor");
+        return;
       }
       setStep("submitted");
     } catch (err) {
@@ -303,7 +318,7 @@ export default function Register() {
                   {role === "student" ? "Your university details" : "Your details"}
                 </h2>
                 {role === "student" && (
-                  <p className="wiz-hint">Enter your name and academic ID exactly as registered at your university.</p>
+                  <p className="wiz-hint">Enter your full name and 7-digit academic ID. An admin will verify your details before your account is activated.</p>
                 )}
 
                 <div className="register-form">
@@ -319,8 +334,10 @@ export default function Register() {
                     <div>
                       <label className="field-label">Academic ID</label>
                       <input className={`register-input ${errors.studentId ? "error" : ""}`}
-                        placeholder="As registered at your university"
-                        value={form.studentId} onChange={(e) => set("studentId", e.target.value)} />
+                        placeholder="7-digit academic ID"
+                        inputMode="numeric" maxLength={7}
+                        value={form.studentId}
+                        onChange={(e) => set("studentId", e.target.value.replace(/\D/g, "").slice(0, 7))} />
                       <p className="field-error">{errors.studentId}</p>
                     </div>
                   )}

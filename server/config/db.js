@@ -62,6 +62,52 @@ async function ensureUniqueIndex(table, indexName, columns) {
   }
 }
 
+// Flip the courses.doctor_id foreign key from ON DELETE CASCADE to SET NULL, so
+// removing a doctor unassigns them from curriculum courses instead of deleting
+// those courses. Idempotent — does nothing once the rule is already SET NULL.
+async function ensureCourseDoctorFkSetNull() {
+  try {
+    const [[{ db }]] = await promisePool.query("SELECT DATABASE() AS db");
+
+    // Detach any course pointing at a doctor that no longer exists — otherwise
+    // (re)creating the FK fails on the orphan rows.
+    await promisePool.query(
+      "UPDATE Courses SET doctor_id = NULL WHERE doctor_id IS NOT NULL AND doctor_id NOT IN (SELECT id FROM Users)"
+    );
+
+    const [rows] = await promisePool.query(
+      `SELECT k.constraint_name AS fk_name, r.delete_rule AS del_rule
+       FROM information_schema.key_column_usage k
+       JOIN information_schema.referential_constraints r
+         ON r.constraint_name = k.constraint_name AND r.constraint_schema = k.table_schema
+       WHERE k.table_schema = ? AND k.table_name = 'courses'
+         AND k.column_name = 'doctor_id' AND k.referenced_table_name = 'users'
+       LIMIT 1`,
+      [db]
+    );
+
+    if (rows.length > 0) {
+      const fkName  = rows[0].fk_name || rows[0].FK_NAME;
+      const delRule = String(rows[0].del_rule || rows[0].DEL_RULE || "").toUpperCase();
+      if (delRule === "SET NULL") return;          // already correct
+      await promisePool.query(`ALTER TABLE Courses DROP FOREIGN KEY \`${fkName}\``);
+    }
+
+    // (Re)create the FK with SET NULL under a stable name.
+    try {
+      await promisePool.query(
+        "ALTER TABLE Courses ADD CONSTRAINT courses_doctor_fk FOREIGN KEY (doctor_id) REFERENCES Users(id) ON DELETE SET NULL"
+      );
+      console.log("  ✅ Courses.doctor_id FK set to ON DELETE SET NULL");
+    } catch (e) {
+      if (e.code !== "ER_FK_DUP_NAME" && e.code !== "ER_DUP_KEYNAME") throw e;
+    }
+  } catch (err) {
+    // Non-fatal: the admin controllers already unassign courses before delete.
+    console.error("⚠️  Course FK migration skipped:", err.message);
+  }
+}
+
 const testConnection = async () => {
   try {
     console.log("📡 Connecting to MySQL...");
@@ -92,12 +138,15 @@ const testConnection = async () => {
       ensureColumn("Users", "reviewed_at",     "DATETIME NULL"),
       // ── Student cohort: track only applies to years 3 & 4 ──
       ensureColumn("Profile_Studies", "track", "ENUM('software','networks') NULL"),
+      // The academic ID the student typed at signup (admin verifies it on
+      // review). Stored on the profile so it survives without a registry claim.
+      ensureColumn("Profile_Studies", "academic_id", "VARCHAR(20) NULL"),
       // Google sign-ups that haven't finished the registration wizard yet.
       ensureColumn("Users", "needs_profile", "TINYINT(1) NOT NULL DEFAULT 0"),
       // First-login onboarding (welcome → photo → friends → groups) after approval.
       ensureColumn("Users", "is_onboarded", "TINYINT(1) NOT NULL DEFAULT 0"),
       // Admins get a notification when a new account needs review.
-      ensureColumn("Notifications", "type", "ENUM('like','comment','follow','post','review','mention','account') DEFAULT NULL"),
+      ensureColumn("Notifications", "type", "ENUM('like','comment','follow','post','review','mention','account','project') DEFAULT NULL"),
       // ── Real-time admin monitoring ──
       // Heartbeat: refreshed (throttled) on every authenticated request so the
       // admin can see who is currently online.
@@ -126,6 +175,25 @@ const testConnection = async () => {
       // A course's materials are ordinary Files tagged with the course they
       // belong to (NULL = a normal library file, not tied to any course).
       ensureColumn("Files",   "course_id",     "INT NULL"),
+      // ── Investor marketplace ──
+      // open_to_investors is now controlled ONLY by the supervising doctor
+      // (the student can't publish their own project). A project also needs
+      // approval_status='approved' by its supervisor to reach investors.
+      ensureColumn("Projects", "open_to_investors", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("Projects", "image_url",   "VARCHAR(255) NULL"),
+      ensureColumn("Projects", "looking_for", "VARCHAR(120) NULL"),
+      // ── Supervision & richer project model ──
+      ensureColumn("Projects", "project_type",        "VARCHAR(60) NULL"),   // IoT, Robotics, ...
+      ensureColumn("Projects", "supervisor_id",       "INT NULL"),           // the chosen doctor
+      ensureColumn("Projects", "approval_status",     "ENUM('pending','approved','rejected','revision') NOT NULL DEFAULT 'pending'"),
+      ensureColumn("Projects", "supervisor_feedback", "TEXT NULL"),
+      ensureColumn("Projects", "video_url",           "VARCHAR(255) NULL"),  // demo video link
+      ensureColumn("Projects", "pitch_deck_url",      "VARCHAR(255) NULL"),  // uploaded PDF
+      ensureColumn("Projects", "featured",            "TINYINT(1) NOT NULL DEFAULT 0"), // project of the week
+      // Project attachments/deliverables are Files tagged with the project.
+      ensureColumn("Files",    "project_id",          "INT NULL"),
+      // A verified investor badge (admin-set).
+      ensureColumn("Investor_Profiles", "verified",   "TINYINT(1) NOT NULL DEFAULT 0"),
     ]);
 
     // Site-wide activity stream — every notable user action is appended here so
@@ -144,6 +212,89 @@ const testConnection = async () => {
       KEY idx_events_created (created_at),
       KEY idx_events_type (event_type),
       KEY idx_events_actor (actor_id)
+    `);
+
+    // Investor bookmarks — a private "saved for later" list of projects.
+    await ensureTable("project_bookmarks", `
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      project_id  INT NOT NULL,
+      investor_id INT NOT NULL,
+      created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      UNIQUE KEY uq_bookmark (project_id, investor_id),
+      KEY idx_bookmark_investor (investor_id),
+      CONSTRAINT fk_bookmark_project  FOREIGN KEY (project_id)  REFERENCES Projects(id) ON DELETE CASCADE,
+      CONSTRAINT fk_bookmark_investor FOREIGN KEY (investor_id) REFERENCES Users(id)    ON DELETE CASCADE
+    `);
+
+    // Doctor endorsements — a doctor vouches for a student project (a trust
+    // badge investors see) with an optional feedback note + star rating.
+    await ensureTable("project_endorsements", `
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      project_id INT NOT NULL,
+      doctor_id  INT NOT NULL,
+      note       TEXT NULL,
+      rating     TINYINT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      UNIQUE KEY uq_endorse (project_id, doctor_id),
+      KEY idx_endorse_project (project_id),
+      CONSTRAINT fk_endorse_project FOREIGN KEY (project_id) REFERENCES Projects(id) ON DELETE CASCADE,
+      CONSTRAINT fk_endorse_doctor  FOREIGN KEY (doctor_id)  REFERENCES Users(id)    ON DELETE CASCADE
+    `);
+    await ensureColumn("project_endorsements", "rating", "TINYINT NULL"); // for pre-existing tables
+
+    // Investor funding offers (amount + message). One live offer per investor
+    // per project (upserted). Sum of amounts drives the funding progress bar.
+    await ensureTable("project_offers", `
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      project_id  INT NOT NULL,
+      investor_id INT NOT NULL,
+      amount      DECIMAL(12,2) NOT NULL DEFAULT 0,
+      message     TEXT NULL,
+      status      ENUM('pending','accepted','declined') NOT NULL DEFAULT 'pending',
+      created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      UNIQUE KEY uq_offer (project_id, investor_id),
+      KEY idx_offer_project (project_id),
+      CONSTRAINT fk_offer_project  FOREIGN KEY (project_id)  REFERENCES Projects(id) ON DELETE CASCADE,
+      CONSTRAINT fk_offer_investor FOREIGN KEY (investor_id) REFERENCES Users(id)    ON DELETE CASCADE
+    `);
+
+    // Meeting requests from an investor to a project's student.
+    await ensureTable("project_meetings", `
+      id            INT AUTO_INCREMENT PRIMARY KEY,
+      project_id    INT NOT NULL,
+      investor_id   INT NOT NULL,
+      proposed_time DATETIME NULL,
+      message       TEXT NULL,
+      status        ENUM('pending','accepted','declined') NOT NULL DEFAULT 'pending',
+      created_at    TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_meeting_project (project_id),
+      CONSTRAINT fk_meeting_project  FOREIGN KEY (project_id)  REFERENCES Projects(id) ON DELETE CASCADE,
+      CONSTRAINT fk_meeting_investor FOREIGN KEY (investor_id) REFERENCES Users(id)    ON DELETE CASCADE
+    `);
+
+    // Public Q&A on a project — anyone (investor) asks, the student answers.
+    await ensureTable("project_questions", `
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      project_id  INT NOT NULL,
+      asker_id    INT NOT NULL,
+      question    TEXT NOT NULL,
+      answer      TEXT NULL,
+      answered_at DATETIME NULL,
+      created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_q_project (project_id),
+      CONSTRAINT fk_q_project FOREIGN KEY (project_id) REFERENCES Projects(id) ON DELETE CASCADE,
+      CONSTRAINT fk_q_asker   FOREIGN KEY (asker_id)   REFERENCES Users(id)    ON DELETE CASCADE
+    `);
+
+    // Milestone / progress updates posted by the student; interested investors
+    // get notified.
+    await ensureTable("project_updates", `
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      project_id INT NOT NULL,
+      content    TEXT NOT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_update_project (project_id),
+      CONSTRAINT fk_update_project FOREIGN KEY (project_id) REFERENCES Projects(id) ON DELETE CASCADE
     `);
 
     // Platform settings — single-row key/value store the admin can toggle
@@ -194,6 +345,11 @@ const testConnection = async () => {
 
     // course_code is the curriculum key the seed conflicts on (idempotency).
     await ensureUniqueIndex("Courses", "uq_courses_code", "course_code");
+
+    // Deleting a doctor must NOT delete the curriculum courses assigned to
+    // them — the course should just become unassigned. The original schema had
+    // courses.doctor_id ON DELETE CASCADE; flip it to SET NULL.
+    await ensureCourseDoctorFkSetNull();
 
     // Seed the official curriculum (idempotent — safe to run every boot).
     try {
@@ -250,6 +406,16 @@ const testConnection = async () => {
           )
       `);
     } catch (_) { /* non-critical — ignore if table structure differs */ }
+
+    // Remove abandoned Google stubs: accounts that started the sign-up wizard
+    // (needs_profile = 1) but were never completed, older than a day. They'd
+    // otherwise linger as junk (hidden from admin review, but still rows).
+    try {
+      const [r] = await promisePool.query(
+        "DELETE FROM Users WHERE needs_profile = 1 AND created_at < DATE_SUB(NOW(), INTERVAL 1 DAY)"
+      );
+      if (r.affectedRows) console.log(`  🧹 Removed ${r.affectedRows} abandoned sign-up stub(s)`);
+    } catch (_) { /* column may not exist on first boot — ignored */ }
 
     console.log("✅ Schema check complete");
 

@@ -332,6 +332,9 @@ const CoursesPage = () => {
 
   useEffect(() => {
     document.title = "My Courses | UniConnect";
+    // Deep-link from the home "My Courses" shortcut (?open=<courseId>) → open it.
+    const open = new URLSearchParams(window.location.search).get("open");
+    if (open) { setOpenId(Number(open)); window.history.replaceState({}, "", "/courses"); }
     (async () => {
       setLoading(true);
       try {

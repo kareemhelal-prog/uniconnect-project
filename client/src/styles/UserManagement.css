@@ -133,10 +133,13 @@
   flex-shrink: 0;
 }
 
-.um-stat-cyan   .um-stat-icon-wrap { background: rgba(0,229,255,0.1);  border: 1px solid rgba(0,229,255,0.2); }
-.um-stat-blue   .um-stat-icon-wrap { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); }
-.um-stat-purple .um-stat-icon-wrap { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.2); }
-.um-stat-green  .um-stat-icon-wrap { background: rgba(34,197,94,0.1);  border: 1px solid rgba(34,197,94,0.2); }
+.um-stat-cyan   .um-stat-icon-wrap { background: rgba(0,229,255,0.1);  border: 1px solid rgba(0,229,255,0.2); color: var(--um-cyan);   }
+.um-stat-blue   .um-stat-icon-wrap { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.2); color: var(--um-blue);   }
+.um-stat-purple .um-stat-icon-wrap { background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.2); color: var(--um-purple); }
+.um-stat-green  .um-stat-icon-wrap { background: rgba(34,197,94,0.1);  border: 1px solid rgba(34,197,94,0.2); color: var(--um-green);  }
+
+/* Inline SVG icons inherit the accent color and center in the tile */
+.um-stat-icon { display: flex; align-items: center; justify-content: center; }
 
 .um-stat-body { display: flex; flex-direction: column; gap: 2px; }
 

@@ -43,45 +43,28 @@ async function notifyAdminsOfSignup(connection, { userId, name, role }) {
   );
 }
 
-// Validate a student's submitted identity against the official registry.
-// Returns { ok:true, registryRow, track } on success, or
-// { ok:false, status, body } describing the exact failure. The caller owns
-// the transaction (and any rollback). Shared by email register + Google finish.
-async function resolveStudentRegistry(connection, { fullName, academicId, academicYear, track }) {
+// Light validation of a student's submitted details. We NO LONGER block on the
+// university registry — the account is created as 'pending' and the admin
+// verifies the details on review (approving correct ones, rejecting the rest).
+// So we only enforce the basic shape: a name, an academic ID of exactly 7
+// digits, a year, and (for 3rd/4th year) a track. Returns { ok:true, track }
+// or { ok:false, status, body }.
+function validateStudentDetails({ fullName, academicId, academicYear, track }) {
   if (!fullName || !academicId || !academicYear) {
     return { ok: false, status: 400, body: { message: "Name, academic ID and year are required" } };
+  }
+  if (!/^\d{7}$/.test(academicId)) {
+    return { ok: false, status: 400, body: { code: "bad_academic_id", message: "Academic ID must be exactly 7 digits." } };
   }
   // Track is required for 3rd/4th year, ignored (forced null) for 1st/2nd.
   if (academicYear === "3" || academicYear === "4") {
     if (!["software", "networks"].includes(track)) {
-      return { ok: false, status: 400, body: { message: "Specialization is required for 3rd and 4th year" } };
+      return { ok: false, status: 400, body: { code: "track_required", message: "Specialization is required for 3rd and 4th year" } };
     }
   } else {
     track = null;
   }
-
-  const [reg] = await connection.query(
-    "SELECT * FROM student_registry WHERE academic_id = ? LIMIT 1",
-    [academicId]
-  );
-  if (reg.length === 0) {
-    return { ok: false, status: 422, body: { code: "registry_not_found", message: "This academic ID was not found in the university records. Please enter it exactly as registered." } };
-  }
-  const registryRow = reg[0];
-
-  if (normalizeName(registryRow.full_name) !== normalizeName(fullName)) {
-    return { ok: false, status: 422, body: { code: "name_mismatch", message: "The name does not match this academic ID in the university records." } };
-  }
-  if (registryRow.claimed_by) {
-    return { ok: false, status: 409, body: { code: "already_claimed", message: "This academic ID has already been registered." } };
-  }
-  if (String(registryRow.academic_year) !== academicYear) {
-    return { ok: false, status: 422, body: { code: "year_mismatch", message: "The selected academic year does not match the university records." } };
-  }
-  if (registryRow.track && registryRow.track !== track) {
-    return { ok: false, status: 422, body: { code: "track_mismatch", message: "The selected specialization does not match the university records." } };
-  }
-  return { ok: true, registryRow, track };
+  return { ok: true, track };
 }
 
 // ==========================================
@@ -115,15 +98,13 @@ exports.register = async (req, res) => {
   try {
     await connection.beginTransaction();
 
-    // ── Student: validate against the university registry ──
-    let registryRow = null;
+    // ── Student: light validation only (admin verifies on review) ──
     if (role === "student") {
-      const check = await resolveStudentRegistry(connection, { fullName, academicId, academicYear, track });
+      const check = validateStudentDetails({ fullName, academicId, academicYear, track });
       if (!check.ok) {
         await connection.rollback();
         return res.status(check.status).json(check.body);
       }
-      registryRow = check.registryRow;
       track = check.track;
     }
 
@@ -137,26 +118,28 @@ exports.register = async (req, res) => {
     // ── Derive a unique username ──
     const usernameBase =
       req.body.username?.trim() ||
-      (role === "student" ? `s${academicId}` : (email.split("@")[0] || "user"));
+      (role === "student" ? academicId : (email.split("@")[0] || "user"));
     const username = await uniqueUsername(connection, usernameBase);
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const name = fullName || username;
 
+    // Investors need no academic verification, so they're approved instantly
+    // and can log in right away; everyone else waits for admin review.
+    const accountStatus = role === "investor" ? "approved" : "pending";
+
     const [userResult] = await connection.query(
-      `INSERT INTO Users (name, email, password, username, role, phone_number, account_status)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
-      [name, email, hashedPassword, username, role, phone_number || null]
+      `INSERT INTO Users (name, email, password, username, role, phone_number, account_status, is_onboarded)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [name, email, hashedPassword, username, role, phone_number || null, accountStatus, role === "investor" ? 1 : 0]
     );
     const userId = userResult.insertId;
 
     if (role === "student") {
       await connection.query(
-        `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year, track) VALUES (?, ?, ?, ?, ?)`,
-        [userId, "General Faculty", track || "General", academicYear, track]
+        `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year, track, academic_id) VALUES (?, ?, ?, ?, ?, ?)`,
+        [userId, "General Faculty", track || "General", academicYear, track, academicId]
       );
-      // Claim the registry record so the same ID can't be reused.
-      await connection.query("UPDATE student_registry SET claimed_by = ? WHERE id = ?", [userId, registryRow.id]);
     } else if (role === "doctor") {
       await connection.query(
         `INSERT INTO Doctor_Profiles (user_id, faculty, specialization) VALUES (?, ?, ?)`,
@@ -169,10 +152,20 @@ exports.register = async (req, res) => {
       );
     }
 
-    await notifyAdminsOfSignup(connection, { userId, name, role });
+    // Only accounts that need review ping the admins — investors don't.
+    if (role !== "investor") {
+      await notifyAdminsOfSignup(connection, { userId, name, role });
+    }
 
     await connection.commit();
-    logEvent({ actorId: userId, actorName: name, type: "signup", targetType: "user", targetId: userId, summary: `New ${role} signed up — awaiting review` });
+    logEvent({ actorId: userId, actorName: name, type: "signup", targetType: "user", targetId: userId, summary: `New ${role} signed up` });
+
+    // Investors are approved instantly → hand back a token so the frontend can
+    // log them straight in. Everyone else goes to the "under review" screen.
+    if (role === "investor") {
+      const token = jwt.sign({ id: userId, email, role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
+      return res.status(201).json({ status: "approved", token, user: { id: userId, name, email, role } });
+    }
     return res.status(201).json({ message: "submitted_for_review", status: "pending", userId });
 
   } catch (error) {
@@ -217,38 +210,39 @@ exports.completeRegistration = async (req, res) => {
     }
     if (!user.needs_profile) {
       await connection.rollback();
-      return res.status(409).json({ message: "This account is already set up" });
+      return res.status(409).json({ code: "already_completed", message: "This account is already registered. Please log in." });
     }
 
-    let registryRow = null;
     if (role === "student") {
-      const check = await resolveStudentRegistry(connection, { fullName, academicId, academicYear, track });
+      const check = validateStudentDetails({ fullName, academicId, academicYear, track });
       if (!check.ok) {
         await connection.rollback();
         return res.status(check.status).json(check.body);
       }
-      registryRow = check.registryRow;
       track = check.track;
     }
 
-    // Finalize the stub: set role, name/phone, keep it pending, clear the flag.
+    // Investors are approved instantly (no review); everyone else stays pending.
+    const accountStatus = role === "investor" ? "approved" : "pending";
+
+    // Finalize the stub: set role, name/phone, clear the wizard flag.
     await connection.query(
       `UPDATE Users
        SET role = ?, name = COALESCE(NULLIF(?, ''), name),
            phone_number = COALESCE(?, phone_number),
-           account_status = 'pending', needs_profile = 0
+           account_status = ?, needs_profile = 0,
+           is_onboarded = CASE WHEN ? = 'investor' THEN 1 ELSE is_onboarded END
        WHERE id = ?`,
-      [role, fullName, phone_number || null, userId]
+      [role, fullName, phone_number || null, accountStatus, role, userId]
     );
 
     if (role === "student") {
       await connection.query(
-        `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year, track)
-         VALUES (?, 'General Faculty', ?, ?, ?)
-         ON DUPLICATE KEY UPDATE major = VALUES(major), academic_year = VALUES(academic_year), track = VALUES(track)`,
-        [userId, track || "General", academicYear, track]
+        `INSERT INTO Profile_Studies (user_id, faculty, major, academic_year, track, academic_id)
+         VALUES (?, 'General Faculty', ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE major = VALUES(major), academic_year = VALUES(academic_year), track = VALUES(track), academic_id = VALUES(academic_id)`,
+        [userId, track || "General", academicYear, track, academicId]
       );
-      await connection.query("UPDATE student_registry SET claimed_by = ? WHERE id = ?", [userId, registryRow.id]);
     } else if (role === "doctor") {
       await connection.query(
         `INSERT INTO Doctor_Profiles (user_id, faculty, specialization) VALUES (?, 'General Faculty', 'General')
@@ -263,10 +257,20 @@ exports.completeRegistration = async (req, res) => {
       );
     }
 
-    await notifyAdminsOfSignup(connection, { userId, name: fullName || user.name, role });
+    if (role !== "investor") {
+      await notifyAdminsOfSignup(connection, { userId, name: fullName || user.name, role });
+    }
 
     await connection.commit();
-    logEvent({ actorId: userId, actorName: fullName || user.name, type: "signup", targetType: "user", targetId: userId, summary: `New ${role} signed up via Google — awaiting review` });
+    logEvent({ actorId: userId, actorName: fullName || user.name, type: "signup", targetType: "user", targetId: userId, summary: `New ${role} signed up via Google` });
+
+    // Investor → issue a fresh token (role changed from the stub) so the wizard
+    // logs them straight in. Everyone else goes to the "under review" screen.
+    if (role === "investor") {
+      const email = req.user.email;
+      const token = jwt.sign({ id: userId, email, role }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || "7d" });
+      return res.status(200).json({ status: "approved", token, user: { id: userId, name: fullName || user.name, email, role } });
+    }
     return res.status(200).json({ message: "submitted_for_review", status: "pending" });
   } catch (error) {
     await connection.rollback();

@@ -18,26 +18,29 @@ import {
   FiLogOut,
   FiBook,
   FiCompass,
+  FiBriefcase,
 } from "react-icons/fi";
 
 const API_BASE = "/api";
 
 const LAUNCHER_PAGES_STUDENT = [
-  { id: "profile",   label: "Profile",          icon: FiUser,     path: "/profile" },
-  { id: "courses",   label: "My Courses",       icon: FiBook,     path: "/courses" },
-  { id: "files",     label: "Files",            icon: FiFile,     path: "/files" },
-  { id: "groups",    label: "Groups",           icon: FiCompass,  path: "/groups" },
-  { id: "my-groups", label: "My Groups",        icon: FiUsers,    path: "/my-groups" },
-  { id: "reviews",   label: "Academic Reviews", icon: FiStar,     path: "/reviews" },
+  { id: "profile",   label: "Profile",          icon: FiUser,      path: "/profile" },
+  { id: "courses",   label: "My Courses",       icon: FiBook,      path: "/courses" },
+  { id: "files",     label: "Files",            icon: FiFile,      path: "/files" },
+  { id: "projects",  label: "Projects",         icon: FiBriefcase, path: "/projects" },
+  { id: "groups",    label: "Groups",           icon: FiCompass,   path: "/groups" },
+  { id: "my-groups", label: "My Groups",        icon: FiUsers,     path: "/my-groups" },
+  { id: "reviews",   label: "Academic Reviews", icon: FiStar,      path: "/reviews" },
 ];
 
 const LAUNCHER_PAGES_DOCTOR = [
-  { id: "profile",   label: "Profile",    icon: FiUser,    path: "/profile" },
-  { id: "courses",   label: "My Courses", icon: FiBook,    path: "/courses" },
-  { id: "files",     label: "Files",      icon: FiFile,    path: "/files" },
-  { id: "groups",    label: "Groups",     icon: FiCompass, path: "/groups" },
-  { id: "my-groups", label: "My Groups",  icon: FiUsers,   path: "/my-groups" },
-  { id: "reviews",   label: "Reviews",    icon: FiStar,    path: "/reviews" },
+  { id: "profile",   label: "Profile",    icon: FiUser,      path: "/profile" },
+  { id: "courses",   label: "My Courses", icon: FiBook,      path: "/courses" },
+  { id: "files",     label: "Files",      icon: FiFile,      path: "/files" },
+  { id: "projects",  label: "Projects",   icon: FiBriefcase, path: "/projects" },
+  { id: "groups",    label: "Groups",     icon: FiCompass,   path: "/groups" },
+  { id: "my-groups", label: "My Groups",  icon: FiUsers,     path: "/my-groups" },
+  { id: "reviews",   label: "Reviews",    icon: FiStar,      path: "/reviews" },
 ];
 
 const notifIcon = (type) => {
@@ -221,6 +224,9 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
     markNotifRead(n.id);
     if (n.type === "follow") {
       goTo(`/profile?tab=followers`);
+    } else if (n.type === "project" && n.reference_id) {
+      // Investor interest / doctor endorsement → open that project.
+      goTo(`/projects?open=${n.reference_id}`);
     } else if (n.reference_id) {
       const hash = n.type === "comment" && n.reference_comment_id
         ? `#comment-${n.reference_comment_id}` : "";

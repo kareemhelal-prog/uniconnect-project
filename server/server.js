@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const http = require("http");
+const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 
@@ -33,6 +34,11 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 testConnection();
+
+// Project cover images are public marketing images — serve ONLY this subfolder
+// statically. The protected files library (uploads/files) stays behind its
+// auth-checked download controller and is deliberately NOT exposed here.
+app.use("/uploads/projects", express.static(path.join(__dirname, "uploads/projects")));
 
 app.use("/api/auth",          authRoutes);
 app.use("/api/users",         userRoutes);

@@ -1,5 +1,6 @@
 import "../styles/UserManagement.css";
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { FaUsers, FaUserGraduate, FaChalkboardTeacher, FaBriefcase } from "react-icons/fa";
 import api from "../api/axios";
 
 const ROLE_COLORS = {
@@ -209,6 +210,15 @@ export default function UserManagement() {
     }
   };
 
+  const verifyInvestor = async (user) => {
+    try {
+      await api.post(`/projects/investors/${user.id}/verify`, { verified: true });
+      showToast(`${user.name} marked as a verified investor`);
+    } catch {
+      showToast("Could not verify", "error");
+    }
+  };
+
   const changeRole = async (id, role) => {
     try {
       await api.put(`/admin/users/${id}/role`, { role });
@@ -246,10 +256,10 @@ export default function UserManagement() {
 
       {/* Stats */}
       <div className="um-stats-bar">
-        <StatCard icon="👥" value={total}          label="Total Users"    accent="cyan"   />
-        <StatCard icon="🎓" value={stats.students}  label="Students"       accent="blue"   />
-        <StatCard icon="🩺" value={stats.doctors}   label="Doctors"        accent="purple" />
-        <StatCard icon="💼" value={stats.investors} label="Investors"      accent="green"  />
+        <StatCard icon={<FaUsers />}             value={total}          label="Total Users" accent="cyan"   />
+        <StatCard icon={<FaUserGraduate />}      value={stats.students}  label="Students"    accent="blue"   />
+        <StatCard icon={<FaChalkboardTeacher />} value={stats.doctors}   label="Doctors"     accent="purple" />
+        <StatCard icon={<FaBriefcase />}         value={stats.investors} label="Investors"   accent="green"  />
       </div>
 
       {/* Table Panel */}
@@ -335,6 +345,15 @@ export default function UserManagement() {
                     </td>
                     <td onClick={e => e.stopPropagation()}>
                       <div className="um-actions">
+                        {user.role === "investor" && (
+                          <button
+                            className="um-act-btn activate"
+                            title="Mark as verified investor"
+                            onClick={() => verifyInvestor(user)}
+                          >
+                            ✔
+                          </button>
+                        )}
                         <button
                           className={`um-act-btn ${user.is_active ? "deactivate" : "activate"}`}
                           title={user.is_active ? "Deactivate" : "Activate"}

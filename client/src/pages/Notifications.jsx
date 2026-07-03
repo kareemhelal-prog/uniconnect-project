@@ -55,6 +55,8 @@ export default function Notifications() {
     markRead(notif.id);
     if (notif.type === "follow") {
       navigate(`/profile?tab=followers`);
+    } else if (notif.type === "project" && notif.reference_id) {
+      navigate(`/projects?open=${notif.reference_id}`);
     } else if (notif.reference_id) {
       const hash = notif.type === "comment" && notif.reference_comment_id
         ? `#comment-${notif.reference_comment_id}` : "";
