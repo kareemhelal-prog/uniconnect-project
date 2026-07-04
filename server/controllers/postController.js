@@ -3,6 +3,32 @@ const { notify } = require("../utils/notify");
 const { logEvent } = require("../utils/logEvent");
 const { getUserCohort, buildCohortFilter, canViewCohort, normalizeCohortInput } = require("../utils/cohort");
 
+// Attach reaction data to a list of post rows (mutates them):
+//  · my_reaction    — the viewer's own reaction on the post (or null)
+//  · reaction_types — distinct reactions present, most-popular first (for the
+//                     little emoji cluster next to the count)
+// Done in two set-based queries rather than per-row subqueries.
+async function attachReactions(posts, userId) {
+  if (!posts || posts.length === 0) return;
+  const ids = posts.map((p) => p.id);
+  const [mine] = await promisePool.query(
+    "SELECT post_id, reaction FROM Likes WHERE user_id = ? AND post_id IN (?)",
+    [userId, ids]
+  );
+  const [breakdown] = await promisePool.query(
+    "SELECT post_id, reaction, COUNT(*) AS c FROM Likes WHERE post_id IN (?) GROUP BY post_id, reaction",
+    [ids]
+  );
+  const myMap = {};
+  mine.forEach((r) => { myMap[r.post_id] = r.reaction; });
+  const brkMap = {};
+  breakdown.forEach((r) => { (brkMap[r.post_id] = brkMap[r.post_id] || []).push({ r: r.reaction, c: r.c }); });
+  posts.forEach((p) => {
+    p.my_reaction = myMap[p.id] || null;
+    p.reaction_types = (brkMap[p.id] || []).sort((a, b) => b.c - a.c).map((x) => x.r);
+  });
+}
+
 // =======================
 // CREATE POST
 // =======================
@@ -134,6 +160,7 @@ exports.getAllPosts = async (req, res) => {
       }
     }
 
+    await attachReactions(formatted, userId);
     res.json({ message: "Posts fetched successfully", data: formatted });
 
   } catch (error) {
@@ -199,6 +226,7 @@ exports.getPostById = async (req, res) => {
     }
     post.comments = top;
 
+    await attachReactions([post], req.user.id);
     res.json({ data: post });
 
   } catch (error) {
@@ -330,6 +358,7 @@ exports.getPostsByUser = async (req, res) => {
       }
     }
 
+    await attachReactions(formatted, currentUserId);
     res.json({ message: "Posts fetched", data: formatted });
 
   } catch (error) {

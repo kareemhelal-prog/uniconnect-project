@@ -1,17 +1,17 @@
 .post-card {
   background: var(--bg2);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 20px 22px;
   transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
   cursor: default;
   animation: fadeUp 0.4s ease both;
 }
 
 .post-card:hover {
-  border-color: rgba(0, 229, 255, 0.3);
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.07);
-  transform: translateY(-1px);
+  border-color: var(--border-soft, rgba(0, 229, 255, 0.3));
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.35);
+  transform: translateY(-2px);
 }
 
 /* ─── Header ────────────────────────────── */
@@ -301,55 +301,96 @@
 /* ─── Actions ───────────────────────────── */
 .post-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .action-btn {
   flex: 1;
-  padding: 9px 6px;
+  width: 100%;
+  padding: 10px 6px;
   border-radius: 10px;
-  border: 1px solid var(--border);
-  background: var(--bg3);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: background 0.18s, color 0.18s, transform 0.12s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  -webkit-tap-highlight-color: transparent;
+}
+.action-btn svg { flex-shrink: 0; }
+.action-btn:hover  { background: var(--surface-hover, var(--bg3)); color: var(--text); }
+.action-btn:active { transform: scale(0.96); }
+
+/* Like button reflects the chosen reaction (colour set inline in JSX). */
+.action-btn.like-btn.reacted { font-weight: 800; }
+
+.comment-btn:hover { color: #60a5fa; }
+.share-btn:hover   { color: #22c55e; }
+.share-btn.shared  { color: #22c55e; }
+
+/* ─── Reaction palette (Facebook-style) ─── */
+.reaction-wrap { position: relative; flex: 1; display: flex; }
+
+.reaction-palette {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: var(--surface-solid, var(--bg2));
+  border: 1px solid var(--border-soft, var(--border));
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 60;
+  animation: reactPop 0.18s cubic-bezier(.2,.9,.3,1.2);
+}
+@keyframes reactPop {
+  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.reaction-palette::after {
+  content: ""; position: absolute; top: 100%; left: 24px;
+  border: 6px solid transparent; border-top-color: var(--surface-solid, var(--bg2));
 }
 
-.action-btn:hover {
-  background: rgba(0, 229, 255, 0.08);
-  border-color: rgba(0, 229, 255, 0.25);
-  color: var(--cyan);
+.reaction-opt {
+  position: relative;
+  background: none; border: none; cursor: pointer;
+  padding: 2px; line-height: 1;
+  transition: transform 0.16s cubic-bezier(.2,.9,.3,1.4);
+  animation: reactRise 0.24s ease both;
 }
+@keyframes reactRise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.reaction-opt .reaction-emoji { font-size: 30px; display: block; transition: transform 0.16s; }
+.reaction-opt:hover { transform: translateY(-8px) scale(1.28); }
+.reaction-tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: rgba(10, 10, 18, 0.92); color: #fff;
+  font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+  white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s;
+}
+.reaction-opt:hover .reaction-tip { opacity: 1; }
 
-.action-btn.liked {
-  background: rgba(255, 51, 204, 0.1);
-  border-color: rgba(255, 51, 204, 0.35);
-  color: var(--pink);
-}
+.reaction-emoji { font-size: 16px; line-height: 1; }
 
-.comment-btn:hover {
-  background: rgba(96, 165, 250, 0.1);
-  border-color: rgba(96, 165, 250, 0.3);
-  color: var(--blue);
+/* ─── Reaction cluster on the stats row ─── */
+.reaction-cluster { display: inline-flex; align-items: center; margin-right: 6px; vertical-align: middle; }
+.reaction-chip {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface-solid, var(--bg2));
+  border: 2px solid var(--bg2);
+  font-size: 12px; margin-left: -6px;
 }
-
-.share-btn:hover {
-  background: rgba(34, 197, 94, 0.1);
-  border-color: rgba(34, 197, 94, 0.3);
-  color: var(--green);
-}
-
-.share-btn.shared {
-  background: rgba(34, 197, 94, 0.15);
-  border-color: rgba(34, 197, 94, 0.45);
-  color: var(--green);
-}
+.reaction-chip:first-child { margin-left: 0; }
+.reaction-count { color: var(--muted); font-size: 12px; }
 
 /* ─── Comments ───────────────────────────── */
 .comments-section {
@@ -657,7 +698,8 @@
 
 @media (max-width: 380px) {
   .post-card { padding: 10px; }
-  .action-btn span:not(.emoji) { display: none; }
+  /* Keep icons/emoji, drop the text labels to save room. */
+  .action-btn .btn-label { display: none; }
 }
 
 /* Animation */

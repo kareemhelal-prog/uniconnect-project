@@ -218,6 +218,9 @@ const testConnection = async () => {
       // Per-OTP guess counter — caps brute-force of a password-reset code to a
       // handful of attempts before the code is burned (see verifyOtp).
       ensureColumn("password_resets", "attempts", "INT NOT NULL DEFAULT 0"),
+      // Post reactions: a Like now carries a reaction TYPE (Facebook-style).
+      // Existing likes default to 'like' so nothing changes for old data.
+      ensureColumn("Likes", "reaction", "VARCHAR(20) NOT NULL DEFAULT 'like'"),
     ]);
 
     // Site-wide activity stream — every notable user action is appended here so

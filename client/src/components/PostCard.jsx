@@ -22,6 +22,35 @@ const resolveImg = (pic) => {
   return `/${pic.replace(/^\//, "")}`;
 };
 
+// Facebook-style reaction set. `key` is what the API stores; emoji + label +
+// colour drive the UI. The neutral default is "like".
+const REACTIONS = [
+  { key: "like",  emoji: "👍", label: "Like",  color: "#2e81f4" },
+  { key: "love",  emoji: "❤️", label: "Love",  color: "#f33e58" },
+  { key: "haha",  emoji: "😆", label: "Haha",  color: "#f7b125" },
+  { key: "wow",   emoji: "😮", label: "Wow",   color: "#f7b125" },
+  { key: "sad",   emoji: "😢", label: "Sad",   color: "#f7b125" },
+  { key: "angry", emoji: "😡", label: "Angry", color: "#e9710f" },
+];
+const REACT_MAP = Object.fromEntries(REACTIONS.map((r) => [r.key, r]));
+
+// Clean line icons (no emoji) for the neutral Like / Comment / Share actions.
+const ThumbIcon = (p) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M7 10.5V21H4a1 1 0 0 1-1-1v-8.5a1 1 0 0 1 1-1h3Z" /><path d="M7 10.5l4.2-7a1.8 1.8 0 0 1 3.3 1.3L13.5 9H20a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 18.8 20H7" />
+  </svg>
+);
+const CommentIcon = (p) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M21 11.5a8.4 8.4 0 0 1-8.5 8.5 9 9 0 0 1-3.9-.9L3 21l1.4-4.5A8.3 8.3 0 0 1 3.5 11.5 8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5Z" />
+  </svg>
+);
+const ShareIcon = (p) => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...p}>
+    <path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="M16 6l-4-4-4 4" /><path d="M12 2v13" />
+  </svg>
+);
+
 function VerifiedBadge() {
   return <span className="verified-badge" title="Verified account">✓</span>;
 }
@@ -206,8 +235,12 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
   const isVerified = post.role === "doctor" || post.role === "admin";
   const postPic = resolveImg(post.profile_picture || "");
 
-  const [liked, setLiked]               = useState(!!post.liked);
+  const [myReaction, setMyReaction]     = useState(post.my_reaction || (post.liked ? "like" : null));
   const [likesCount, setLikesCount]     = useState(Number(post.likes || post.likes_count) || 0);
+  const [reactionTypes, setReactionTypes] = useState(Array.isArray(post.reaction_types) ? post.reaction_types.filter(Boolean) : []);
+  const [showReactions, setShowReactions] = useState(false);
+  const pressTimer = React.useRef(null);
+  const hoverTimer = React.useRef(null);
   const [showComments, setShowComments] = useState(!!defaultShowComments);
   const [commentText, setCommentText]   = useState("");
   const [comments, setComments]         = useState(post.comments || []);
@@ -270,27 +303,52 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
     };
   }, [post.id]);
 
-  const handleLike = async () => {
-    // Optimistic update first
-    const wasLiked = liked;
-    setLiked(!wasLiked);
-    setLikesCount(c => wasLiked ? c - 1 : c + 1);
+  // Apply / switch / remove a reaction. Tapping the same reaction removes it.
+  const applyReaction = async (reactionKey) => {
+    const prevReaction = myReaction;
+    const prevCount = likesCount;
+    const prevTypes = reactionTypes;
+
+    const next = myReaction === reactionKey ? null : reactionKey;
+    // Optimistic UI
+    setMyReaction(next);
+    setLikesCount(c => (!prevReaction && next) ? c + 1 : (prevReaction && !next) ? Math.max(0, c - 1) : c);
+    setReactionTypes(t => (next && !t.includes(next)) ? [next, ...t] : t);
+    setShowReactions(false);
+
     try {
-      const res  = await fetch(`${API_BASE}/likes`, {
+      const res = await fetch(`${API_BASE}/likes`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token()}` },
-        body: JSON.stringify({ post_id: post.id }),
+        body: JSON.stringify({ post_id: post.id, reaction: reactionKey }),
       });
       const data = await res.json();
-      // Sync to real DB count
       if (typeof data.likes === "number") setLikesCount(data.likes);
-      if (typeof data.liked === "boolean") setLiked(data.liked);
+      if ("reaction" in data) setMyReaction(data.reaction || null);
     } catch {
-      // Revert on error
-      setLiked(wasLiked);
-      setLikesCount(c => wasLiked ? c + 1 : c - 1);
+      setMyReaction(prevReaction); setLikesCount(prevCount); setReactionTypes(prevTypes);
     }
   };
+
+  // Plain button: react with "like", or remove whatever reaction you have.
+  const handleLikeClick = () => applyReaction(myReaction || "like");
+
+  // Open the reaction palette on hover (desktop) or long-press (touch).
+  const openPalette  = () => setShowReactions(true);
+  const onLikeEnter  = () => { clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(openPalette, 320); };
+  const onLikeLeave  = () => { clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(() => setShowReactions(false), 260); };
+  const onPressStart = () => { pressTimer.current = setTimeout(openPalette, 380); };
+  const onPressEnd   = () => clearTimeout(pressTimer.current);
+
+  useEffect(() => () => { clearTimeout(hoverTimer.current); clearTimeout(pressTimer.current); }, []);
+  // Dismiss the palette on any outside tap while it's open.
+  useEffect(() => {
+    if (!showReactions) return;
+    const close = () => setShowReactions(false);
+    window.addEventListener("scroll", close, true);
+    document.addEventListener("touchstart", close);
+    return () => { window.removeEventListener("scroll", close, true); document.removeEventListener("touchstart", close); };
+  }, [showReactions]);
 
   const handleComment = async () => {
     if (!commentText.trim() || sendingComment) return;
@@ -469,7 +527,16 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
       </div>
 
       <div className="post-stats-row">
-        <span className="post-stat">{likesCount} likes</span>
+        <span className="post-stat">
+          {likesCount > 0 && (
+            <span className="reaction-cluster">
+              {(reactionTypes.length ? reactionTypes : ["like"]).slice(0, 3).map((k, i) => (
+                <span key={k} className="reaction-chip" style={{ zIndex: 3 - i }}>{(REACT_MAP[k] || REACT_MAP.like).emoji}</span>
+              ))}
+            </span>
+          )}
+          <span className="reaction-count">{likesCount > 0 ? likesCount : "Be the first to react"}</span>
+        </span>
         <span className="post-stat">
           {comments.length > 0 ? comments.length : (post.comments_count || 0)} comments
         </span>
@@ -478,14 +545,38 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
       <div className="post-divider" />
 
       <div className="post-actions">
-        <button className={`action-btn like-btn${liked ? " liked" : ""}`} onClick={handleLike}>
-          {liked ? "❤️" : "🤍"} Like
-        </button>
+        {(() => {
+          const cur = myReaction ? REACT_MAP[myReaction] : null;
+          return (
+            <div className="reaction-wrap" onMouseEnter={onLikeEnter} onMouseLeave={onLikeLeave}>
+              {showReactions && (
+                <div className="reaction-palette" role="menu">
+                  {REACTIONS.map((r, i) => (
+                    <button key={r.key} className="reaction-opt" style={{ animationDelay: `${i * 30}ms` }}
+                      title={r.label} onClick={() => applyReaction(r.key)}>
+                      <span className="reaction-emoji">{r.emoji}</span>
+                      <span className="reaction-tip">{r.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                className={`action-btn like-btn${cur ? " reacted" : ""}`}
+                style={cur ? { color: cur.color } : undefined}
+                onClick={handleLikeClick}
+                onTouchStart={onPressStart} onTouchEnd={onPressEnd} onTouchMove={onPressEnd}
+              >
+                {cur ? <span className="reaction-emoji">{cur.emoji}</span> : <ThumbIcon />}
+                <span className="btn-label">{cur ? cur.label : "Like"}</span>
+              </button>
+            </div>
+          );
+        })()}
         <button className="action-btn comment-btn" onClick={() => setShowComments(s => !s)}>
-          💬 Comment
+          <CommentIcon /> <span className="btn-label">Comment</span>
         </button>
         <button className={`action-btn share-btn${shared ? " shared" : ""}`} onClick={handleShare}>
-          {shared ? "✓ Link copied!" : "↗ Share"}
+          <ShareIcon /> <span className="btn-label">{shared ? "Copied!" : "Share"}</span>
         </button>
       </div>
 
