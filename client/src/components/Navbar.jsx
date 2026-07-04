@@ -227,6 +227,8 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
     } else if (n.type === "project" && n.reference_id) {
       // Investor interest / doctor endorsement → open that project.
       goTo(`/projects?open=${n.reference_id}`);
+    } else if (n.type === "group" && n.reference_id) {
+      goTo(`/groups/${n.reference_id}`);
     } else if (n.reference_id) {
       const hash = n.type === "comment" && n.reference_comment_id
         ? `#comment-${n.reference_comment_id}` : "";

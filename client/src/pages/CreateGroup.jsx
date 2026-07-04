@@ -1,190 +1,104 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
 import API from "../api/axios";
-
 import "../styles/CreateGroup.css";
 
-const YEAR_OPTIONS = ["1st Year", "2nd Year", "3rd Year", "4th Year", "All Years"];
-const TYPE_OPTIONS = ["Subject Groups", "Other Groups"];
+// Who the group is visible to. [] = everyone. track omitted = whole year.
+const AUDIENCE = [
+  { key: "everyone", label: "Everyone — whole college", audience: [] },
+  { key: "y1", label: "Year 1 only", audience: [{ academic_year: "1" }] },
+  { key: "y2", label: "Year 2 only", audience: [{ academic_year: "2" }] },
+  { key: "y1_2", label: "Year 1 & 2 together", audience: [{ academic_year: "1" }, { academic_year: "2" }] },
+  { key: "y2_3", label: "Year 2 & 3 together", audience: [{ academic_year: "2" }, { academic_year: "3" }] },
+  { key: "y3_4", label: "Year 3 & 4 together", audience: [{ academic_year: "3" }, { academic_year: "4" }] },
+  { key: "y3_both", label: "Year 3 — both tracks", audience: [{ academic_year: "3" }] },
+  { key: "y3_sw", label: "Year 3 — Software", audience: [{ academic_year: "3", track: "software" }] },
+  { key: "y3_net", label: "Year 3 — Networks", audience: [{ academic_year: "3", track: "networks" }] },
+  { key: "y4_both", label: "Year 4 — both tracks", audience: [{ academic_year: "4" }] },
+  { key: "y4_sw", label: "Year 4 — Software", audience: [{ academic_year: "4", track: "software" }] },
+  { key: "y4_net", label: "Year 4 — Networks", audience: [{ academic_year: "4", track: "networks" }] },
+];
 
 const CreateGroup = () => {
-
   const navigate = useNavigate();
-
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    group_image: "",
-    is_private: false,
-    academic_year: "",
-    group_type: "",
-  });
-
+  const [form, setForm] = useState({ name: "", description: "", group_image: "", audience: "everyone" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [submitted, setSubmitted] = useState(false);
 
-  const handleChange = (e) => {
-
-    const { name, value, type, checked } = e.target;
-
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
-  };
+  const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setError(""); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
+    setLoading(true);
     try {
-
-      setLoading(true);
-
-      await API.post("/groups", {
-        ...formData,
-        name: formData.name.trim(),
-        description: formData.description.trim(),
+      const preset = AUDIENCE.find((a) => a.key === form.audience) || AUDIENCE[0];
+      const { data } = await API.post("/groups", {
+        name: form.name.trim(),
+        description: form.description.trim(),
+        group_image: form.group_image.trim() || null,
+        audience: preset.audience,
       });
-
-      navigate("/groups");
-
+      if (data.status === "pending") setSubmitted(true);
+      else navigate(`/groups/${data.groupId}`);
     } catch (err) {
-
-      console.error(err);
-
-      setError(
-        err.response?.data?.message || "Failed to create group. Please try again."
-      );
-
+      setError(err.response?.data?.message || "Failed to create group. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  if (submitted) {
+    return (
+      <div className="create-group-page">
+        <div className="create-group-card cg-review">
+          <div className="cg-review-icon">✓</div>
+          <h1>Submitted for review</h1>
+          <p>Your group was sent to the administration. Once it's approved it will appear to the students you targeted, and they'll be notified.</p>
+          <button className="create-btn" onClick={() => navigate("/groups")}>Back to Groups</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="create-group-page">
-
       <div className="create-group-card">
-
         <h1>Create New Group</h1>
-
-        <p>
-          Build your own student community and connect with others.
-        </p>
+        <p>Build a student community to share resources and study together.</p>
+        <div className="cg-note">Students can create one group. It needs admin approval before it appears.</div>
 
         {error && <div className="form-error">{error}</div>}
 
         <form onSubmit={handleSubmit}>
-
           <div className="form-group">
-
             <label>Group Name</label>
-
-            <input
-              type="text"
-              name="name"
-              placeholder="Enter group name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-            />
-
+            <input type="text" placeholder="Enter group name" value={form.name} onChange={(e) => set("name", e.target.value)} required />
           </div>
 
           <div className="form-group">
-
             <label>Description</label>
-
-            <textarea
-              name="description"
-              placeholder="Enter group description"
-              value={formData.description}
-              onChange={handleChange}
-              rows="5"
-              required
-            />
-
-          </div>
-
-          <div className="form-row">
-
-            <div className="form-group">
-
-              <label>Academic Year</label>
-
-              <select
-                name="academic_year"
-                value={formData.academic_year}
-                onChange={handleChange}
-                required
-              >
-                <option value="" disabled>-- Select Year --</option>
-                {YEAR_OPTIONS.map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
-
-            </div>
-
-            <div className="form-group">
-
-              <label>Group Type</label>
-
-              <select
-                name="group_type"
-                value={formData.group_type}
-                onChange={handleChange}
-                required
-              >
-                <option value="" disabled>-- Select Type --</option>
-                {TYPE_OPTIONS.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-
-            </div>
-
+            <textarea placeholder="What is this group about?" value={form.description} onChange={(e) => set("description", e.target.value)} rows="4" required />
           </div>
 
           <div className="form-group">
-
-            <label>Group Image URL</label>
-
-            <input
-              type="text"
-              name="group_image"
-              placeholder="Paste image URL"
-              value={formData.group_image}
-              onChange={handleChange}
-            />
-
+            <label>Who can see &amp; join this group?</label>
+            <select value={form.audience} onChange={(e) => set("audience", e.target.value)} required>
+              {AUDIENCE.map((a) => <option key={a.key} value={a.key}>{a.label}</option>)}
+            </select>
+            <span className="cg-hint">Only the students you pick will see the group and get notified.</span>
           </div>
 
-          <div className="checkbox-group">
-
-            <input
-              type="checkbox"
-              name="is_private"
-              checked={formData.is_private}
-              onChange={handleChange}
-            />
-
-            <span>Private Group</span>
-
+          <div className="form-group">
+            <label>Group Image URL <span className="cg-opt">(optional)</span></label>
+            <input type="text" placeholder="Paste image URL" value={form.group_image} onChange={(e) => set("group_image", e.target.value)} />
           </div>
 
-          <button
-            type="submit"
-            className="create-btn"
-            disabled={loading}
-          >
-            {loading ? "Creating..." : "Create Group"}
+          <button type="submit" className="create-btn" disabled={loading || !form.name.trim() || !form.description.trim()}>
+            {loading ? "Creating..." : "Submit Group"}
           </button>
-
         </form>
-
       </div>
     </div>
   );

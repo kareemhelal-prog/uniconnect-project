@@ -146,7 +146,7 @@ const testConnection = async () => {
       // First-login onboarding (welcome → photo → friends → groups) after approval.
       ensureColumn("Users", "is_onboarded", "TINYINT(1) NOT NULL DEFAULT 0"),
       // Admins get a notification when a new account needs review.
-      ensureColumn("Notifications", "type", "ENUM('like','comment','follow','post','review','mention','account','project') DEFAULT NULL"),
+      ensureColumn("Notifications", "type", "ENUM('like','comment','follow','post','review','mention','account','project','group') DEFAULT NULL"),
       // ── Real-time admin monitoring ──
       // Heartbeat: refreshed (throttled) on every authenticated request so the
       // admin can see who is currently online.
@@ -194,6 +194,27 @@ const testConnection = async () => {
       ensureColumn("Files",    "project_id",          "INT NULL"),
       // A verified investor badge (admin-set).
       ensureColumn("Investor_Profiles", "verified",   "TINYINT(1) NOT NULL DEFAULT 0"),
+      // ── Study groups ──
+      // Group materials are Files tagged with the group; group posts can be
+      // pinned and flagged as announcements.
+      ensureColumn("Files",       "group_id",  "INT NULL"),
+      ensureColumn("Group_Posts", "is_pinned", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("Group_Posts", "post_type", "ENUM('post','announcement') NOT NULL DEFAULT 'post'"),
+      // "edited" flag across every group entity (set true when edited).
+      ensureColumn("Group_Posts",      "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("group_questions",  "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("group_answers",    "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("Files",            "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("group_sessions",   "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("group_tasks",      "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("group_flashcards", "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("group_wiki",       "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      ensureColumn("group_polls",      "is_edited", "TINYINT(1) NOT NULL DEFAULT 0"),
+      // Wiki docs are PRIVATE per user (each member has their own notes).
+      ensureColumn("group_wiki",  "owner_id",  "INT NULL"),
+      // Group approval workflow (student-created groups need admin approval).
+      // Existing groups default to 'approved' so they stay visible.
+      ensureColumn("`Groups`", "status", "ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'"),
     ]);
 
     // Site-wide activity stream — every notable user action is appended here so
@@ -295,6 +316,146 @@ const testConnection = async () => {
       created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       KEY idx_update_project (project_id),
       CONSTRAINT fk_update_project FOREIGN KEY (project_id) REFERENCES Projects(id) ON DELETE CASCADE
+    `);
+
+    // ===================== STUDY GROUPS =====================
+    const gFk = (col) => `CONSTRAINT fk_${col}_group FOREIGN KEY (group_id) REFERENCES \`Groups\`(id) ON DELETE CASCADE`;
+
+    // Which cohorts a group is visible to. NO rows for a group = visible to
+    // everyone. track NULL = the whole year (both tracks).
+    await ensureTable("group_audience", `
+      id            INT AUTO_INCREMENT PRIMARY KEY,
+      group_id      INT NOT NULL,
+      academic_year ENUM('1','2','3','4') NOT NULL,
+      track         ENUM('software','networks') NULL,
+      KEY idx_gaud_group (group_id),
+      ${gFk('gaud')}
+    `);
+
+    // Q&A: a member asks, others answer, one answer can be marked "best".
+    await ensureTable("group_questions", `
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      group_id   INT NOT NULL,
+      asker_id   INT NOT NULL,
+      title      VARCHAR(255) NOT NULL,
+      body       TEXT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_gq_group (group_id),
+      ${gFk('gq')},
+      CONSTRAINT fk_gq_asker FOREIGN KEY (asker_id) REFERENCES Users(id) ON DELETE CASCADE
+    `);
+    await ensureTable("group_answers", `
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      question_id INT NOT NULL,
+      user_id     INT NOT NULL,
+      content     TEXT NOT NULL,
+      is_best     TINYINT(1) NOT NULL DEFAULT 0,
+      created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_ga_question (question_id),
+      CONSTRAINT fk_ga_question FOREIGN KEY (question_id) REFERENCES group_questions(id) ON DELETE CASCADE,
+      CONSTRAINT fk_ga_user     FOREIGN KEY (user_id)     REFERENCES Users(id)          ON DELETE CASCADE
+    `);
+
+    // Flashcards / question bank for group revision.
+    await ensureTable("group_flashcards", `
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      group_id   INT NOT NULL,
+      creator_id INT NOT NULL,
+      front      TEXT NOT NULL,
+      back       TEXT NOT NULL,
+      topic      VARCHAR(120) NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_gf_group (group_id),
+      ${gFk('gf')},
+      CONSTRAINT fk_gf_creator FOREIGN KEY (creator_id) REFERENCES Users(id) ON DELETE CASCADE
+    `);
+
+    // Collaborative summaries (wiki docs) — anyone edits; last editor tracked.
+    await ensureTable("group_wiki", `
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      group_id    INT NOT NULL,
+      title       VARCHAR(200) NOT NULL,
+      content     MEDIUMTEXT NULL,
+      updated_by  INT NULL,
+      created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      updated_at  TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+      KEY idx_gw_group (group_id),
+      ${gFk('gw')}
+    `);
+
+    // Study sessions + exam countdowns; members RSVP.
+    await ensureTable("group_sessions", `
+      id           INT AUTO_INCREMENT PRIMARY KEY,
+      group_id     INT NOT NULL,
+      title        VARCHAR(200) NOT NULL,
+      type         ENUM('session','exam') NOT NULL DEFAULT 'session',
+      scheduled_at DATETIME NOT NULL,
+      location     VARCHAR(255) NULL,
+      created_by   INT NULL,
+      created_at   TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_gs_group (group_id),
+      ${gFk('gs')}
+    `);
+    await ensureTable("group_session_rsvp", `
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      session_id INT NOT NULL,
+      user_id    INT NOT NULL,
+      status     ENUM('going','maybe','no') NOT NULL DEFAULT 'going',
+      UNIQUE KEY uq_rsvp (session_id, user_id),
+      CONSTRAINT fk_rsvp_session FOREIGN KEY (session_id) REFERENCES group_sessions(id) ON DELETE CASCADE,
+      CONSTRAINT fk_rsvp_user    FOREIGN KEY (user_id)    REFERENCES Users(id)          ON DELETE CASCADE
+    `);
+
+    // Task board: who summarizes which chapter, etc.
+    await ensureTable("group_tasks", `
+      id          INT AUTO_INCREMENT PRIMARY KEY,
+      group_id    INT NOT NULL,
+      title       VARCHAR(255) NOT NULL,
+      assignee_id INT NULL,
+      status      ENUM('todo','doing','done') NOT NULL DEFAULT 'todo',
+      due_date    DATE NULL,
+      created_by  INT NULL,
+      created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_gt_group (group_id),
+      ${gFk('gt')}
+    `);
+
+    // Contribution points (leaderboard). Upserted as members contribute.
+    await ensureTable("group_points", `
+      id       INT AUTO_INCREMENT PRIMARY KEY,
+      group_id INT NOT NULL,
+      user_id  INT NOT NULL,
+      points   INT NOT NULL DEFAULT 0,
+      UNIQUE KEY uq_points (group_id, user_id),
+      ${gFk('gp')},
+      CONSTRAINT fk_gp_user FOREIGN KEY (user_id) REFERENCES Users(id) ON DELETE CASCADE
+    `);
+
+    // Polls.
+    await ensureTable("group_polls", `
+      id         INT AUTO_INCREMENT PRIMARY KEY,
+      group_id   INT NOT NULL,
+      question   VARCHAR(255) NOT NULL,
+      created_by INT NULL,
+      created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+      KEY idx_gpoll_group (group_id),
+      ${gFk('gpoll')}
+    `);
+    await ensureTable("group_poll_options", `
+      id      INT AUTO_INCREMENT PRIMARY KEY,
+      poll_id INT NOT NULL,
+      text    VARCHAR(200) NOT NULL,
+      CONSTRAINT fk_gpo_poll FOREIGN KEY (poll_id) REFERENCES group_polls(id) ON DELETE CASCADE
+    `);
+    await ensureTable("group_poll_votes", `
+      id        INT AUTO_INCREMENT PRIMARY KEY,
+      poll_id   INT NOT NULL,
+      option_id INT NOT NULL,
+      user_id   INT NOT NULL,
+      UNIQUE KEY uq_vote (poll_id, user_id),
+      CONSTRAINT fk_gpv_poll   FOREIGN KEY (poll_id)   REFERENCES group_polls(id)        ON DELETE CASCADE,
+      CONSTRAINT fk_gpv_option FOREIGN KEY (option_id) REFERENCES group_poll_options(id) ON DELETE CASCADE,
+      CONSTRAINT fk_gpv_user   FOREIGN KEY (user_id)   REFERENCES Users(id)              ON DELETE CASCADE
     `);
 
     // Platform settings — single-row key/value store the admin can toggle
