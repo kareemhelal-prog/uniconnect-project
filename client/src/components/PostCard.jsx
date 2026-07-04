@@ -239,8 +239,11 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
   const [likesCount, setLikesCount]     = useState(Number(post.likes || post.likes_count) || 0);
   const [reactionTypes, setReactionTypes] = useState(Array.isArray(post.reaction_types) ? post.reaction_types.filter(Boolean) : []);
   const [showReactions, setShowReactions] = useState(false);
-  const pressTimer = React.useRef(null);
-  const hoverTimer = React.useRef(null);
+  const pressTimer    = React.useRef(null);
+  const hoverTimer    = React.useRef(null);
+  const suppressClick = React.useRef(false);
+  const isTouch       = React.useRef(false);
+  const reactWrapRef  = React.useRef(null);
   const [showComments, setShowComments] = useState(!!defaultShowComments);
   const [commentText, setCommentText]   = useState("");
   const [comments, setComments]         = useState(post.comments || []);
@@ -272,6 +275,7 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
     const onReaction = (data) => {
       if (Number(data.post_id) !== Number(post.id)) return;
       if (typeof data.likes === "number") setLikesCount(data.likes);
+      if (Array.isArray(data.reaction_types)) setReactionTypes(data.reaction_types.filter(Boolean));
     };
 
     const onNewComment = (c) => {
@@ -325,29 +329,59 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
       const data = await res.json();
       if (typeof data.likes === "number") setLikesCount(data.likes);
       if ("reaction" in data) setMyReaction(data.reaction || null);
+      // Authoritative breakdown → corrects the cluster (incl. removals) exactly.
+      if (Array.isArray(data.reaction_types)) setReactionTypes(data.reaction_types.filter(Boolean));
     } catch {
       setMyReaction(prevReaction); setLikesCount(prevCount); setReactionTypes(prevTypes);
     }
   };
 
-  // Plain button: react with "like", or remove whatever reaction you have.
-  const handleLikeClick = () => applyReaction(myReaction || "like");
+  // Plain button click: react with "like", or remove whatever reaction you have.
+  // Swallowed right after a long-press (that press opened the palette instead).
+  const handleLikeClick = () => {
+    if (suppressClick.current) { suppressClick.current = false; return; }
+    applyReaction(myReaction || "like");
+  };
 
-  // Open the reaction palette on hover (desktop) or long-press (touch).
-  const openPalette  = () => setShowReactions(true);
-  const onLikeEnter  = () => { clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(openPalette, 320); };
-  const onLikeLeave  = () => { clearTimeout(hoverTimer.current); hoverTimer.current = setTimeout(() => setShowReactions(false), 260); };
-  const onPressStart = () => { pressTimer.current = setTimeout(openPalette, 380); };
-  const onPressEnd   = () => clearTimeout(pressTimer.current);
+  const openPalette = () => setShowReactions(true);
+
+  // ── Press (mouse or touch, via Pointer Events) — long-hold opens the palette ──
+  const onPressStart = (e) => {
+    if (e.pointerType === "touch") isTouch.current = true;
+    suppressClick.current = false;
+    clearTimeout(pressTimer.current);
+    pressTimer.current = setTimeout(() => { suppressClick.current = true; openPalette(); }, 380);
+  };
+  const onPressEnd = () => clearTimeout(pressTimer.current);
+
+  // ── Desktop hover — open on dwell, close on leave (disabled on touch so an
+  //    emulated mouseenter after a tap can't pop the palette open) ──
+  const onLikeEnter = () => {
+    if (isTouch.current) return;
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(openPalette, 300);
+  };
+  const onLikeLeave = () => {
+    clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setShowReactions(false), 220);
+  };
 
   useEffect(() => () => { clearTimeout(hoverTimer.current); clearTimeout(pressTimer.current); }, []);
-  // Dismiss the palette on any outside tap while it's open.
+
+  // Dismiss the palette on an interaction OUTSIDE the reaction area (taps inside
+  // — i.e. on a reaction — must NOT be swallowed) or on scroll.
   useEffect(() => {
     if (!showReactions) return;
-    const close = () => setShowReactions(false);
-    window.addEventListener("scroll", close, true);
-    document.addEventListener("touchstart", close);
-    return () => { window.removeEventListener("scroll", close, true); document.removeEventListener("touchstart", close); };
+    const onDocDown = (e) => { if (reactWrapRef.current && !reactWrapRef.current.contains(e.target)) setShowReactions(false); };
+    const onScroll = () => setShowReactions(false);
+    document.addEventListener("mousedown", onDocDown);
+    document.addEventListener("touchstart", onDocDown, { passive: true });
+    window.addEventListener("scroll", onScroll, true);
+    return () => {
+      document.removeEventListener("mousedown", onDocDown);
+      document.removeEventListener("touchstart", onDocDown);
+      window.removeEventListener("scroll", onScroll, true);
+    };
   }, [showReactions]);
 
   const handleComment = async () => {
@@ -548,7 +582,7 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
         {(() => {
           const cur = myReaction ? REACT_MAP[myReaction] : null;
           return (
-            <div className="reaction-wrap" onMouseEnter={onLikeEnter} onMouseLeave={onLikeLeave}>
+            <div className="reaction-wrap" ref={reactWrapRef} onMouseEnter={onLikeEnter} onMouseLeave={onLikeLeave}>
               {showReactions && (
                 <div className="reaction-palette" role="menu">
                   {REACTIONS.map((r, i) => (
@@ -564,7 +598,10 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
                 className={`action-btn like-btn${cur ? " reacted" : ""}`}
                 style={cur ? { color: cur.color } : undefined}
                 onClick={handleLikeClick}
-                onTouchStart={onPressStart} onTouchEnd={onPressEnd} onTouchMove={onPressEnd}
+                onPointerDown={onPressStart}
+                onPointerUp={onPressEnd}
+                onPointerLeave={onPressEnd}
+                onPointerCancel={onPressEnd}
               >
                 {cur ? <span className="reaction-emoji">{cur.emoji}</span> : <ThumbIcon />}
                 <span className="btn-label">{cur ? cur.label : "Like"}</span>

@@ -338,26 +338,32 @@
 
 .reaction-palette {
   position: absolute;
-  bottom: calc(100% + 10px);
+  /* Sit directly on top of the button (bottom edge touches it) with the visual
+     gap made of transparent padding — so moving the cursor up into the palette
+     never crosses empty space and the hover never drops. */
+  bottom: 100%;
   left: 0;
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 8px;
+  padding: 6px 8px 12px;
+  z-index: 60;
+  animation: reactPop 0.16s cubic-bezier(.2,.9,.3,1.2);
+}
+/* The visible pill (padding-bottom above is a transparent hover bridge). */
+.reaction-palette::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 6px 0;
   border-radius: 999px;
   background: var(--surface-solid, var(--bg2));
   border: 1px solid var(--border-soft, var(--border));
   box-shadow: 0 12px 34px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.25);
-  z-index: 60;
-  animation: reactPop 0.18s cubic-bezier(.2,.9,.3,1.2);
+  z-index: -1;
 }
 @keyframes reactPop {
-  from { opacity: 0; transform: translateY(8px) scale(0.9); }
+  from { opacity: 0; transform: translateY(8px) scale(0.92); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-.reaction-palette::after {
-  content: ""; position: absolute; top: 100%; left: 24px;
-  border: 6px solid transparent; border-top-color: var(--surface-solid, var(--bg2));
 }
 
 .reaction-opt {

@@ -73,15 +73,23 @@ exports.toggleLike = async (req, res) => {
       }
     }
 
-    // Return real count from DB so frontend stays in sync
+    // Authoritative state from DB so the frontend + all clients stay in sync:
+    // the total count and the distinct reactions present (most-popular first),
+    // which drives the little emoji cluster next to the count.
     const [[countRow]] = await promisePool.query(
       "SELECT COUNT(*) AS likes FROM Likes WHERE post_id = ?", [post_id]
     );
+    const [breakdown] = await promisePool.query(
+      "SELECT reaction, COUNT(*) AS c FROM Likes WHERE post_id = ? GROUP BY reaction ORDER BY c DESC",
+      [post_id]
+    );
+    const reactionTypes = breakdown.map((r) => r.reaction);
 
-    // Real-time: broadcast the authoritative count to everyone on this post.
+    // Real-time: broadcast the authoritative count + breakdown to everyone here.
     emitToPost(post_id, "post_reaction", {
       post_id: Number(post_id),
       likes: countRow.likes,
+      reaction_types: reactionTypes,
       actor_id: req.user.id,
       liked,
     });
@@ -91,6 +99,7 @@ exports.toggleLike = async (req, res) => {
       liked,
       likes: countRow.likes,
       reaction: myReaction,
+      reaction_types: reactionTypes,
     });
 
   } catch (error) {
