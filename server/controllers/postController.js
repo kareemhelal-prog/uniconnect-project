@@ -67,7 +67,7 @@ exports.createPost = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -137,7 +137,7 @@ exports.getAllPosts = async (req, res) => {
     res.json({ message: "Posts fetched successfully", data: formatted });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -202,7 +202,7 @@ exports.getPostById = async (req, res) => {
     res.json({ data: post });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -238,7 +238,7 @@ exports.updatePost = async (req, res) => {
     res.json({ message: "Post updated successfully" });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -265,7 +265,7 @@ exports.deletePost = async (req, res) => {
     res.json({ message: "Post deleted successfully" });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -333,6 +333,6 @@ exports.getPostsByUser = async (req, res) => {
     res.json({ message: "Posts fetched", data: formatted });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

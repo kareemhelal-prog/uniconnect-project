@@ -99,7 +99,7 @@ exports.getProfile = async (req, res) => {
     res.json({ ...user, followers, following, groups, uploadedFiles, posts });
   } catch (err) {
     console.error("❌ getProfile error:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -128,6 +128,6 @@ exports.getUserById = async (req, res) => {
     res.json({ ...user, followers, following, groups, uploadedFiles, posts });
   } catch (err) {
     console.error("❌ getUserById error:", err.message);
-    res.status(500).json({ message: "Server error", detail: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

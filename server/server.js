@@ -28,8 +28,44 @@ const emailAlertsRoutes = require("./routes/emailAlertsRoutes");
 const app = express();
 const adminRoutes = require("./routes/adminRoutes");
 
-app.use(cors());
-app.use(helmet({ contentSecurityPolicy: false }));
+// ── CORS ──────────────────────────────────────────────────────────────────
+// Auth is Bearer-token based (no cookies), so CORS isn't a CSRF vector here —
+// but we still lock the API to known origins in production. Set CORS_ORIGINS
+// to a comma-separated allowlist (e.g. "https://app.uniconnect.edu"). When it's
+// unset (local dev / LAN phone testing) we stay permissive so nothing breaks.
+const allowedOrigins = (process.env.CORS_ORIGINS || "")
+  .split(",").map((s) => s.trim()).filter(Boolean);
+app.use(cors(
+  allowedOrigins.length
+    ? {
+        origin(origin, cb) {
+          // Allow same-origin / server-to-server (no Origin header) and the allowlist.
+          if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+          return cb(new Error("Not allowed by CORS"));
+        },
+      }
+    : {} // no allowlist configured → reflect all origins (dev)
+));
+
+// ── Security headers ────────────────────────────────────────────────────────
+// Restore a Content-Security-Policy (it had been disabled). This is a JSON API
+// plus a few static images, so a tight policy adds defence-in-depth with no
+// impact on the separately-served SPA.
+app.use(helmet({
+  contentSecurityPolicy: {
+    useDefaults: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "blob:"],
+      objectSrc: ["'none'"],
+      scriptSrc: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+  },
+  // Let the SPA (a different origin) embed the public project images.
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 

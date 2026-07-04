@@ -26,8 +26,7 @@ exports.getNotifications = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -59,8 +58,7 @@ exports.getUnreadNotifications = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -87,8 +85,7 @@ exports.markAsRead = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -109,8 +106,7 @@ exports.markAllAsRead = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -137,8 +133,7 @@ exports.deleteNotification = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };

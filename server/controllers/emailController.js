@@ -43,7 +43,7 @@ exports.searchUsers = async (req, res) => {
     );
     res.json({ data: users });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -63,7 +63,7 @@ exports.getRecipientsCount = async (req, res) => {
     );
     res.json({ data: { students, doctors, everyone } });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -150,7 +150,7 @@ exports.sendEmail = async (req, res) => {
     res.status(201).json({ message: "Email sent successfully", logId: result.insertId });
   } catch (error) {
     console.error("sendEmail error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -175,6 +175,6 @@ exports.getEmailHistory = async (req, res) => {
 
     res.json({ data: logs });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

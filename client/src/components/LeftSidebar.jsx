@@ -12,6 +12,7 @@ const NAV = [
 export default function LeftSidebar({ user = {} }) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(null); // ← null = مفيش حاجة متحددة
+  const [imgError, setImgError] = useState(false);  // fall back to initials if the avatar fails to load
 
   const initials   = user.initials   || "?";
   const profilePic = user.profilePic || "";
@@ -25,9 +26,9 @@ export default function LeftSidebar({ user = {} }) {
   return (
     <aside className="hp-card">
       <div className="hp-avatar-wrap">
-        <div className="hp-avatar" style={profilePic ? { background: "transparent", padding: 0, overflow: "hidden" } : {}}>
-          {profilePic
-            ? <img src={profilePic} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={e => { e.target.style.display = "none"; e.target.parentElement.innerHTML = `<span>${initials}</span>`; }} />
+        <div className="hp-avatar" style={profilePic && !imgError ? { background: "transparent", padding: 0, overflow: "hidden" } : {}}>
+          {profilePic && !imgError
+            ? <img src={profilePic} alt={user.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} onError={() => setImgError(true)} />
             : <span>{initials}</span>}
           <span className="hp-avatar-ring" />
           <span className={`hp-dot ${status}`} />

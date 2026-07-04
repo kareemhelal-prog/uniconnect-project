@@ -84,8 +84,8 @@ exports.register = async (req, res) => {
   if (!email || !password || !role) {
     return res.status(400).json({ message: "Please fill all required fields" });
   }
-  if (password.length < 7) {
-    return res.status(400).json({ message: "Password must be at least 7 characters" });
+  if (password.length < 8) {
+    return res.status(400).json({ message: "Password must be at least 8 characters" });
   }
   if (!["student", "doctor", "investor"].includes(role)) {
     return res.status(400).json({ message: "Invalid role" });
@@ -319,8 +319,12 @@ exports.login = async (req, res) => {
       [identifier, identifier, identifier]
     );
 
+    // Uniform response for "no such user" and "wrong password" so an attacker
+    // can't tell which accounts exist (username/email enumeration).
+    const INVALID = { code: "invalid_credentials", message: "Invalid credentials" };
+
     if (users.length === 0) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json(INVALID);
     }
 
     const user = users[0];
@@ -335,7 +339,7 @@ exports.login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
-      return res.status(401).json({ message: "Wrong password" });
+      return res.status(401).json(INVALID);
     }
 
     // ── Approval gate ── credentials are valid, but the account must be approved.
@@ -382,14 +386,21 @@ exports.login = async (req, res) => {
 exports.forgotPassword = async (req, res) => {
     const { email } = req.body;
 
+    // Always answer the same way whether or not the email exists — otherwise the
+    // 200-vs-404 difference lets anyone enumerate which emails have accounts.
+    const genericOk = { success: true, message: 'إذا كان هذا البريد مسجّلًا، فقد أرسلنا إليه رمز التحقق' };
+
     try {
+        if (!email) return res.status(400).json({ success: false, message: 'البريد الإلكتروني مطلوب' });
+
         const [users] = await promisePool.execute(
-            'SELECT * FROM Users WHERE email = ?',
+            'SELECT id FROM Users WHERE email = ?',
             [email]
         );
 
+        // No account → respond identically, do NOT send mail, do NOT reveal.
         if (users.length === 0) {
-            return res.status(404).json({ success: false, message: 'البريد الإلكتروني غير موجود' });
+            return res.json(genericOk);
         }
 
         await promisePool.execute('DELETE FROM password_resets WHERE email = ?', [email]);
@@ -408,10 +419,10 @@ exports.forgotPassword = async (req, res) => {
             html: `<h2>UniConnect</h2><p>Your OTP Code is:</p><h1 style="color:#4F46E5;">${otp}</h1><p>Valid for 10 minutes.</p>`
         });
 
-        res.json({ success: true, message: 'تم إرسال رمز التحقق' });
+        res.json(genericOk);
 
     } catch (error) {
-        console.error(error);
+        console.error("❌ FORGOT PASSWORD ERROR:", error);
         res.status(500).json({ success: false, message: 'حدث خطأ في السيرفر' });
     }
 };
@@ -419,30 +430,52 @@ exports.forgotPassword = async (req, res) => {
 // ==========================================
 // 4. VERIFY OTP
 // ==========================================
+const OTP_MAX_ATTEMPTS = 5;
+
 exports.verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
 
     try {
+        if (!email || !otp) {
+            return res.status(400).json({ success: false, message: 'البريد الإلكتروني ورمز التحقق مطلوبان' });
+        }
+
+        // Fetch the active (unused, unexpired) reset code for this email — by
+        // EMAIL only, not by otp, so we can count wrong guesses against it and
+        // burn it after too many. This caps brute-force to OTP_MAX_ATTEMPTS
+        // guesses per issued code regardless of request volume.
         const [records] = await promisePool.execute(
-            `SELECT * FROM password_resets
-             WHERE email = ? AND otp = ? AND is_used = FALSE AND expires_at > NOW()
+            `SELECT id, otp, attempts FROM password_resets
+             WHERE email = ? AND is_used = FALSE AND expires_at > NOW()
              ORDER BY created_at DESC LIMIT 1`,
-            [email, otp]
+            [email]
         );
 
         if (records.length === 0) {
             return res.status(400).json({ success: false, message: 'OTP غير صحيح أو منتهي' });
         }
 
-        await promisePool.execute(
-            'UPDATE password_resets SET is_used = TRUE WHERE id = ?',
-            [records[0].id]
-        );
+        const record = records[0];
+
+        // Too many wrong guesses → burn the code so it can never be brute-forced.
+        if (record.attempts >= OTP_MAX_ATTEMPTS) {
+            await promisePool.execute('UPDATE password_resets SET is_used = TRUE WHERE id = ?', [record.id]);
+            return res.status(429).json({ success: false, message: 'محاولات كثيرة خاطئة. اطلب رمزًا جديدًا.' });
+        }
+
+        // Constant-work compare (values are short digit strings).
+        if (String(record.otp) !== String(otp)) {
+            await promisePool.execute('UPDATE password_resets SET attempts = attempts + 1 WHERE id = ?', [record.id]);
+            return res.status(400).json({ success: false, message: 'OTP غير صحيح أو منتهي' });
+        }
+
+        // Correct → mark verified (is_used) so resetPassword can proceed.
+        await promisePool.execute('UPDATE password_resets SET is_used = TRUE WHERE id = ?', [record.id]);
 
         res.json({ success: true, message: 'تم التحقق بنجاح' });
 
     } catch (error) {
-        console.error(error);
+        console.error("❌ VERIFY OTP ERROR:", error);
         res.status(500).json({ success: false, message: 'حدث خطأ أثناء التحقق' });
     }
 };
@@ -468,12 +501,16 @@ exports.resetPassword = async (req, res) => {
             return res.json({ success: true, message: 'تم تخطي تغيير كلمة المرور' });
         }
 
-        if (!newPassword || newPassword.length < 6) {
-            return res.status(400).json({ success: false, message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل' });
+        if (!newPassword || newPassword.length < 8) {
+            return res.status(400).json({ success: false, message: 'كلمة المرور يجب أن تكون 8 أحرف على الأقل' });
         }
 
+        // The code must have been verified recently — a stale verification can't
+        // be replayed hours later.
         const [verified] = await promisePool.execute(
-            'SELECT * FROM password_resets WHERE email = ? AND is_used = TRUE ORDER BY created_at DESC LIMIT 1',
+            `SELECT id FROM password_resets
+             WHERE email = ? AND is_used = TRUE AND created_at > (NOW() - INTERVAL 15 MINUTE)
+             ORDER BY created_at DESC LIMIT 1`,
             [email]
         );
 

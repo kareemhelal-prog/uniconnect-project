@@ -64,7 +64,7 @@ exports.createReport = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -147,7 +147,7 @@ exports.getAllReports = async (req, res) => {
     res.json({ message: "Reports fetched successfully", data });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -181,7 +181,7 @@ exports.updateStatus = async (req, res) => {
     res.json({ message: `Report ${status.toLowerCase()} successfully` });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 // =======================
@@ -231,7 +231,7 @@ exports.deleteReportedContent = async (req, res) => {
     res.json({ message: "Content deleted and report resolved" });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -289,6 +289,6 @@ exports.sendWarning = async (req, res) => {
     res.json({ message: "Warning logged successfully" });
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

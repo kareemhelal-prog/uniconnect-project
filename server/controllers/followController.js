@@ -89,8 +89,7 @@ exports.toggleFollow = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -112,8 +111,7 @@ exports.getFollowersCount = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -129,7 +127,7 @@ exports.isFollowing = async (req, res) => {
     );
     res.json({ isFollowing: result.length > 0 });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -150,8 +148,7 @@ exports.getFollowingCount = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };

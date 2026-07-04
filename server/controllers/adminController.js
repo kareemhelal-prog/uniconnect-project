@@ -80,7 +80,7 @@ exports.getLiveFeed = async (req, res) => {
 
     res.json({ success: true, events });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -103,7 +103,7 @@ exports.getOnlineUsers = async (req, res) => {
 
     res.json({ success: true, online: users, count: users.length });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -139,7 +139,7 @@ exports.getAnalytics = async (req, res) => {
 
     res.json({ success: true, analytics: { usersByDay, postsByDay, roleDist, eventsByType } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -213,7 +213,7 @@ exports.getOverview = async (req, res) => {
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -321,7 +321,7 @@ exports.getAllUsers = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -476,7 +476,7 @@ exports.getPendingUsers = async (req, res) => {
 
     res.json({ success: true, users });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -499,7 +499,7 @@ exports.approveUser = async (req, res) => {
     await logActivity(req.user.id, "approve_user", users[0].name || `User #${req.params.id}`, "Approved account");
     res.json({ success: true, message: "Account approved" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -524,7 +524,7 @@ exports.rejectUser = async (req, res) => {
     await logActivity(req.user.id, "reject_user", users[0].name || `User #${req.params.id}`, reason ? `Rejected & deleted: ${reason}` : "Rejected & deleted");
     res.json({ success: true, message: "Account rejected and removed" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -582,7 +582,7 @@ exports.getRegistry = async (req, res) => {
 
     res.json({ success: true, registry: rows, counts });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -627,7 +627,7 @@ exports.importRegistry = async (req, res) => {
     await logActivity(req.user.id, "import_registry", "Student registry", `Imported ${valid.length} rows`);
     res.json({ success: true, imported, validCount: valid.length, errorCount: errors.length, errors: errors.slice(0, 50) });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -637,7 +637,7 @@ exports.deleteRegistryEntry = async (req, res) => {
     await promisePool.query("DELETE FROM student_registry WHERE id = ?", [req.params.id]);
     res.json({ success: true, message: "Registry entry deleted" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -815,7 +815,7 @@ exports.getAdminPosts = async (req, res) => {
 
     res.json({ success: true, posts, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -826,7 +826,7 @@ exports.deleteAdminPost = async (req, res) => {
     await logActivity(req.user.id, "delete", `Post #${req.params.id}`, "Deleted post");
     res.json({ success: true, deleted: r.affectedRows });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -837,7 +837,7 @@ exports.deletePostComments = async (req, res) => {
     await logActivity(req.user.id, "delete", `Post #${req.params.id}`, `Deleted ${r.affectedRows} comment(s)`);
     res.json({ success: true, deleted: r.affectedRows });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -872,7 +872,7 @@ exports.getAdminProjects = async (req, res) => {
 
     res.json({ success: true, projects, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -883,7 +883,7 @@ exports.deleteAdminProject = async (req, res) => {
     await logActivity(req.user.id, "delete", `Project #${req.params.id}`, "Deleted project");
     res.json({ success: true, message: "Project deleted" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -920,7 +920,7 @@ exports.getAdminGroups = async (req, res) => {
 
     res.json({ success: true, groups, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
@@ -931,6 +931,6 @@ exports.deleteAdminGroup = async (req, res) => {
     await logActivity(req.user.id, "delete", `Group #${req.params.id}`, "Deleted group");
     res.json({ success: true, message: "Group deleted" });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

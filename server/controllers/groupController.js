@@ -53,7 +53,7 @@ exports.getAllGroups = async (req, res) => {
     `, params);
     res.json({ message: "Groups fetched", data: groups.map(g => ({ ...g, is_member: !!g.is_member })) });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -89,7 +89,7 @@ exports.createGroup = async (req, res) => {
       status, groupId,
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -103,7 +103,7 @@ exports.joinGroup = async (req, res) => {
     logEvent({ actorId: req.user.id, type: "group_join", targetType: "group", targetId: group_id, summary: "Joined a group" });
     res.json({ message: "Joined group successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -117,7 +117,7 @@ exports.getMyGroups = async (req, res) => {
     `, [req.user.id]);
     res.json({ message: "My groups fetched", data: groups });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -130,7 +130,7 @@ exports.leaveGroup = async (req, res) => {
     await promisePool.query("DELETE FROM Group_Members WHERE group_id = ? AND user_id = ?", [group_id, req.user.id]);
     res.json({ message: "Left group successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -173,7 +173,7 @@ exports.getGroupById = async (req, res) => {
       data: { ...group, is_member: !!mem, my_role: mem ? mem.role : null, is_group_admin: (mem && mem.role === "admin") || isAdmin },
     });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -185,7 +185,7 @@ exports.deleteGroup = async (req, res) => {
     await promisePool.query("DELETE FROM `Groups` WHERE id = ?", [req.params.id]);
     res.json({ message: "Group deleted successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -198,7 +198,7 @@ exports.getGroupMembers = async (req, res) => {
     `, [req.params.groupId]);
     res.json({ message: "Group members fetched", data: members });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -215,7 +215,7 @@ exports.getPendingGroups = async (req, res) => {
     `);
     res.json({ data: rows });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -226,7 +226,7 @@ exports.rejectGroup = async (req, res) => {
     await promisePool.query("DELETE FROM `Groups` WHERE id = ? AND status = 'pending'", [req.params.id]);
     res.json({ message: "Group rejected" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -263,6 +263,6 @@ exports.approveGroup = async (req, res) => {
     logEvent({ actorId: req.user.id, type: "group_create", targetType: "group", targetId: Number(gid), summary: `Approved group "${group.name}"` });
     res.json({ message: "Group approved", notified: recipients.length });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

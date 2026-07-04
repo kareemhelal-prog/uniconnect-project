@@ -215,6 +215,9 @@ const testConnection = async () => {
       // Group approval workflow (student-created groups need admin approval).
       // Existing groups default to 'approved' so they stay visible.
       ensureColumn("`Groups`", "status", "ENUM('pending','approved','rejected') NOT NULL DEFAULT 'approved'"),
+      // Per-OTP guess counter — caps brute-force of a password-reset code to a
+      // handful of attempts before the code is burned (see verifyOtp).
+      ensureColumn("password_resets", "attempts", "INT NOT NULL DEFAULT 0"),
     ]);
 
     // Site-wide activity stream — every notable user action is appended here so

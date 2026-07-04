@@ -69,7 +69,7 @@ exports.addComment = async (req, res) => {
     res.status(201).json(payload);
 
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -112,7 +112,7 @@ exports.getCommentsByPost = async (req, res) => {
 
     res.json({ message: "Comments fetched", data: top });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -129,7 +129,7 @@ exports.editComment = async (req, res) => {
     await promisePool.query("UPDATE Comments SET content = ? WHERE id = ?", [content.trim(), req.params.id]);
     res.json({ message: "Comment updated", content: content.trim() });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -149,6 +149,6 @@ exports.deleteComment = async (req, res) => {
     await promisePool.query("DELETE FROM Comments WHERE id = ?", [req.params.id]);
     res.json({ message: "Comment deleted" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

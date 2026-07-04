@@ -54,8 +54,7 @@ exports.createReview = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -116,8 +115,7 @@ exports.getReviewsByDoctor = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -164,8 +162,7 @@ exports.getAllReviewsAdmin = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -209,8 +206,7 @@ exports.deleteReview = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };

@@ -138,8 +138,8 @@ exports.changePassword = async (req, res) => {
     if (!isValid)
       return res.status(400).json({ success: false, message: 'Current password is incorrect' });
 
-    if (!newPassword || newPassword.length < 6)
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    if (!newPassword || newPassword.length < 8)
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await promisePool.query('UPDATE Users SET password = ? WHERE id = ?', [hashed, userId]);

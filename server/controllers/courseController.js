@@ -64,7 +64,7 @@ exports.getMyCourses = async (req, res) => {
     // admin / investor → nothing personal here
     return res.json({ data: [] });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -111,7 +111,7 @@ exports.getCourseById = async (req, res) => {
 
     res.json({ data: { ...course, materials } });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -138,7 +138,7 @@ exports.adminListCourses = async (req, res) => {
     );
     res.json({ data: rows });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -152,7 +152,7 @@ exports.adminListDoctors = async (req, res) => {
     );
     res.json({ data: rows });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -179,7 +179,7 @@ exports.adminCreateCourse = async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ message: "A course with this code already exists" });
     }
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -216,7 +216,7 @@ exports.adminUpdateCourse = async (req, res) => {
     if (error.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ message: "A course with this code already exists" });
     }
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -233,6 +233,6 @@ exports.adminDeleteCourse = async (req, res) => {
     logEvent({ actorId: req.user.id, type: "course_delete", targetType: "course", targetId: Number(req.params.id), summary: existing[0].title });
     res.json({ message: "Course deleted" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };

@@ -6,24 +6,25 @@ const authController = require('../controllers/authController');
 const googleAuthController = require('../controllers/googleAuthController');
 const authProfileController = require('../controllers/authProfileController');
 const { authenticateToken } = require('../middleware/authMiddleware');
+const { authLimiter, otpRequestLimiter, otpVerifyLimiter } = require('../middleware/rateLimiters');
 
 // Auth
-router.post('/register', authController.register);
-router.post('/login',    authController.login);
+router.post('/register', authLimiter, authController.register);
+router.post('/login',    authLimiter, authController.login);
 router.post('/complete-registration', authenticateToken, authController.completeRegistration);
 router.post('/onboarding-complete',    authenticateToken, authController.completeOnboarding);
 
 // Google OAuth
-router.post('/google',         googleAuthController.googleLogin);          // login / register
-router.post('/google/reset',   googleAuthController.googleResetPassword);  // forgot-password via Google
+router.post('/google',         authLimiter, googleAuthController.googleLogin);          // login / register
+router.post('/google/reset',   authLimiter, googleAuthController.googleResetPassword);  // forgot-password via Google
 router.post('/google/link',    authenticateToken, googleAuthController.googleLink);
 router.post('/google/unlink',  authenticateToken, googleAuthController.googleUnlink);
 router.get('/google/status',   authenticateToken, googleAuthController.googleStatus);
 
 // Forgot Password / OTP / Reset
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/verify-otp',      authController.verifyOtp);
-router.post('/reset-password',  authController.resetPassword);
+router.post('/forgot-password', otpRequestLimiter, authController.forgotPassword);
+router.post('/verify-otp',      otpVerifyLimiter,  authController.verifyOtp);
+router.post('/reset-password',  otpVerifyLimiter,  authController.resetPassword);
 
 // Profile
 router.get('/profile',                 authenticateToken, authProfileController.getProfile);
