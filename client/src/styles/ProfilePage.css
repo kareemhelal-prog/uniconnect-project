@@ -5,30 +5,13 @@
 /* ═══════════════════════════════════════
    ROOT
 ═══════════════════════════════════════ */
+/* Uses the shared app-wide tokens from theme.css directly — no page-local
+   token block, single source of truth for light/dark everywhere. */
 .pp-root {
-  /* page-local theme tokens */
-  --pp-bg:          #0a0b1a;
-  --pp-surface:     #1a1a2e;
-  --pp-surface-2:   #0f1020;
-  --pp-surface-soft: rgba(255, 255, 255, 0.05);
-  --pp-border:      rgba(255, 255, 255, 0.08);
-  --pp-text:        #ffffff;
-  --pp-text-muted:  rgba(255, 255, 255, 0.5);
-
   min-height: 100vh;
-  background: var(--pp-bg);
+  background: var(--bg);
   font-family: 'Outfit', sans-serif;
-  color: var(--pp-text);
-}
-
-:root[data-theme="light"] .pp-root {
-  --pp-bg:          #eef2f9;
-  --pp-surface:     #ffffff;
-  --pp-surface-2:   #f1f5f9;
-  --pp-surface-soft: rgba(15, 23, 42, 0.04);
-  --pp-border:      rgba(15, 23, 42, 0.10);
-  --pp-text:        #1e293b;
-  --pp-text-muted:  #64748b;
+  color: var(--text-strong);
 }
 
 /* ═══════════════════════════════════════
@@ -65,7 +48,7 @@
   position: absolute;
   bottom: 0; left: 0; right: 0;
   height: 80px;
-  background: linear-gradient(to bottom, transparent, var(--pp-bg));
+  background: linear-gradient(to bottom, transparent, var(--bg));
 }
 
 /* ═══════════════════════════════════════
@@ -99,7 +82,7 @@
   border-radius: 50%;
   border: 3px solid #00e5ff;
   object-fit: cover;
-  background: var(--pp-surface);
+  background: var(--surface-solid);
   box-shadow: 0 0 30px rgba(0, 229, 255, 0.35);
   display: block;
 }
@@ -109,7 +92,7 @@
   height: 120px;
   border-radius: 50%;
   border: 3px solid #00e5ff;
-  background: linear-gradient(135deg, var(--pp-surface), var(--pp-surface));
+  background: linear-gradient(135deg, var(--surface-solid), var(--surface-solid));
   display: none;
   align-items: center;
   justify-content: center;
@@ -123,7 +106,7 @@
   width: 16px; height: 16px;
   border-radius: 50%;
   background: #00e676;
-  border: 2.5px solid var(--pp-surface);
+  border: 2.5px solid var(--surface-solid);
   box-shadow: 0 0 8px #00e676;
 }
 
@@ -136,7 +119,7 @@
 .pp-name {
   font-size: 26px;
   font-weight: 700;
-  color: var(--pp-text);
+  color: var(--text-strong);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -157,7 +140,7 @@
 
 .pp-title {
   font-size: 14px;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   margin-bottom: 10px;
 }
 
@@ -166,7 +149,7 @@
   flex-wrap: wrap;
   gap: 16px;
   font-size: 13px;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
 }
 
 /* CTA buttons */
@@ -199,9 +182,9 @@
 .pp-btn-message {
   padding: 10px 22px;
   border-radius: 24px;
-  border: 1.5px solid var(--pp-border);
-  background: var(--pp-surface-soft);
-  color: var(--pp-text);
+  border: 1.5px solid var(--border-soft);
+  background: var(--surface);
+  color: var(--text-strong);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -210,8 +193,8 @@
 }
 
 .pp-btn-message:hover {
-  border-color: var(--pp-text-muted);
-  color: var(--pp-text);
+  border-color: var(--text-muted);
+  color: var(--text-strong);
 }
 
 .pp-btn-share {
@@ -256,8 +239,8 @@
   display: flex;
   align-items: center;
   gap: 0;
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 16px;
   padding: 16px 28px;
   margin-bottom: 28px;
@@ -289,20 +272,20 @@
   display: block;
   font-size: 18px;
   font-weight: 700;
-  color: var(--pp-text);
+  color: var(--text-strong);
 }
 
 .pp-stat-label {
   display: block;
   font-size: 11px;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   margin-top: 1px;
 }
 
 .pp-stats-divider {
   width: 1px;
   height: 36px;
-  background: var(--pp-surface-soft);
+  background: var(--surface);
   margin: 0 8px;
 }
 
@@ -325,8 +308,8 @@
 .pp-tabs {
   display: flex;
   gap: 4px;
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
   padding: 6px;
   margin-bottom: 20px;
@@ -338,7 +321,7 @@
   border-radius: 10px;
   border: none;
   background: transparent;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -346,7 +329,7 @@
   transition: 0.2s ease;
 }
 
-.pp-tab:hover { color: var(--pp-text); }
+.pp-tab:hover { color: var(--text-strong); }
 
 .pp-tab.active {
   background: rgba(0, 229, 255, 0.12);
@@ -358,8 +341,8 @@
    POST CARD
 ═══════════════════════════════════════ */
 .pp-post-card {
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 18px;
   padding: 20px;
   margin-bottom: 16px;
@@ -394,12 +377,12 @@
 .pp-post-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--pp-text);
+  color: var(--text-strong);
 }
 
 .pp-post-date {
   font-size: 12px;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -417,7 +400,7 @@
 .pp-post-menu {
   background: none;
   border: none;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   font-size: 20px;
   cursor: pointer;
   padding: 0 4px;
@@ -428,7 +411,7 @@
 
 .pp-post-text {
   font-size: 14px;
-  color: var(--pp-text);
+  color: var(--text-strong);
   line-height: 1.65;
   margin-bottom: 16px;
 }
@@ -438,8 +421,8 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
   padding: 16px 20px;
   margin-bottom: 16px;
@@ -453,7 +436,7 @@
     #00e5ff 0%,
     #a855f7 45%,
     #ec4899 70%,
-    var(--pp-surface-soft) 70%
+    var(--surface) 70%
   );
   display: flex;
   align-items: center;
@@ -468,7 +451,7 @@
   position: absolute;
   width: 60px; height: 60px;
   border-radius: 50%;
-  background: var(--pp-surface-2);
+  background: var(--surface-2);
 }
 
 .pp-gpa-score {
@@ -476,17 +459,17 @@
   z-index: 1;
   font-size: 15px;
   font-weight: 700;
-  color: var(--pp-text);
+  color: var(--text-strong);
   text-align: center;
 }
 
-.pp-gpa-score span { font-size: 10px; color: var(--pp-text-muted); }
+.pp-gpa-score span { font-size: 10px; color: var(--text-muted); }
 
 .pp-gpa-years { display: flex; flex-direction: column; gap: 6px; }
 
 .pp-gpa-year-bar {
   font-size: 12px;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   background: rgba(0,229,255,0.06);
   border-left: 2px solid #00e5ff;
   padding: 5px 10px;
@@ -499,7 +482,7 @@
   gap: 6px;
   flex-wrap: wrap;
   padding-top: 14px;
-  border-top: 1px solid var(--pp-surface-soft);
+  border-top: 1px solid var(--surface);
 }
 
 .pp-action-btn {
@@ -508,9 +491,9 @@
   gap: 6px;
   padding: 7px 14px;
   border-radius: 20px;
-  border: 1.5px solid var(--pp-surface-soft);
+  border: 1.5px solid var(--surface);
   background: transparent;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -531,8 +514,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
   padding: 14px 18px;
   transition: 0.2s;
@@ -548,13 +531,13 @@
   border-radius: 8px;
   font-size: 11px;
   font-weight: 700;
-  color: var(--pp-text);
+  color: var(--text-strong);
   flex-shrink: 0;
 }
 
 .pp-file-info { flex: 1; }
-.pp-file-name { font-size: 14px; color: var(--pp-text); font-weight: 500; }
-.pp-file-meta { font-size: 12px; color: var(--pp-text-muted); margin-top: 3px; }
+.pp-file-name { font-size: 14px; color: var(--text-strong); font-weight: 500; }
+.pp-file-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 
 .pp-download-btn {
   padding: 8px 16px;
@@ -581,8 +564,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
   padding: 14px 18px;
   transition: 0.2s;
@@ -603,8 +586,8 @@
   flex-shrink: 0;
 }
 
-.pp-group-name { font-size: 14px; font-weight: 500; color: var(--pp-text); }
-.pp-group-members { font-size: 12px; color: var(--pp-text-muted); margin-top: 2px; }
+.pp-group-name { font-size: 14px; font-weight: 500; color: var(--text-strong); }
+.pp-group-members { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 .pp-join-btn {
   margin-left: auto;
@@ -635,8 +618,8 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
   padding: 16px;
   transition: 0.2s;
@@ -656,12 +639,12 @@
   justify-content: center;
   font-size: 16px;
   font-weight: 700;
-  color: var(--pp-text);
+  color: var(--text-strong);
   flex-shrink: 0;
 }
 
-.pp-course-name { font-size: 13px; font-weight: 600; color: var(--pp-text); }
-.pp-course-code { font-size: 11px; color: var(--pp-text-muted); margin-top: 3px; }
+.pp-course-name { font-size: 13px; font-weight: 600; color: var(--text-strong); }
+.pp-course-code { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
 .pp-course-grade { font-size: 12px; color: #00e676; margin-top: 4px; font-weight: 500; }
 
 /* ═══════════════════════════════════════
@@ -674,8 +657,8 @@
 }
 
 .pp-sidebar-card {
-  background: var(--pp-surface-soft);
-  border: 1px solid var(--pp-border);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 18px;
   padding: 20px;
   backdrop-filter: blur(20px);
@@ -684,7 +667,7 @@
 .pp-sidebar-title {
   font-size: 15px;
   font-weight: 600;
-  color: var(--pp-text);
+  color: var(--text-strong);
   margin-bottom: 14px;
 }
 
@@ -709,7 +692,7 @@
 
 .pp-about-text {
   font-size: 13px;
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   line-height: 1.65;
   margin-bottom: 16px;
 }
@@ -721,8 +704,8 @@
   font-size: 12px;
 }
 
-.pp-about-key { color: var(--pp-text-muted); white-space: nowrap; }
-.pp-about-val { color: var(--pp-text-muted); font-weight: 500; }
+.pp-about-key { color: var(--text-muted); white-space: nowrap; }
+.pp-about-val { color: var(--text-muted); font-weight: 500; }
 
 /* Tags */
 .pp-tags { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -732,7 +715,7 @@
   border-radius: 20px;
   background: rgba(168,85,247,0.1);
   border: 1px solid rgba(168,85,247,0.2);
-  color: var(--pp-text-muted);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 500;
   transition: 0.2s;
@@ -741,7 +724,7 @@
 
 .pp-tag:hover {
   background: rgba(168,85,247,0.2);
-  color: var(--pp-text);
+  color: var(--text-strong);
 }
 
 /* Sidebar courses */
@@ -761,12 +744,12 @@
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
-  color: var(--pp-text);
+  color: var(--text-strong);
   flex-shrink: 0;
 }
 
-.pp-sc-name { font-size: 13px; font-weight: 500; color: var(--pp-text); }
-.pp-sc-code { font-size: 11px; color: var(--pp-text-muted); margin-top: 2px; }
+.pp-sc-name { font-size: 13px; font-weight: 500; color: var(--text-strong); }
+.pp-sc-code { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
 /* Sidebar groups */
 .pp-sg-item {
@@ -774,7 +757,7 @@
   align-items: center;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--pp-border);
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .pp-sg-item:last-child { border-bottom: none; }
@@ -789,8 +772,8 @@
   flex-shrink: 0;
 }
 
-.pp-sg-name { font-size: 13px; font-weight: 500; color: var(--pp-text); }
-.pp-sg-members { font-size: 11px; color: var(--pp-text-muted); margin-top: 2px; }
+.pp-sg-name { font-size: 13px; font-weight: 500; color: var(--text-strong); }
+.pp-sg-members { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
 
 /* ═══════════════════════════════════════
    RESPONSIVE
@@ -895,8 +878,8 @@
     padding: 10px 0;
     margin: 0;
     gap: 0;
-    border-top: 1px solid var(--pp-border);
-    border-bottom: 1px solid var(--pp-border);
+    border-top: 1px solid var(--border-soft);
+    border-bottom: 1px solid var(--border-soft);
   }
   .pp-stats-row::-webkit-scrollbar { display: none; }
   .pp-stats-divider { display: none; }
@@ -908,13 +891,13 @@
     justify-content: center;
     text-align: center;
     padding: 4px 16px;
-    border-right: 1px solid var(--pp-border);
+    border-right: 1px solid var(--border-soft);
     gap: 2px;
   }
   .pp-stat:last-child { border-right: none; }
   .pp-stat-icon  { display: none; }
   .pp-stat-value { font-size: 17px; font-weight: 700; display: block; }
-  .pp-stat-label { font-size: 10px; color: var(--pp-text-muted); display: block; margin-top: 2px; }
+  .pp-stat-label { font-size: 10px; color: var(--text-muted); display: block; margin-top: 2px; }
 
   /* Tabs */
   .pp-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
@@ -972,7 +955,7 @@
 .pp-post-title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--pp-text);
+  color: var(--text-strong);
   margin: 0 0 4px;
 }
 
@@ -998,7 +981,7 @@
 }
 
 .pp-modal {
-  background: #0d0d25;
+  background: var(--surface-2);
   border: 1px solid rgba(0, 229, 255, 0.2);
   border-radius: 18px;
   width: 100%;
@@ -1021,20 +1004,20 @@
   align-items: center;
   justify-content: space-between;
   padding: 18px 20px 14px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid var(--border-soft);
   flex-shrink: 0;
 }
 
 .pp-modal-title {
   font-size: 16px;
   font-weight: 700;
-  color: #e8e8ff;
+  color: var(--text-strong);
 }
 
 .pp-modal-close {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-muted);
   font-size: 18px;
   cursor: pointer;
   line-height: 1;
@@ -1042,7 +1025,7 @@
   padding: 2px 6px;
   border-radius: 6px;
 }
-.pp-modal-close:hover { color: #e8e8ff; background: rgba(255, 255, 255, 0.06); }
+.pp-modal-close:hover { color: var(--text-strong); background: var(--surface); }
 
 .pp-modal-list {
   overflow-y: auto;
@@ -1101,7 +1084,7 @@
   gap: 4px;
   font-size: 13px;
   font-weight: 600;
-  color: #e8e8ff;
+  color: var(--text-strong);
 }
 .pp-modal-verified {
   background: #06b6d4;
@@ -1117,7 +1100,7 @@
 }
 .pp-modal-role {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--text-muted);
   margin-top: 2px;
   display: block;
 }

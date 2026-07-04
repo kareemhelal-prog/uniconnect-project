@@ -1,7 +1,7 @@
 .not-accept-container {
     width: 100%;
     height: 100vh;
-    background: #0f172a;
+    background: var(--bg);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -10,10 +10,10 @@
 
 .not-accept-box {
     text-align: center;
-    background-color: #111827;
+    background-color: var(--surface-solid);
     padding: 40px;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow-card);
     max-width: 400px;
 
     /* simple animation */
@@ -30,12 +30,12 @@
 
 .not-accept-subtitle {
     font-size: 24px;
-    color: #ffffff;
+    color: var(--text-strong);
     margin: 10px 0;
 }
 
 .not-accept-text {
-    color: #cbd5e1;
+    color: var(--text-muted);
     font-size: 14px;
 }
 

@@ -1,7 +1,7 @@
 .pd-page {
   min-height: 100vh;
-  background: #0a0b1a;
-  color: #e8e8ff;
+  background: var(--bg);
+  color: var(--text);
   font-family: "Segoe UI", sans-serif;
 }
 
@@ -30,12 +30,12 @@
 .pd-error-title {
   font-size: 20px;
   font-weight: 700;
-  color: #e8e8ff;
+  color: var(--text-strong);
   margin: 0 0 8px;
 }
 .pd-error-text {
   font-size: 14px;
-  color: #8a8aa8;
+  color: var(--text-muted);
   margin: 0 0 22px;
   max-width: 340px;
 }

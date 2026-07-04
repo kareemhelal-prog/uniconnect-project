@@ -90,11 +90,11 @@ function ViewModal({ group, onClose }) {
             <div className="gm-modal-row gm-modal-desc-row"><span className="gm-modal-key">📋 Description</span><span className="gm-modal-desc">{group.description}</span></div>
 
             <div style={{ marginTop: 16 }}>
-              <h4 style={{ color: "#fff", marginBottom: 8 }}>Members ({members.length})</h4>
+              <h4 style={{ color: "var(--text-strong)", marginBottom: 8 }}>Members ({members.length})</h4>
               <input className="gm-members-search" placeholder="Search members..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginBottom: 8 }} />
               <div className="gm-members-list">
                 {loading ? (
-                  <p style={{ color: "#888" }}>Loading...</p>
+                  <p style={{ color: "var(--text-muted)" }}>Loading...</p>
                 ) : filtered.map((m) => (
                   <div key={m.id} className="gm-member-row">
                     <Avatar letter={m.name?.[0]?.toUpperCase() || "U"} size={38} />

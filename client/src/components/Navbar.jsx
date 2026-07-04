@@ -167,7 +167,8 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
   const [avatarMenuOpen,  setAvatarMenuOpen]  = useState(false);
 
   const launcherPages = role === "doctor" ? LAUNCHER_PAGES_DOCTOR : LAUNCHER_PAGES_STUDENT;
-  const homePath      = role === "doctor" ? "/HomeDoctor" : "/home";
+  const homePath      = role === "admin" ? "/Dashboard" : role === "doctor" ? "/HomeDoctor" : "/home";
+  const homeLabel     = role === "admin" ? "Dashboard" : "Home";
   const activePage    = location.pathname.replace("/", "") || "home";
 
   const handleBell = async () => {
@@ -411,14 +412,14 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
 
       <div style={{ flex: 1 }} />
 
-      {/* Home Button */}
+      {/* Home / Dashboard Button */}
       <button
-        className={`home-btn ${activePage === "home" || activePage === "HomeDoctor" ? "home-btn-active" : ""}`}
+        className={`home-btn ${activePage === "home" || activePage === "HomeDoctor" || activePage === "Dashboard" || activePage === "dashboard" ? "home-btn-active" : ""}`}
         onClick={() => goTo(homePath)}
-        title="Home"
+        title={homeLabel}
       >
         <FiHome size={18} />
-        <span className="home-btn-label">Home</span>
+        <span className="home-btn-label">{homeLabel}</span>
       </button>
 
       {/* App Launcher */}
@@ -619,7 +620,7 @@ function Navbar({ notifications: _ignored = [], user: userProp = {} }) {
     {menuOpen && (
       <div className="mobile-menu">
         <button className="mobile-menu-item" onClick={() => { goTo(homePath); setMenuOpen(false); }}>
-          <FiHome size={18} /> Home
+          <FiHome size={18} /> {homeLabel}
         </button>
         {launcherPages.map(({ id, label, icon: Icon, path }) => (
           <button

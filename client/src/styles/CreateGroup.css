@@ -1,6 +1,6 @@
 .create-group-page {
   min-height: 100vh;
-  background: #0a0d1a;
+  background: var(--bg);
   background-image:
     radial-gradient(ellipse 60% 40% at 20% 0%, rgba(6, 182, 212, 0.12) 0%, transparent 60%),
     radial-gradient(ellipse 40% 30% at 80% 100%, rgba(139, 92, 246, 0.10) 0%, transparent 60%);
@@ -14,23 +14,23 @@
 .create-group-card {
   width: 100%;
   max-width: 600px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
   border-radius: 24px;
   padding: 40px;
   backdrop-filter: blur(12px);
-  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  box-shadow: var(--shadow-card);
 }
 
 .create-group-card h1 {
   font-size: 34px;
   font-weight: 800;
   margin-bottom: 10px;
-  color: #ffffff;
+  color: var(--text-strong);
 }
 
 .create-group-card p {
-  color: rgba(255,255,255,0.55);
+  color: var(--text-muted);
   margin-bottom: 24px;
   line-height: 1.7;
 }
@@ -44,6 +44,7 @@
   border-radius: 12px;
   margin-bottom: 20px;
 }
+:root[data-theme="light"] .form-error { color: #dc2626; }
 
 .form-row {
   display: flex;
@@ -62,7 +63,7 @@
 .form-group label {
   display: block;
   margin-bottom: 10px;
-  color: #f1f5f9;
+  color: var(--text-strong);
   font-weight: 600;
 }
 
@@ -72,9 +73,9 @@
   width: 100%;
   padding: 14px 16px;
   border-radius: 14px;
-  border: 1px solid rgba(255,255,255,0.08);
-  background: rgba(255,255,255,0.05);
-  color: white;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-strong);
   outline: none;
   font-size: 15px;
   font-family: inherit;
@@ -86,8 +87,8 @@
 }
 
 .form-group select option {
-  background: #0a0d1a;
-  color: white;
+  background: var(--surface-solid);
+  color: var(--text-strong);
 }
 
 .form-group input:focus,
@@ -106,7 +107,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 28px;
-  color: rgba(255,255,255,0.75);
+  color: var(--text);
 }
 
 .create-btn {
@@ -141,7 +142,8 @@
 }
 /* Approval-flow additions */
 .cg-note { margin: 0 0 18px; padding: 10px 14px; border-radius: 10px; font-size: 13px; color: #c9b8ff; background: rgba(124,92,255,0.12); border: 1px solid rgba(124,92,255,0.3); }
-.cg-hint { display: block; margin-top: 6px; font-size: 12px; color: rgba(255,255,255,0.45); }
-.cg-opt { color: rgba(255,255,255,0.4); font-weight: 400; font-size: 12px; }
+:root[data-theme="light"] .cg-note { color: #7c3aed; }
+.cg-hint { display: block; margin-top: 6px; font-size: 12px; color: var(--text-dim); }
+.cg-opt { color: var(--text-dim); font-weight: 400; font-size: 12px; }
 .cg-review { text-align: center; }
 .cg-review-icon { width: 66px; height: 66px; margin: 0 auto 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: 800; color: #fff; background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 8px 24px rgba(34,197,94,0.4); }

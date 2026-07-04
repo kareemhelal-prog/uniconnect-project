@@ -27,6 +27,15 @@
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
+:root[data-theme="light"] .investor-page {
+  --bg-main:    #eef2f9;
+  --bg-card:    #ffffff;
+  --bg-input:   #f1f5f9;
+  --text-main:  #1e293b;
+  --text-muted: #64748b;
+  --border-color: #dbe3ef;
+}
+
 .investor-main {
   max-width: 1400px;
   margin: 0 auto;

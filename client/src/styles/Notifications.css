@@ -1,19 +1,18 @@
-:root {
-  --bg-color: #05070a;
-  --card-bg: #0d1117;
-  --primary-purple: #6236ff;
-  --text-main: #ffffff;
-  --text-muted: #8b949e;
-  --accent-blue: #4cc9f0;
-  --unread-dot: #8a2be2;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
+/* Uses the shared app-wide tokens from theme.css directly (--bg, --surface-*,
+   --border, --text-*, --accent-*) — only genuinely page-specific, non-
+   colliding decorative values stay local. */
 .notif-page {
-  background: #0a0d14;
-  color: var(--text-main);
+  --filter-count-bg: rgba(255, 255, 255, 0.2);
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  background: var(--bg);
+  color: var(--text);
   font-family: "Inter", sans-serif;
   min-height: 100vh;
+}
+
+:root[data-theme="light"] .notif-page {
+  --filter-count-bg: rgba(15, 23, 42, 0.10);
 }
 
 /* Main Content */
@@ -59,8 +58,8 @@
 }
 
 .filter-btn {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   color: var(--text-muted);
   padding: 10px 25px;
   border-radius: 12px;
@@ -75,18 +74,18 @@
 
 .filter-btn:hover {
   border-color: #6236ff;
-  color: #fff;
+  color: var(--text-strong);
 }
 
 .filter-btn.active {
-  background: var(--primary-purple);
+  background: var(--accent-2);
   color: white;
-  border-color: var(--primary-purple);
+  border-color: var(--accent-2);
   box-shadow: 0 10px 20px rgba(98, 54, 255, 0.2);
 }
 
 .filter-count {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--filter-count-bg);
   border-radius: 10px;
   padding: 1px 7px;
   font-size: 11px;
@@ -101,8 +100,8 @@
 }
 
 .notification-card {
-  background: var(--card-bg);
-  border: 1px solid #21262d;
+  background: var(--surface-solid);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 18px 22px;
   display: flex;
@@ -126,17 +125,17 @@
 }
 
 .notification-card:hover {
-  background: #1c2128;
+  background: var(--surface-hover);
   transform: scale(1.01) translateX(5px);
-  border-color: #30363d;
+  border-color: var(--border);
 }
 
 .notification-card.unread {
-  border-left: 4px solid var(--primary-purple);
+  border-left: 4px solid var(--accent-2);
   background: linear-gradient(
     90deg,
-    rgba(98, 54, 255, 0.03) 0%,
-    rgba(13, 17, 23, 1) 100%
+    rgba(98, 54, 255, 0.06) 0%,
+    var(--surface-solid) 100%
   );
 }
 
@@ -153,7 +152,7 @@
   font-weight: 700;
   color: #fff;
   flex-shrink: 0;
-  border: 1px solid #30363d;
+  border: 1px solid var(--border);
 }
 
 /* Action icons */
@@ -189,7 +188,7 @@
 }
 
 .content p strong {
-  color: #fff;
+  color: var(--text-strong);
   font-weight: 600;
 }
 
@@ -201,7 +200,7 @@
 }
 
 .time-text {
-  color: #6e7681;
+  color: var(--text-dim);
   font-size: 12px;
   margin-top: 5px;
   display: block;
@@ -211,9 +210,9 @@
 .unread-dot {
   width: 10px;
   height: 10px;
-  background: var(--unread-dot);
+  background: #8a2be2;
   border-radius: 50%;
-  box-shadow: 0 0 15px var(--unread-dot);
+  box-shadow: 0 0 15px #8a2be2;
   flex-shrink: 0;
   transition: transform 0.3s ease;
 }

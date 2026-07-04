@@ -354,7 +354,7 @@ export default function ProfilePage() {
     return (
       <>
         <Navbar />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", color: "#00e5ff" }}>
+        <div className="pp-root" style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", color: "#00e5ff" }}>
           Loading...
         </div>
       </>
@@ -365,7 +365,7 @@ export default function ProfilePage() {
     return (
       <>
         <Navbar />
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", color: "rgba(255,255,255,0.5)" }}>
+        <div className="pp-root" style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "80vh", color: "var(--text-muted)" }}>
           User not found.
         </div>
       </>

@@ -8,26 +8,15 @@
   padding: 0;
 }
 
-/* ── Variables ────────────────────────────────────────── */
-:root {
-  --bg: #050510;
-  --surface: rgba(255, 255, 255, 0.03);
-  --surface-alt: rgba(255, 255, 255, 0.06);
-  --border: rgba(255, 255, 255, 0.1);
+/* ── Variables ────────────────────────────────────────────
+   Uses the shared app-wide tokens from theme.css directly (--bg, --surface,
+   --border, --text-muted, --accent-*). Only the decorative gradient accents
+   without a global equivalent stay local. */
+.dp-root {
   --border-cyan: rgba(34, 211, 238, 0.2);
-
-  --cyan: #22d3ee;
-  --purple: #9333ea;
-  --pink: #ec4899;
-  --orange: #fb923c;
 
   --grad: linear-gradient(90deg, #06b6d4, #9333ea, #ec4899);
   --grad-text: linear-gradient(90deg, #22d3ee, #ec4899, #fb923c);
-
-  --text-head: #ffffff;
-  --text-body: rgba(255, 255, 255, 0.8);
-  --text-muted: rgba(156, 163, 175, 0.9);
-  --text-xs: rgba(107, 114, 128, 0.9);
 
   --radius: 24px;
   --radius-sm: 12px;
@@ -42,7 +31,7 @@
   font-family: var(--font);
   background: var(--bg);
   min-height: 100vh;
-  color: var(--text-body);
+  color: var(--text);
   position: relative;
   overflow-x: hidden;
 }
@@ -160,7 +149,7 @@
 .dp-name {
   font-size: 26px;
   font-weight: 800;
-  color: var(--text-head);
+  color: var(--text-strong);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -239,19 +228,19 @@
 
 .dp-btn-follow.followed {
   background: transparent;
-  border: 2px solid var(--cyan);
-  color: var(--cyan);
+  border: 2px solid var(--accent-cyan);
+  color: var(--accent-cyan);
   box-shadow: none;
 }
 
 .dp-btn-email {
   background: transparent;
-  border: 2px solid var(--cyan);
-  color: var(--cyan);
+  border: 2px solid var(--accent-cyan);
+  color: var(--accent-cyan);
 }
 
 .dp-btn-email:hover {
-  background: var(--cyan);
+  background: var(--accent-cyan);
   color: #000;
 }
 
@@ -288,7 +277,7 @@
   display: block;
   font-size: 20px;
   font-weight: 800;
-  color: var(--text-head);
+  color: var(--text-strong);
   line-height: 1;
 }
 
@@ -346,8 +335,8 @@
 }
 
 .dp-tab:hover {
-  color: var(--text-head);
-  background: var(--surface-alt);
+  color: var(--text-strong);
+  background: var(--surface-hover);
 }
 
 .dp-tab.active {
@@ -408,19 +397,19 @@
 .dp-post-name {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-head);
+  color: var(--text-strong);
 }
 
 .dp-post-date {
   font-size: 12px;
-  color: var(--text-xs);
+  color: var(--text-dim);
   margin-top: 1px;
 }
 
 .dp-post-badge {
   margin-left: auto;
   background: rgba(34, 211, 238, 0.12);
-  color: var(--cyan);
+  color: var(--accent-cyan);
   border: 1px solid rgba(34, 211, 238, 0.25);
   font-size: 11px;
   font-weight: 700;
@@ -440,14 +429,14 @@
 }
 
 .dp-post-menu:hover {
-  background: var(--surface-alt);
-  color: var(--text-head);
+  background: var(--surface-hover);
+  color: var(--text-strong);
 }
 
 .dp-post-text {
   font-size: 14px;
   line-height: 1.7;
-  color: var(--text-body);
+  color: var(--text);
   margin-bottom: 14px;
 }
 
@@ -546,12 +535,12 @@
 }
 
 .dp-action-btn:hover {
-  background: var(--surface-alt);
-  color: var(--text-head);
+  background: var(--surface-hover);
+  color: var(--text-strong);
 }
 
 .dp-action-btn.active {
-  color: var(--cyan);
+  color: var(--accent-cyan);
 }
 
 .dp-save-btn {
@@ -581,7 +570,7 @@
 }
 
 .dp-file-row:hover {
-  background: var(--surface-alt);
+  background: var(--surface-hover);
 }
 
 .dp-file-type {
@@ -605,20 +594,20 @@
 .dp-file-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-head);
+  color: var(--text-strong);
 }
 
 .dp-file-meta {
   font-size: 12px;
-  color: var(--text-xs);
+  color: var(--text-dim);
   margin-top: 2px;
 }
 
 .dp-download-btn {
   padding: 7px 16px;
   background: transparent;
-  border: 1.5px solid var(--cyan);
-  color: var(--cyan);
+  border: 1.5px solid var(--accent-cyan);
+  color: var(--accent-cyan);
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 700;
@@ -629,7 +618,7 @@
 }
 
 .dp-download-btn:hover {
-  background: var(--cyan);
+  background: var(--accent-cyan);
   color: #000;
 }
 
@@ -662,7 +651,7 @@
 .dp-group-name {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-head);
+  color: var(--text-strong);
 }
 
 .dp-group-members {
@@ -675,8 +664,8 @@
   margin-left: auto;
   padding: 7px 20px;
   background: transparent;
-  border: 1.5px solid var(--cyan);
-  color: var(--cyan);
+  border: 1.5px solid var(--accent-cyan);
+  color: var(--accent-cyan);
   border-radius: 9999px;
   font-size: 13px;
   font-weight: 700;
@@ -686,7 +675,7 @@
 }
 
 .dp-join-btn:hover {
-  background: var(--cyan);
+  background: var(--accent-cyan);
   color: #000;
 }
 
@@ -724,7 +713,7 @@
 .dp-course-name {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-head);
+  color: var(--text-strong);
   line-height: 1.3;
 }
 
@@ -736,7 +725,7 @@
 
 .dp-course-students {
   font-size: 12px;
-  color: var(--text-xs);
+  color: var(--text-dim);
   margin-top: 4px;
 }
 
@@ -754,7 +743,7 @@
 .dp-sidebar-title {
   font-size: 14px;
   font-weight: 700;
-  color: var(--text-head);
+  color: var(--text-strong);
   margin-bottom: 12px;
 }
 
@@ -772,7 +761,7 @@
 .dp-view-all {
   font-size: 12px;
   font-weight: 700;
-  color: var(--cyan);
+  color: var(--accent-cyan);
   background: none;
   border: none;
   cursor: pointer;
@@ -787,7 +776,7 @@
 .dp-about-text {
   font-size: 13px;
   line-height: 1.65;
-  color: var(--text-body);
+  color: var(--text);
   margin-bottom: 12px;
 }
 
@@ -804,7 +793,7 @@
 }
 
 .dp-about-val {
-  color: var(--text-body);
+  color: var(--text);
 }
 
 /* Tags */
@@ -828,7 +817,7 @@
 
 .dp-tag:hover {
   background: rgba(34, 211, 238, 0.1);
-  color: var(--cyan);
+  color: var(--accent-cyan);
   border-color: rgba(34, 211, 238, 0.3);
 }
 
@@ -861,13 +850,13 @@
 .dp-sc-name {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-head);
+  color: var(--text-strong);
   line-height: 1.3;
 }
 
 .dp-sc-code {
   font-size: 11px;
-  color: var(--text-xs);
+  color: var(--text-dim);
   margin-top: 2px;
 }
 
@@ -899,12 +888,12 @@
 .dp-sg-name {
   font-size: 13px;
   font-weight: 700;
-  color: var(--text-head);
+  color: var(--text-strong);
 }
 
 .dp-sg-members {
   font-size: 11px;
-  color: var(--text-xs);
+  color: var(--text-dim);
   margin-top: 1px;
 }
 

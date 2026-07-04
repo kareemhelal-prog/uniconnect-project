@@ -140,8 +140,8 @@ export default function DoctorProfile() {
     }
   };
 
-  if (loading) return <div style={{ color: "#00e5ff", padding: "2rem", textAlign: "center" }}>Loading...</div>;
-  if (!profile) return <div style={{ color: "#f87171", padding: "2rem" }}>Doctor not found.</div>;
+  if (loading) return <div className="dp-root" style={{ color: "#22d3ee", padding: "2rem", textAlign: "center", minHeight: "100vh" }}>Loading...</div>;
+  if (!profile) return <div className="dp-root" style={{ color: "#f87171", padding: "2rem", minHeight: "100vh" }}>Doctor not found.</div>;
 
   return (
     <div className="dp-root">
