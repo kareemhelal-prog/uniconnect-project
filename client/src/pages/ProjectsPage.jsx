@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import Navbar from "../components/Navbar";
 import "../styles/ProjectsPage.css";
-import { FiSearch, FiX, FiUsers, FiPlus, FiEdit2, FiTrash2, FiUploadCloud, FiCheck } from "react-icons/fi";
+import {
+  FiSearch, FiX, FiUsers, FiPlus, FiEdit2, FiTrash2, FiUploadCloud, FiCheck,
+  FiWifi, FiCode, FiSettings, FiCpu, FiZap, FiHardDrive, FiSmartphone, FiBarChart2,
+  FiPlay, FiEye, FiGrid, FiDollarSign, FiAward, FiClock, FiCheckCircle, FiXCircle,
+  FiEdit3, FiUser, FiGithub, FiGlobe, FiVideo, FiFileText, FiFile, FiPaperclip,
+  FiMessageSquare, FiCalendar, FiBriefcase, FiExternalLink, FiFolder, FiSend,
+  FiTrendingUp, FiHelpCircle, FiCornerDownRight, FiActivity, FiRadio,
+} from "react-icons/fi";
 
 const API_BASE = "/api";
 const getToken = () => localStorage.getItem("token");
@@ -11,18 +19,41 @@ const imgSrc = (u) => (!u ? "" : u.startsWith("http") || u.startsWith("data:") ?
 const parseLooking = (s) => (s ? String(s).split(",").map((x) => x.trim()).filter(Boolean) : []);
 const money = (n) => (Number(n) > 0 ? `$${Number(n).toLocaleString()}` : "—");
 const fmtDate = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const initials = (name = "") => name.trim().split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase() || "?";
 
-const PROJECT_TYPES = ["IoT", "Software Application", "Mechatronics", "Robotics", "AI/ML", "Embedded Systems", "Web/Mobile App", "Data Science", "Game Dev", "AR/VR", "Other"];
-const TYPE_ICON = { IoT: "📡", "Software Application": "💻", Mechatronics: "⚙️", Robotics: "🤖", "AI/ML": "🧠", "Embedded Systems": "🔌", "Web/Mobile App": "📱", "Data Science": "📊", "Game Dev": "🎮", "AR/VR": "🕶️", Other: "🚀" };
+/* Per-type icon + accent colour — gives each category its own identity (no emoji). */
+const TYPE_META = {
+  "IoT":                  { Icon: FiRadio,      color: "#38bdf8" },
+  "Software Application": { Icon: FiCode,       color: "#a855f7" },
+  "Mechatronics":         { Icon: FiSettings,   color: "#f59e0b" },
+  "Robotics":             { Icon: FiCpu,        color: "#f472b6" },
+  "AI/ML":                { Icon: FiZap,        color: "#22d3ee" },
+  "Embedded Systems":     { Icon: FiHardDrive,  color: "#34d399" },
+  "Web/Mobile App":       { Icon: FiSmartphone, color: "#818cf8" },
+  "Data Science":         { Icon: FiBarChart2,  color: "#2dd4bf" },
+  "Game Dev":             { Icon: FiPlay,       color: "#fb7185" },
+  "AR/VR":                { Icon: FiEye,        color: "#c084fc" },
+  "Other":                { Icon: FiGrid,       color: "#94a3b8" },
+};
+const PROJECT_TYPES = Object.keys(TYPE_META);
+const typeMeta = (t) => TYPE_META[t] || TYPE_META.Other;
+const TypeIcon = ({ type, size = 15 }) => { const { Icon } = typeMeta(type); return <Icon size={size} />; };
+
 const STAGES = ["idea", "prototype", "mvp", "launched"];
 const STAGE_LABEL = { idea: "Idea", prototype: "Prototype", mvp: "MVP", launched: "Launched" };
 const STAGE_COLOR = { idea: "#fbbf24", prototype: "#00e5ff", mvp: "#a855f7", launched: "#22c55e" };
-const LOOKING_OPTS = [{ v: "funding", l: "💰 Funding" }, { v: "mentorship", l: "🎓 Mentorship" }, { v: "partner", l: "🤝 Partner" }];
+
+const LOOKING_OPTS = [
+  { v: "funding", l: "Funding", Icon: FiDollarSign },
+  { v: "mentorship", l: "Mentorship", Icon: FiAward },
+  { v: "partner", l: "Partner", Icon: FiUsers },
+];
+
 const APPROVAL = {
-  pending:  { label: "⏳ Pending review", color: "#fbbf24" },
-  approved: { label: "✅ Approved", color: "#22c55e" },
-  rejected: { label: "⛔ Rejected", color: "#f87171" },
-  revision: { label: "✏️ Needs changes", color: "#f59e0b" },
+  pending:  { label: "Pending review", color: "#fbbf24", Icon: FiClock },
+  approved: { label: "Approved",       color: "#22c55e", Icon: FiCheckCircle },
+  rejected: { label: "Rejected",       color: "#f87171", Icon: FiXCircle },
+  revision: { label: "Needs changes",  color: "#f59e0b", Icon: FiEdit3 },
 };
 
 const upload = async (file) => {
@@ -38,47 +69,84 @@ const api = {
   del: (p) => fetch(`${API_BASE}${p}`, { method: "DELETE", headers: authHeaders() }),
 };
 
+const StarIcon = ({ filled }) => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round">
+    <path d="M12 2.6l2.9 5.88 6.49.95-4.7 4.58 1.11 6.46L12 17.94l-5.8 3.05 1.1-6.46-4.69-4.58 6.49-.95L12 2.6z" />
+  </svg>
+);
 const Stars = ({ value }) => {
   const r = Math.round(value || 0);
-  return <span className="proj-stars">{[1, 2, 3, 4, 5].map((i) => <span key={i} className={i <= r ? "on" : ""}>★</span>)}</span>;
+  return <span className="proj-stars">{[1, 2, 3, 4, 5].map((i) => <span key={i} className={i <= r ? "on" : ""}><StarIcon filled={i <= r} /></span>)}</span>;
 };
+
+const SectionTitle = ({ icon: I, children, count }) => (
+  <h4 className="proj-view-section-title">{I && <I size={14} />}<span>{children}</span>{count != null && <span className="proj-sec-count">{count}</span>}</h4>
+);
+
+const Avatar = ({ name, url, size = 26 }) => (
+  url
+    ? <img className="proj-ava" src={imgSrc(url)} alt="" style={{ width: size, height: size }} />
+    : <span className="proj-ava proj-ava-fallback" style={{ width: size, height: size, fontSize: size * 0.4 }}>{initials(name)}</span>
+);
 
 /* ═══════════ Card ═══════════ */
 function ProjectCard({ project, me, onView, onEdit, onDelete }) {
   const isOwner = project.creator_id === me?.id;
-  const st = STAGE_COLOR[project.status] || "#888";
+  const st = STAGE_COLOR[project.status] || "#8b8ba3";
+  const { color } = typeMeta(project.project_type);
+  const ap = APPROVAL[project.approval_status] || {};
   return (
-    <div className="proj-card" onClick={() => onView(project)}>
-      {project.image_url && <img className="proj-card-cover" src={imgSrc(project.image_url)} alt="" />}
-      <div className="proj-card-top">
-        <h4 className="proj-card-title">{project.title}</h4>
-        <span className="proj-type-badge">{TYPE_ICON[project.project_type] || "🚀"} {project.project_type || "Project"}</span>
+    <article className="proj-card" style={{ "--type": color }} onClick={() => onView(project)} tabIndex={0}
+      onKeyDown={(e) => (e.key === "Enter") && onView(project)}>
+      <div className="proj-card-media">
+        {project.image_url
+          ? <img className="proj-card-cover" src={imgSrc(project.image_url)} alt="" loading="lazy" />
+          : <div className="proj-card-cover proj-card-cover-blank"><TypeIcon type={project.project_type} size={40} /></div>}
+        <span className="proj-type-badge"><TypeIcon type={project.project_type} size={12} />{project.project_type || "Project"}</span>
+        {project.open_to_investors ? <span className="proj-live-tag"><span className="proj-live-dot" />Live</span> : null}
       </div>
-      <div className="proj-meta" style={{ margin: "6px 0" }}>
-        <span className="proj-status" style={{ color: st, background: `${st}18` }}>
-          <span className="proj-status-dot" style={{ background: st }} />{STAGE_LABEL[project.status] || project.status}
-        </span>
-        {Number(project.rating) > 0 && <Stars value={project.rating} />}
+
+      <div className="proj-card-body">
+        <div className="proj-card-headrow">
+          <h4 className="proj-card-title" dir="auto">{project.title}</h4>
+          <span className="proj-status" style={{ color: st, background: `${st}1a` }}>
+            <span className="proj-status-dot" style={{ background: st }} />{STAGE_LABEL[project.status] || project.status}
+          </span>
+        </div>
+
+        {project.description && <p className="proj-card-desc" dir="auto">{project.description}</p>}
+
+        <div className="proj-card-people">
+          <span className="proj-person"><Avatar name={project.creator_name} url={project.creator_avatar} size={22} /><span>{project.creator_name}</span></span>
+          {project.supervisor_name && <span className="proj-person muted"><FiAward size={12} />{project.supervisor_name}</span>}
+        </div>
       </div>
-      {project.description && <p className="proj-card-desc">{project.description}</p>}
-      <div className="proj-meta">
-        <span className="proj-meta-item">👤 {project.creator_name}</span>
-        {project.supervisor_name && <span className="proj-meta-item">🎓 {project.supervisor_name}</span>}
-      </div>
-      <div className="proj-card-footer">
-        {isOwner
-          ? <span className="proj-approval" style={{ color: (APPROVAL[project.approval_status] || {}).color }}>
-              {(APPROVAL[project.approval_status] || {}).label}
-              {project.open_to_investors ? " · 🟢 Live" : ""}
-            </span>
-          : <span className="proj-meta-item"><FiUsers size={11} /> {project.interest_count || 0} interested</span>}
+
+      <div className="proj-card-foot">
+        {isOwner && ap.label
+          ? <span className="proj-approval" style={{ color: ap.color }}>{ap.Icon && <ap.Icon size={13} />}{ap.label}</span>
+          : Number(project.rating) > 0
+            ? <Stars value={project.rating} />
+            : <span className="proj-meta-item"><FiUsers size={12} /> {project.interest_count || 0} interested</span>}
         <div className="proj-card-actions">
-          <button className="proj-view-btn" onClick={(e) => { e.stopPropagation(); onView(project); }}>View</button>
           {isOwner && <>
             <button className="proj-icon-btn edit" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit(project); }}><FiEdit2 size={13} /></button>
             <button className="proj-icon-btn delete" title="Delete" onClick={(e) => { e.stopPropagation(); onDelete(project); }}><FiTrash2 size={13} /></button>
           </>}
+          <button className="proj-view-btn" onClick={(e) => { e.stopPropagation(); onView(project); }}>View<FiExternalLink size={12} /></button>
         </div>
+      </div>
+    </article>
+  );
+}
+
+function CardSkeleton() {
+  return (
+    <div className="proj-card proj-card-skel">
+      <div className="proj-card-media sk" />
+      <div className="proj-card-body">
+        <div className="sk-line w70" /><div className="sk-line w100" /><div className="sk-line w40" />
+        <div className="sk-line w55" style={{ marginTop: 8 }} />
       </div>
     </div>
   );
@@ -113,20 +181,24 @@ function ProjectFormModal({ initial, doctors, onClose, onSave, loading }) {
     <div className="proj-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="proj-modal proj-modal-wide">
         <div className="proj-modal-header">
-          <h3>{isEdit ? "Edit Project" : "New Project"}</h3>
+          <h3>{isEdit ? "Edit project" : "New project"}</h3>
           <button className="proj-modal-close" onClick={onClose}><FiX /></button>
         </div>
         <div className="proj-modal-body">
-          <label className="proj-modal-label">Project Name *</label>
-          <input className="proj-modal-input" placeholder="e.g. Smart Irrigation System" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <label className="proj-modal-label">Project name</label>
+          <input className="proj-modal-input" dir="auto" placeholder="e.g. Smart Irrigation System" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
 
-          <label className="proj-modal-label">What kind of project? *</label>
+          <label className="proj-modal-label">Category</label>
           <div className="proj-type-grid">
-            {PROJECT_TYPES.map((t) => (
-              <button key={t} type="button" className={`proj-type-pick ${form.project_type === t ? "on" : ""}`} onClick={() => setForm({ ...form, project_type: t })}>
-                <span>{TYPE_ICON[t]}</span>{t}
-              </button>
-            ))}
+            {PROJECT_TYPES.map((t) => {
+              const { Icon, color } = typeMeta(t);
+              const on = form.project_type === t;
+              return (
+                <button key={t} type="button" className={`proj-type-pick ${on ? "on" : ""}`} style={on ? { "--type": color } : undefined} onClick={() => setForm({ ...form, project_type: t })}>
+                  <Icon size={15} style={{ color }} />{t}
+                </button>
+              );
+            })}
           </div>
 
           <label className="proj-modal-label">Stage</label>
@@ -135,21 +207,21 @@ function ProjectFormModal({ initial, doctors, onClose, onSave, loading }) {
           </select>
 
           <label className="proj-modal-label">Description</label>
-          <textarea className="proj-modal-textarea" placeholder="Describe your project, the problem it solves, and how it works..." maxLength={1000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <textarea className="proj-modal-textarea" dir="auto" placeholder="Describe your project, the problem it solves, and how it works..." maxLength={1000} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
 
-          <label className="proj-modal-label">Supervising Doctor *</label>
+          <label className="proj-modal-label">Supervising doctor</label>
           <select className="proj-modal-select" value={form.supervisor_id || ""} onChange={(e) => setForm({ ...form, supervisor_id: e.target.value })}>
             <option value="">— Choose the doctor supervising this project —</option>
             {doctors.map((d) => <option key={d.id} value={d.id}>{d.name}{d.specialization ? ` · ${d.specialization}` : ""}</option>)}
           </select>
           <div className="proj-modal-char">The doctor reviews your project and is the one who publishes it to investors.</div>
 
-          <label className="proj-modal-label">Required Funding ($)</label>
+          <label className="proj-modal-label">Required funding ($)</label>
           <input className="proj-modal-input" type="number" placeholder="e.g. 5000" value={form.required_funding} onChange={(e) => setForm({ ...form, required_funding: e.target.value })} />
 
           <label className="proj-modal-label">Looking for</label>
           <div className="proj-looking-opts">
-            {LOOKING_OPTS.map((o) => <button key={o.v} type="button" className={`proj-look-chip ${looking.includes(o.v) ? "on" : ""}`} onClick={() => toggleLooking(o.v)}>{o.l}</button>)}
+            {LOOKING_OPTS.map((o) => <button key={o.v} type="button" className={`proj-look-chip ${looking.includes(o.v) ? "on" : ""}`} onClick={() => toggleLooking(o.v)}><o.Icon size={13} />{o.l}</button>)}
           </div>
 
           <label className="proj-modal-label">Cover image</label>
@@ -164,8 +236,8 @@ function ProjectFormModal({ initial, doctors, onClose, onSave, loading }) {
               <input className="proj-modal-input" placeholder="YouTube / Drive link" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} />
             </div>
             <div>
-              <label className="proj-modal-label">Pitch Deck (PDF)</label>
-              <label className="proj-cover-btn block">{busy === "pitch_deck_url" ? "Uploading..." : form.pitch_deck_url ? "✓ Uploaded — change" : "Upload PDF"}<input type="file" accept=".pdf" hidden onChange={(e) => doUpload(e.target.files?.[0], "pitch_deck_url")} /></label>
+              <label className="proj-modal-label">Pitch deck (PDF)</label>
+              <label className="proj-cover-btn block">{busy === "pitch_deck_url" ? "Uploading..." : form.pitch_deck_url ? "Uploaded — change" : "Upload PDF"}<input type="file" accept=".pdf" hidden onChange={(e) => doUpload(e.target.files?.[0], "pitch_deck_url")} /></label>
             </div>
           </div>
 
@@ -175,7 +247,7 @@ function ProjectFormModal({ initial, doctors, onClose, onSave, loading }) {
               <input className="proj-modal-input" placeholder="https://github.com/..." value={form.github_link} onChange={(e) => setForm({ ...form, github_link: e.target.value })} />
             </div>
             <div>
-              <label className="proj-modal-label">Live Demo</label>
+              <label className="proj-modal-label">Live demo</label>
               <input className="proj-modal-input" placeholder="https://..." value={form.demo_url} onChange={(e) => setForm({ ...form, demo_url: e.target.value })} />
             </div>
           </div>
@@ -188,7 +260,7 @@ function ProjectFormModal({ initial, doctors, onClose, onSave, loading }) {
           {attachments.length > 0 && (
             <div className="proj-attach-list">
               {attachments.map((a, i) => (
-                <span key={i} className="proj-attach-chip">📎 {a.name}<button onClick={() => setAttachments((x) => x.filter((_, j) => j !== i))}>✕</button></span>
+                <span key={i} className="proj-attach-chip"><FiPaperclip size={12} /> {a.name}<button onClick={() => setAttachments((x) => x.filter((_, j) => j !== i))}><FiX size={12} /></button></span>
               ))}
             </div>
           )}
@@ -196,7 +268,7 @@ function ProjectFormModal({ initial, doctors, onClose, onSave, loading }) {
         <div className="proj-modal-footer">
           <button className="proj-modal-cancel" onClick={onClose} disabled={loading}>Cancel</button>
           <button className="proj-modal-create" onClick={save} disabled={loading || !form.title.trim() || !form.supervisor_id}>
-            {loading ? "Saving..." : isEdit ? "Save Changes" : "Submit to supervisor"}
+            {loading ? "Saving..." : isEdit ? "Save changes" : "Submit to supervisor"}
           </button>
         </div>
       </div>
@@ -226,8 +298,9 @@ function ViewModal({ projectId, me, onClose, onEdit, onChanged, toast }) {
   if (!p) return <div className="proj-modal-overlay"><div className="proj-modal"><div className="proj-view-loading"><div className="proj-spin" /></div></div></div>;
 
   const isOwner = p.creator_id === me?.id;
-  const st = STAGE_COLOR[p.status] || "#888";
+  const st = STAGE_COLOR[p.status] || "#8b8ba3";
   const ap = APPROVAL[p.approval_status] || {};
+  const { color: typeColor } = typeMeta(p.project_type);
 
   const review = async (decision) => {
     setBusy(true);
@@ -258,11 +331,14 @@ function ViewModal({ projectId, me, onClose, onEdit, onChanged, toast }) {
     <div className="proj-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="proj-modal proj-modal-wide">
         <div className="proj-modal-header">
-          <div>
-            <h3>{TYPE_ICON[p.project_type]} {p.title}</h3>
-            <span className="proj-status" style={{ color: st, background: `${st}18`, marginTop: 4, display: "inline-flex" }}>
-              <span className="proj-status-dot" style={{ background: st }} />{STAGE_LABEL[p.status] || p.status}
-            </span>
+          <div className="proj-view-headline">
+            <span className="proj-view-typeicon" style={{ color: typeColor, background: `${typeColor}1c` }}><TypeIcon type={p.project_type} size={17} /></span>
+            <div>
+              <h3 dir="auto">{p.title}</h3>
+              <span className="proj-status" style={{ color: st, background: `${st}1a`, marginTop: 4, display: "inline-flex" }}>
+                <span className="proj-status-dot" style={{ background: st }} />{STAGE_LABEL[p.status] || p.status}
+              </span>
+            </div>
           </div>
           <button className="proj-modal-close" onClick={onClose}><FiX /></button>
         </div>
@@ -272,76 +348,76 @@ function ViewModal({ projectId, me, onClose, onEdit, onChanged, toast }) {
 
           {/* Supervision status */}
           <div className="proj-supbar">
-            <span className="proj-approval" style={{ color: ap.color }}>{ap.label}</span>
-            {p.supervisor_name && <span className="proj-meta-item">🎓 Supervisor: {p.supervisor_name}</span>}
+            {ap.label && <span className="proj-approval" style={{ color: ap.color }}>{ap.Icon && <ap.Icon size={14} />}{ap.label}</span>}
+            {p.supervisor_name && <span className="proj-meta-item"><FiAward size={13} /> Supervisor: {p.supervisor_name}</span>}
             {Number(p.rating) > 0 && <span><Stars value={p.rating} /></span>}
-            {p.open_to_investors ? <span className="proj-live">🟢 Live for investors</span> : null}
+            {p.open_to_investors ? <span className="proj-live"><span className="proj-live-dot" />Live for investors</span> : null}
           </div>
           {p.supervisor_feedback && (isOwner || p.can_review) && (
-            <div className="proj-feedback">💬 <b>Supervisor feedback:</b> {p.supervisor_feedback}</div>
+            <div className="proj-feedback"><FiMessageSquare size={14} /> <b>Supervisor feedback:</b> {p.supervisor_feedback}</div>
           )}
 
           {parseLooking(p.looking_for).length > 0 && (
-            <div className="proj-looking-opts view">{parseLooking(p.looking_for).map((v) => { const o = LOOKING_OPTS.find((x) => x.v === v); return <span key={v} className="proj-look-chip on">{o ? o.l : v}</span>; })}</div>
+            <div className="proj-looking-opts view">{parseLooking(p.looking_for).map((v) => { const o = LOOKING_OPTS.find((x) => x.v === v); return <span key={v} className="proj-look-chip on">{o && <o.Icon size={13} />}{o ? o.l : v}</span>; })}</div>
           )}
-          {p.description && <p className="proj-view-desc">{p.description}</p>}
+          {p.description && <p className="proj-view-desc" dir="auto">{p.description}</p>}
 
           <div className="proj-links">
-            {Number(p.required_funding) > 0 && <span>💰 {money(p.required_funding)} needed</span>}
-            {p.github_link && <a href={p.github_link} target="_blank" rel="noreferrer">🔗 GitHub</a>}
-            {p.demo_url && <a href={p.demo_url} target="_blank" rel="noreferrer">🌐 Demo</a>}
-            {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer">🎬 Video</a>}
-            {p.pitch_deck_url && <a href={imgSrc(p.pitch_deck_url)} target="_blank" rel="noreferrer">📑 Pitch Deck</a>}
+            {Number(p.required_funding) > 0 && <span><FiDollarSign size={14} /> {money(p.required_funding)} needed</span>}
+            {p.github_link && <a href={p.github_link} target="_blank" rel="noreferrer"><FiGithub size={14} /> GitHub</a>}
+            {p.demo_url && <a href={p.demo_url} target="_blank" rel="noreferrer"><FiGlobe size={14} /> Demo</a>}
+            {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer"><FiVideo size={14} /> Video</a>}
+            {p.pitch_deck_url && <a href={imgSrc(p.pitch_deck_url)} target="_blank" rel="noreferrer"><FiFileText size={14} /> Pitch deck</a>}
           </div>
 
           {/* Files */}
           {p.files?.length > 0 && (
-            <><h4 className="proj-view-section-title">Files ({p.files.length})</h4>
+            <><SectionTitle icon={FiFile} count={p.files.length}>Files</SectionTitle>
               <div className="proj-file-list">
-                {p.files.map((f) => <a key={f.id} className="proj-file-item" href={imgSrc(f.file_url)} target="_blank" rel="noreferrer">📎 {f.file_name}</a>)}
+                {p.files.map((f) => <a key={f.id} className="proj-file-item" href={imgSrc(f.file_url)} target="_blank" rel="noreferrer"><FiPaperclip size={13} /> {f.file_name}</a>)}
               </div></>
           )}
 
           {/* Team */}
           {p.members?.length > 0 && (
-            <><h4 className="proj-view-section-title">Team ({p.members.length})</h4>
-              <div className="proj-looking-opts">{p.members.map((m) => <span key={m.id} className="proj-look-chip">{m.name}</span>)}</div></>
+            <><SectionTitle icon={FiUsers} count={p.members.length}>Team</SectionTitle>
+              <div className="proj-looking-opts">{p.members.map((m) => <span key={m.id} className="proj-look-chip"><FiUser size={12} />{m.name}</span>)}</div></>
           )}
 
           {/* ── DOCTOR REVIEW PANEL ── */}
           {p.can_review && !isOwner && (
             <div className="proj-review-box">
-              <h4 className="proj-view-section-title">Review this project</h4>
+              <SectionTitle icon={FiCheckCircle}>Review this project</SectionTitle>
               <div className="proj-rate-row">
                 <span>Rating:</span>
-                <span className="proj-rate-pick">{[1, 2, 3, 4, 5].map((i) => <button key={i} className={i <= rating ? "on" : ""} onClick={() => setRating(i)}>★</button>)}</span>
+                <span className="proj-rate-pick">{[1, 2, 3, 4, 5].map((i) => <button key={i} className={i <= rating ? "on" : ""} onClick={() => setRating(i)}><StarIcon filled={i <= rating} /></button>)}</span>
               </div>
               <textarea className="proj-modal-textarea" placeholder="Feedback for the student..." value={feedback} onChange={(e) => setFeedback(e.target.value)} />
               <label className="proj-publish-check"><input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} /> Publish to investors on approval</label>
               <div className="proj-review-actions">
-                <button className="proj-btn-approve" disabled={busy} onClick={() => review("approved")}><FiCheck size={13} /> Approve</button>
-                <button className="proj-btn-revision" disabled={busy} onClick={() => review("revision")}>Request changes</button>
-                <button className="proj-btn-reject" disabled={busy} onClick={() => review("rejected")}>Reject</button>
+                <button className="proj-btn-approve" disabled={busy} onClick={() => review("approved")}><FiCheck size={14} /> Approve</button>
+                <button className="proj-btn-revision" disabled={busy} onClick={() => review("revision")}><FiEdit3 size={13} /> Request changes</button>
+                <button className="proj-btn-reject" disabled={busy} onClick={() => review("rejected")}><FiXCircle size={13} /> Reject</button>
               </div>
               {p.approval_status === "approved" && (
-                <button className="proj-btn-publish" disabled={busy} onClick={togglePublish}>{p.open_to_investors ? "Unpublish from investors" : "🟢 Publish to investors now"}</button>
+                <button className="proj-btn-publish" disabled={busy} onClick={togglePublish}>{p.open_to_investors ? "Unpublish from investors" : "Publish to investors now"}</button>
               )}
             </div>
           )}
 
           {/* ── OWNER: interested investors / offers / meetings ── */}
           {isOwner && p.offers?.length > 0 && (
-            <><h4 className="proj-view-section-title">💵 Investment offers ({p.offers.length})</h4>
+            <><SectionTitle icon={FiDollarSign} count={p.offers.length}>Investment offers</SectionTitle>
               {p.offers.map((o) => (
                 <div key={o.id} className="proj-offer-item">
-                  <div><b>{o.investor_name}</b>{o.verified ? <span className="proj-verified">✔ Verified</span> : ""}{o.company_name ? ` · ${o.company_name}` : ""} — <b className="proj-amount">{money(o.amount)}</b> <span className={`proj-offer-status ${o.status}`}>{o.status}</span></div>
+                  <div><b>{o.investor_name}</b>{o.verified ? <span className="proj-verified"><FiCheckCircle size={11} /> Verified</span> : ""}{o.company_name ? ` · ${o.company_name}` : ""} — <b className="proj-amount">{money(o.amount)}</b> <span className={`proj-offer-status ${o.status}`}>{o.status}</span></div>
                   {o.message && <p className="proj-endorse-note">"{o.message}"</p>}
                   {o.status === "pending" && <div className="proj-offer-actions"><button onClick={() => respondOffer(o.id, "accepted")}>Accept</button><button className="ghost" onClick={() => respondOffer(o.id, "declined")}>Decline</button></div>}
                 </div>
               ))}</>
           )}
           {isOwner && p.meetings?.length > 0 && (
-            <><h4 className="proj-view-section-title">📅 Meeting requests ({p.meetings.length})</h4>
+            <><SectionTitle icon={FiCalendar} count={p.meetings.length}>Meeting requests</SectionTitle>
               {p.meetings.map((m) => (
                 <div key={m.id} className="proj-offer-item">
                   <div><b>{m.investor_name}</b>{m.proposed_time ? ` · ${new Date(m.proposed_time).toLocaleString()}` : ""} <span className={`proj-offer-status ${m.status}`}>{m.status}</span></div>
@@ -351,35 +427,35 @@ function ViewModal({ projectId, me, onClose, onEdit, onChanged, toast }) {
               ))}</>
           )}
           {isOwner && p.interested_investors?.length > 0 && (
-            <><h4 className="proj-view-section-title">💼 Interested investors ({p.interested_investors.length})</h4>
+            <><SectionTitle icon={FiBriefcase} count={p.interested_investors.length}>Interested investors</SectionTitle>
               {p.interested_investors.map((inv) => (
                 <div key={inv.investor_id} className="proj-offer-item">
-                  <b>{inv.investor_name}</b>{inv.verified ? <span className="proj-verified">✔ Verified</span> : ""}{inv.company_name ? ` · ${inv.company_name}` : ""}
-                  <div className="proj-inv-contact"><a href={`mailto:${inv.email}`}>✉ {inv.email}</a>{inv.phone_number && <a href={`tel:${inv.phone_number}`}>📞 {inv.phone_number}</a>}</div>
+                  <b>{inv.investor_name}</b>{inv.verified ? <span className="proj-verified"><FiCheckCircle size={11} /> Verified</span> : ""}{inv.company_name ? ` · ${inv.company_name}` : ""}
+                  <div className="proj-inv-contact"><a href={`mailto:${inv.email}`}>{inv.email}</a>{inv.phone_number && <a href={`tel:${inv.phone_number}`}>{inv.phone_number}</a>}</div>
                 </div>
               ))}</>
           )}
 
           {/* Updates */}
-          <h4 className="proj-view-section-title">📣 Updates</h4>
+          <SectionTitle icon={FiTrendingUp}>Updates</SectionTitle>
           {isOwner && (
             <div className="proj-update-compose">
-              <input placeholder="Share a progress update..." value={updateText} onChange={(e) => setUpdateText(e.target.value)} />
-              <button onClick={postUpdate} disabled={!updateText.trim()}>Post</button>
+              <input dir="auto" placeholder="Share a progress update..." value={updateText} onChange={(e) => setUpdateText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && postUpdate()} />
+              <button onClick={postUpdate} disabled={!updateText.trim()}><FiSend size={13} /> Post</button>
             </div>
           )}
           {p.updates?.length > 0 ? p.updates.map((u) => (
-            <div key={u.id} className="proj-update-item"><span className="proj-update-date">{fmtDate(u.created_at)}</span> {u.content}</div>
+            <div key={u.id} className="proj-update-item" dir="auto"><span className="proj-update-date">{fmtDate(u.created_at)}</span> {u.content}</div>
           )) : <div className="proj-empty-mini">No updates yet.</div>}
 
           {/* Q&A */}
-          <h4 className="proj-view-section-title">❓ Questions & Answers</h4>
+          <SectionTitle icon={FiHelpCircle}>Questions & answers</SectionTitle>
           {p.questions?.length > 0 ? p.questions.map((q) => (
             <div key={q.id} className="proj-qa-item">
-              <div className="proj-qa-q"><b>{q.asker_name}{q.asker_verified ? " ✔" : ""}:</b> {q.question}</div>
-              {q.answer ? <div className="proj-qa-a">↳ {q.answer}</div> : isOwner ? (
+              <div className="proj-qa-q" dir="auto"><b>{q.asker_name}{q.asker_verified ? " ✓" : ""}:</b> {q.question}</div>
+              {q.answer ? <div className="proj-qa-a" dir="auto"><FiCornerDownRight size={12} /> {q.answer}</div> : isOwner ? (
                 answerFor === q.id ? (
-                  <div className="proj-update-compose"><input placeholder="Your answer..." value={answerText} onChange={(e) => setAnswerText(e.target.value)} autoFocus /><button onClick={() => answer(q.id)}>Reply</button></div>
+                  <div className="proj-update-compose"><input dir="auto" placeholder="Your answer..." value={answerText} onChange={(e) => setAnswerText(e.target.value)} autoFocus onKeyDown={(e) => e.key === "Enter" && answer(q.id)} /><button onClick={() => answer(q.id)}><FiSend size={13} /> Reply</button></div>
                 ) : <button className="proj-answer-btn" onClick={() => { setAnswerFor(q.id); setAnswerText(""); }}>Answer</button>
               ) : <div className="proj-qa-a muted">Not answered yet</div>}
             </div>
@@ -399,9 +475,9 @@ function DeleteModal({ project, onClose, onConfirm, loading }) {
   return (
     <div className="proj-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="proj-modal proj-modal-sm">
-        <div className="proj-modal-header"><h3>Delete Project</h3><button className="proj-modal-close" onClick={onClose}><FiX /></button></div>
+        <div className="proj-modal-header"><h3>Delete project</h3><button className="proj-modal-close" onClick={onClose}><FiX /></button></div>
         <div className="proj-modal-body" style={{ textAlign: "center" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: 10 }}>🗑️</div>
+          <div className="proj-del-icon"><FiTrash2 size={24} /></div>
           <p style={{ color: "var(--sub)", fontSize: 14 }}>Delete <b style={{ color: "var(--text)" }}>"{project.title}"</b>? This cannot be undone.</p>
         </div>
         <div className="proj-modal-footer">
@@ -428,7 +504,7 @@ export default function ProjectsPage() {
   const [toast, setToast] = useState(null);
   const [modal, setModal] = useState(null);
 
-  const showToast = (msg, type = "success") => { setToast({ msg, color: type === "error" ? "#f87171" : "#a855f7" }); setTimeout(() => setToast(null), 2500); };
+  const showToast = (msg, type = "success") => { setToast({ msg, type }); setTimeout(() => setToast(null), 2500); };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -454,7 +530,7 @@ export default function ProjectsPage() {
     try {
       const r = modal?.type === "edit" ? await api.put(`/projects/${form.id}`, form) : await api.post("/projects", form);
       if (!r.ok) throw new Error();
-      showToast(modal?.type === "edit" ? "Project updated" : "Submitted to your supervisor 🎉");
+      showToast(modal?.type === "edit" ? "Project updated" : "Submitted to your supervisor");
       setModal(null); fetchAll();
     } catch { showToast("Something went wrong", "error"); } finally { setSaving(false); }
   };
@@ -465,7 +541,13 @@ export default function ProjectsPage() {
   };
 
   const filtered = projects.filter((p) => !search || p.title.toLowerCase().includes(search.toLowerCase()) || (p.creator_name || "").toLowerCase().includes(search.toLowerCase()));
-  const sectionTitle = isDoctor ? "Projects I Supervise" : me?.role === "admin" ? "All Projects" : "My Projects";
+  const sectionTitle = isDoctor ? "Projects I supervise" : me?.role === "admin" ? "All projects" : "My projects";
+
+  const stats = useMemo(() => ({
+    total: projects.length,
+    live: projects.filter((p) => p.open_to_investors).length,
+    approved: projects.filter((p) => p.approval_status === "approved").length,
+  }), [projects]);
 
   const cardProps = {
     me, onView: (p) => setModal({ type: "view", id: p.id }),
@@ -475,37 +557,61 @@ export default function ProjectsPage() {
 
   return (
     <div className="projects-page">
-      {toast && <div className="proj-toast" style={{ background: toast.color }}>{toast.msg}</div>}
+      <div className="proj-bg" aria-hidden><span className="proj-bg-glow g1" /><span className="proj-bg-glow g2" /><span className="proj-bg-grid" /></div>
 
-      <div className="projects-header">
-        <div>
+      <div className="proj-navbar-wrap"><Navbar /></div>
+
+      {toast && <div className={`proj-toast ${toast.type}`}>{toast.type === "error" ? <FiXCircle size={15} /> : <FiCheckCircle size={15} />}{toast.msg}</div>}
+
+      <div className="proj-content">
+      <header className="proj-hero">
+        <div className="proj-hero-main">
+          <span className="proj-eyebrow"><FiActivity size={12} /> Innovation hub</span>
           <h1 className="projects-title">Projects</h1>
           <p className="projects-sub">Build a project, pick a supervisor, and reach investors.</p>
         </div>
-        {isStudent && <button className="new-project-btn" onClick={() => setModal({ type: "new" })}><FiPlus size={16} /> New Project</button>}
-      </div>
+        <div className="proj-hero-side">
+          {!loading && (
+            <div className="proj-stats">
+              <div className="proj-stat"><span className="proj-stat-n">{stats.total}</span><span className="proj-stat-l">{isDoctor ? "Supervised" : "Projects"}</span></div>
+              <div className="proj-stat"><span className="proj-stat-n" style={{ color: "#22c55e" }}>{stats.approved}</span><span className="proj-stat-l">Approved</span></div>
+              <div className="proj-stat"><span className="proj-stat-n" style={{ color: "#00e5ff" }}>{stats.live}</span><span className="proj-stat-l">Live</span></div>
+            </div>
+          )}
+          {isStudent && <button className="new-project-btn" onClick={() => setModal({ type: "new" })}><FiPlus size={16} /> New project</button>}
+        </div>
+      </header>
 
       <div className="projects-filters">
         <div className="type-tabs">
-          {["All", ...PROJECT_TYPES].map((t) => <button key={t} className={`type-tab ${typeFilter === t ? "active" : ""}`} onClick={() => setTypeFilter(t)}>{t === "All" ? "All" : `${TYPE_ICON[t]} ${t}`}</button>)}
+          <button className={`type-tab ${typeFilter === "All" ? "active" : ""}`} onClick={() => setTypeFilter("All")}><FiGrid size={13} /> All</button>
+          {PROJECT_TYPES.map((t) => {
+            const { Icon, color } = typeMeta(t);
+            const active = typeFilter === t;
+            return <button key={t} className={`type-tab ${active ? "active" : ""}`} style={active ? { "--type": color } : undefined} onClick={() => setTypeFilter(t)}><Icon size={13} style={{ color: active ? undefined : color }} /> {t}</button>;
+          })}
         </div>
         <div className="proj-search-bar">
-          <FiSearch size={13} className="proj-search-icon" />
+          <FiSearch size={14} className="proj-search-icon" />
           <input className="proj-search-input-bar" placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          {search && <button className="proj-search-clear" onClick={() => setSearch("")}><FiX size={13} /></button>}
         </div>
       </div>
 
-      {loading ? <div className="proj-view-loading"><div className="proj-spin" /></div> : (
-        <section className="projects-section">
-          <h2 className="projects-section-title">{sectionTitle} <span className="proj-count">({filtered.length})</span></h2>
-          {filtered.length === 0 ? (
-            <div className="proj-empty"><div className="proj-empty-icon">📁</div>
-              <p>{search ? "No projects match your search" : isDoctor ? "No projects are under your supervision yet" : isStudent ? "You haven't created a project yet" : "No projects yet"}</p>
-              {isStudent && !search && <button className="new-project-btn" style={{ marginTop: "1rem" }} onClick={() => setModal({ type: "new" })}><FiPlus size={14} /> New Project</button>}
-            </div>
-          ) : <div className="projects-grid">{filtered.map((p) => <ProjectCard key={p.id} project={p} {...cardProps} />)}</div>}
-        </section>
-      )}
+      <section className="projects-section">
+        <h2 className="projects-section-title">{sectionTitle} {!loading && <span className="proj-count">{filtered.length}</span>}</h2>
+        {loading ? (
+          <div className="projects-grid">{Array.from({ length: 6 }).map((_, i) => <CardSkeleton key={i} />)}</div>
+        ) : filtered.length === 0 ? (
+          <div className="proj-empty">
+            <div className="proj-empty-icon"><FiFolder size={30} /></div>
+            <p>{search ? "No projects match your search" : isDoctor ? "No projects are under your supervision yet" : isStudent ? "You haven't created a project yet" : "No projects yet"}</p>
+            <span>{isDoctor ? "Students will pick you as their supervisor — approved work shows up here." : isStudent ? "Start your first project and send it to a supervisor for review." : "Projects created by students will appear here."}</span>
+            {isStudent && !search && <button className="new-project-btn" style={{ marginTop: "1.1rem" }} onClick={() => setModal({ type: "new" })}><FiPlus size={14} /> New project</button>}
+          </div>
+        ) : <div className="projects-grid">{filtered.map((p) => <ProjectCard key={p.id} project={p} {...cardProps} />)}</div>}
+      </section>
+      </div>
 
       {(modal?.type === "new" || modal?.type === "edit") && (
         <ProjectFormModal initial={modal.type === "edit" ? modal.project : null} doctors={doctors} onClose={() => setModal(null)} onSave={saveProject} loading={saving} />
