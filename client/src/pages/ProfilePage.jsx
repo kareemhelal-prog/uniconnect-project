@@ -492,7 +492,7 @@ export default function ProfilePage() {
           <aside className="pp-sidebar">
             <section className="pp-sidebar-card">
               <h3 className="pp-sidebar-title"><Ico.info /> About</h3>
-              <p className="pp-about-text">{profile.bio || "No bio added yet."}</p>
+              <p className="pp-about-text" dir="auto">{profile.bio || "No bio added yet."}</p>
               <div className="pp-about-grid">
                 <span className="pp-about-key">Role</span>
                 <span className="pp-about-val">{profile.role}</span>

@@ -98,6 +98,7 @@ function CreatePostModal({ onClose, onPost }) {
           <label className="modal-label">TITLE (optional)</label>
           <input
             className="modal-input"
+            dir="auto"
             placeholder="Post title..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -107,6 +108,7 @@ function CreatePostModal({ onClose, onPost }) {
           </label>
           <textarea
             className="modal-textarea"
+            dir="auto"
             placeholder="Share something with your academic community..."
             value={content}
             onChange={(e) => setContent(e.target.value)}

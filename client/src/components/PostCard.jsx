@@ -138,6 +138,7 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
           <>
             <input
               className="comment-edit-input"
+              dir="auto"
               value={editText}
               onChange={e => setEditText(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleEditSave(); if (e.key === "Escape") setEditing(false); }}
@@ -149,7 +150,7 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
             </div>
           </>
         ) : (
-          <p className="comment-text">{comment.content}</p>
+          <p className="comment-text" dir="auto">{comment.content}</p>
         )}
 
         <div className="comment-footer">
@@ -163,6 +164,7 @@ function CommentItem({ comment, postId, onReply, onDelete, onEdit, navigate, dep
           <div className="reply-input-row">
             <input
               className="comment-input reply-input"
+              dir="auto"
               placeholder={`Reply to ${comment.user?.name || "comment"}...`}
               value={replyText}
               onChange={e => setReplyText(e.target.value)}
@@ -453,16 +455,16 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
       </div>
 
       <div className="post-body">
-        <h3 className="post-title">{post.title}</h3>
+        <h3 className="post-title" dir="auto">{post.title}</h3>
         {editing
           ? <>
-              <textarea className="post-edit-textarea" value={editContent} onChange={e => setEditContent(e.target.value)} rows={4} />
+              <textarea className="post-edit-textarea" dir="auto" value={editContent} onChange={e => setEditContent(e.target.value)} rows={4} />
               <div className="post-edit-actions">
                 <button className="post-edit-save" onClick={handleEdit}>Save</button>
                 <button className="post-edit-cancel" onClick={() => setEditing(false)}>Cancel</button>
               </div>
             </>
-          : <p className="post-content">{post.content}</p>
+          : <p className="post-content" dir="auto">{post.content}</p>
         }
       </div>
 
@@ -505,6 +507,7 @@ const PostCard = ({ post, onUpdate, defaultShowComments = false, highlightCommen
           <div className="comment-input-row">
             <input
               className="comment-input"
+              dir="auto"
               placeholder="Write a comment..."
               value={commentText}
               onChange={e => setCommentText(e.target.value)}

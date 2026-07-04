@@ -271,11 +271,11 @@ export default function Announcements() {
                     <td>
                       <div className="col-title">
                         <TypeIcon type={a.type} />
-                        <strong>{a.title}</strong>
+                        <strong dir="auto">{a.title}</strong>
                       </div>
                     </td>
                     <td>
-                      <div className="col-content">{truncate(a.content, 80)}</div>
+                      <div className="col-content" dir="auto">{truncate(a.content, 80)}</div>
                     </td>
                     <td>
                       <span className={`badge badge-${a.target}`}>{a.target}</span>
@@ -446,6 +446,7 @@ function NewAnnouncementModal({ onClose, onPublish }) {
         <label className="form-label">Title</label>
         <input
           className="form-input"
+          dir="auto"
           type="text"
           placeholder="Announcement title..."
           value={title}
@@ -455,6 +456,7 @@ function NewAnnouncementModal({ onClose, onPublish }) {
         <label className="form-label" style={{ marginTop: 16 }}>Content</label>
         <textarea
           className="form-textarea"
+          dir="auto"
           placeholder="Write the announcement content..."
           rows={5}
           value={content}
@@ -498,7 +500,7 @@ function ViewModal({ item, onClose }) {
       <div className="modal-head">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <TypeIcon type={item.type} size={40} iconSize={20} />
-          <h2 style={{ margin: 0 }}>{item.title}</h2>
+          <h2 style={{ margin: 0 }} dir="auto">{item.title}</h2>
         </div>
         <button className="modal-close" onClick={onClose} aria-label="Close">
           <X size={18} />
@@ -513,7 +515,7 @@ function ViewModal({ item, onClose }) {
             {date} · {time}
           </span>
         </div>
-        <p className="view-content">{item.content}</p>
+        <p className="view-content" dir="auto">{item.content}</p>
       </div>
 
       <div className="modal-footer">
