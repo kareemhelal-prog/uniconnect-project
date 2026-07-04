@@ -9,11 +9,14 @@ async function safeCount(query, params) {
   } catch { return 0; }
 }
 
-// Accepts either a numeric id or a username. Numeric-looking keys match by id,
-// anything else matches by username — so profile URLs can be /profile/<username>.
+// Accepts either a numeric id or a username. We match on username OR id and
+// prefer the username hit — this is important because a student's username IS
+// their all-digits academic ID (e.g. "2420529"), which would otherwise be
+// mistaken for a row id and never resolve. The id comparison uses a sentinel
+// (-1) for non-numeric keys so we never coerce a text handle to a number.
 async function fetchUserSafe(key) {
-  const numeric = /^\d+$/.test(String(key));
-  const clause = numeric ? "u.id = ?" : "u.username = ?";
+  const k = String(key).trim();
+  const numericId = /^\d+$/.test(k) ? Number(k) : -1;
   try {
     const [[user]] = await promisePool.query(
       `SELECT u.id, u.name, u.username, u.role,
@@ -22,8 +25,10 @@ async function fetchUserSafe(key) {
               ps.faculty, ps.major, ps.academic_year
        FROM Users u
        LEFT JOIN Profile_Studies ps ON ps.user_id = u.id
-       WHERE ${clause}`,
-      [key]
+       WHERE u.username = ? OR u.id = ?
+       ORDER BY (u.username = ?) DESC
+       LIMIT 1`,
+      [k, numericId, k]
     );
     if (user) return user;
   } catch (e1) {
@@ -31,7 +36,10 @@ async function fetchUserSafe(key) {
   }
   try {
     const [[user]] = await promisePool.query(
-      `SELECT id, name, username, role FROM Users WHERE ${numeric ? "id" : "username"} = ?`, [key]);
+      `SELECT id, name, username, role FROM Users
+       WHERE username = ? OR id = ?
+       ORDER BY (username = ?) DESC
+       LIMIT 1`, [k, numericId, k]);
     if (user) return { ...user, bio: "", profile_picture: "", faculty: null, major: null, academic_year: null };
   } catch (e2) {
     console.error("❌ Minimal query failed:", e2.message);
