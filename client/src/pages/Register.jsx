@@ -439,7 +439,9 @@ export default function Register() {
               <button type="button" className="register-btn wiz-next-btn" onClick={next} disabled={loading}>
                 {loading ? "Please wait…"
                   : step === "settings" || (step === "details" && role !== "student")
-                    ? "Submit for review"
+                    // Investors are approved instantly (no admin review), so the
+                    // "Submit for review" wording only fits students & doctors.
+                    ? (role === "investor" ? "Create account" : "Submit for review")
                     : <>Continue <I.arrow /></>}
               </button>
             </div>
