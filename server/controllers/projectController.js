@@ -279,7 +279,9 @@ const getMarketplace = async (req, res) => {
   const { project_type, status, q, sort } = req.query;
   const viewerId = req.user.id;
   const where = ["p.open_to_investors = 1", "p.approval_status = 'approved'"];
-  const params = [viewerId, viewerId, viewerId];
+  // 5 viewer-scoped subqueries in the SELECT (interested, bookmarked, offer
+  // exists, offer amount, offer status) → 5 leading viewerId params.
+  const params = [viewerId, viewerId, viewerId, viewerId, viewerId];
   if (project_type) { where.push('p.project_type = ?'); params.push(project_type); }
   if (status)       { where.push('p.status = ?'); params.push(status); }
   if (q)            { where.push('(p.title LIKE ? OR p.description LIKE ?)'); params.push(`%${q}%`, `%${q}%`); }
@@ -297,7 +299,9 @@ const getMarketplace = async (req, res) => {
               ${fundingExpr} AS funding_raised,
               EXISTS(SELECT 1 FROM Project_Interests pi WHERE pi.project_id = p.id AND pi.investor_id = ?) AS my_interested,
               EXISTS(SELECT 1 FROM project_bookmarks pb WHERE pb.project_id = p.id AND pb.investor_id = ?) AS my_bookmarked,
-              EXISTS(SELECT 1 FROM project_offers po WHERE po.project_id = p.id AND po.investor_id = ?) AS my_offer
+              EXISTS(SELECT 1 FROM project_offers po WHERE po.project_id = p.id AND po.investor_id = ?) AS my_offer,
+              (SELECT po2.amount FROM project_offers po2 WHERE po2.project_id = p.id AND po2.investor_id = ?) AS my_offer_amount,
+              (SELECT po3.status  FROM project_offers po3 WHERE po3.project_id = p.id AND po3.investor_id = ?) AS my_offer_status
        FROM Projects p JOIN Users u ON p.creator_id = u.id
        LEFT JOIN Users d ON p.supervisor_id = d.id
        WHERE ${where.join(' AND ')}
@@ -580,17 +584,22 @@ const postUpdate = async (req, res) => {
 const getInvestorProfile = async (req, res) => {
   try {
     const [[row]] = await promisePool.query(
-      `SELECT u.name, u.email, u.phone_number, COALESCE(ip.company_name,'') AS company_name,
+      `SELECT u.name, u.email, u.phone_number, COALESCE(u.profile_picture,'') AS profile_picture,
+              COALESCE(ip.company_name,'') AS company_name,
               COALESCE(ip.investment_field,'') AS investment_field, COALESCE(ip.verified,0) AS verified
        FROM Users u LEFT JOIN Investor_Profiles ip ON ip.user_id = u.id WHERE u.id = ?`, [req.user.id]);
     res.json(row || {});
   } catch (err) { res.status(500).json({ message: 'Server error' }); }
 };
 const updateInvestorProfile = async (req, res) => {
-  const { name, phone_number, company_name, investment_field } = req.body;
+  const { name, phone_number, company_name, investment_field, profile_picture } = req.body;
   try {
     if (name !== undefined || phone_number !== undefined) {
       await promisePool.query('UPDATE Users SET name = COALESCE(NULLIF(?, \'\'), name), phone_number = COALESCE(?, phone_number) WHERE id = ?', [name || '', phone_number ?? null, req.user.id]);
+    }
+    // Avatar (base64 or path). Only overwrite when a value is actually sent.
+    if (profile_picture !== undefined && profile_picture !== null) {
+      await promisePool.query('UPDATE Users SET profile_picture = ? WHERE id = ?', [profile_picture || null, req.user.id]);
     }
     await promisePool.query(
       `INSERT INTO Investor_Profiles (user_id, company_name, investment_field) VALUES (?, ?, ?)
