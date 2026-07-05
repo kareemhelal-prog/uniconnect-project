@@ -221,6 +221,11 @@ const testConnection = async () => {
       // Post reactions: a Like now carries a reaction TYPE (Facebook-style).
       // Existing likes default to 'like' so nothing changes for old data.
       ensureColumn("Likes", "reaction", "VARCHAR(20) NOT NULL DEFAULT 'like'"),
+      // Reports can target files and groups too (reportController accepts
+      // user|post|comment|file|group), but the original ENUM only allowed the
+      // first three — so file/group reports were being stored as '' (empty) in
+      // non-strict mode and never matched the moderation joins. Widen the ENUM.
+      ensureColumn("Reports", "reported_type", "ENUM('user','post','comment','file','group') DEFAULT NULL"),
     ]);
 
     // Site-wide activity stream — every notable user action is appended here so
@@ -339,12 +344,18 @@ const testConnection = async () => {
     `);
 
     // Q&A: a member asks, others answer, one answer can be marked "best".
+    // NOTE: is_edited / owner_id are baked into these CREATE definitions (not
+    // left solely to the ensureColumn calls above) so a FRESH database has the
+    // full column set on the very first boot. The ensureColumn calls earlier run
+    // before these tables exist, so on a brand-new DB they no-op; without the
+    // columns here the tables would be missing is_edited until a second boot.
     await ensureTable("group_questions", `
       id         INT AUTO_INCREMENT PRIMARY KEY,
       group_id   INT NOT NULL,
       asker_id   INT NOT NULL,
       title      VARCHAR(255) NOT NULL,
       body       TEXT NULL,
+      is_edited  TINYINT(1) NOT NULL DEFAULT 0,
       created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       KEY idx_gq_group (group_id),
       ${gFk('gq')},
@@ -356,6 +367,7 @@ const testConnection = async () => {
       user_id     INT NOT NULL,
       content     TEXT NOT NULL,
       is_best     TINYINT(1) NOT NULL DEFAULT 0,
+      is_edited   TINYINT(1) NOT NULL DEFAULT 0,
       created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       KEY idx_ga_question (question_id),
       CONSTRAINT fk_ga_question FOREIGN KEY (question_id) REFERENCES group_questions(id) ON DELETE CASCADE,
@@ -370,19 +382,23 @@ const testConnection = async () => {
       front      TEXT NOT NULL,
       back       TEXT NOT NULL,
       topic      VARCHAR(120) NULL,
+      is_edited  TINYINT(1) NOT NULL DEFAULT 0,
       created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       KEY idx_gf_group (group_id),
       ${gFk('gf')},
       CONSTRAINT fk_gf_creator FOREIGN KEY (creator_id) REFERENCES Users(id) ON DELETE CASCADE
     `);
 
-    // Collaborative summaries (wiki docs) — anyone edits; last editor tracked.
+    // Personal study notes (wiki docs). PRIVATE per user: each member sees only
+    // their own notes (owner_id filters every read/write in the controller).
     await ensureTable("group_wiki", `
       id          INT AUTO_INCREMENT PRIMARY KEY,
       group_id    INT NOT NULL,
+      owner_id    INT NULL,
       title       VARCHAR(200) NOT NULL,
       content     MEDIUMTEXT NULL,
       updated_by  INT NULL,
+      is_edited   TINYINT(1) NOT NULL DEFAULT 0,
       created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       updated_at  TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
       KEY idx_gw_group (group_id),
@@ -398,6 +414,7 @@ const testConnection = async () => {
       scheduled_at DATETIME NOT NULL,
       location     VARCHAR(255) NULL,
       created_by   INT NULL,
+      is_edited    TINYINT(1) NOT NULL DEFAULT 0,
       created_at   TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       KEY idx_gs_group (group_id),
       ${gFk('gs')}
@@ -421,6 +438,7 @@ const testConnection = async () => {
       status      ENUM('todo','doing','done') NOT NULL DEFAULT 'todo',
       due_date    DATE NULL,
       created_by  INT NULL,
+      is_edited   TINYINT(1) NOT NULL DEFAULT 0,
       created_at  TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       KEY idx_gt_group (group_id),
       ${gFk('gt')}
@@ -443,6 +461,7 @@ const testConnection = async () => {
       group_id   INT NOT NULL,
       question   VARCHAR(255) NOT NULL,
       created_by INT NULL,
+      is_edited  TINYINT(1) NOT NULL DEFAULT 0,
       created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
       KEY idx_gpoll_group (group_id),
       ${gFk('gpoll')}
@@ -508,6 +527,22 @@ const testConnection = async () => {
       ensureIndex("Files",           "idx_files_course",        "course_id"),
       // Student "my courses" lookup by cohort
       ensureIndex("Courses",         "idx_courses_cohort",      "academic_year, track, semester"),
+      // Files.group_id / project_id are plain columns (NOT foreign keys), so
+      // InnoDB does not auto-index them. Both are filtered on hot paths — the
+      // group hub's material list (`WHERE group_id=?`) and project detail
+      // (`WHERE project_id=?`) — which were doing full table scans.
+      ensureIndex("Files",           "idx_files_group",         "group_id"),
+      ensureIndex("Files",           "idx_files_project",       "project_id"),
+      // Doctor's "projects I supervise" queue: `WHERE supervisor_id = ?`
+      // (supervisor_id is a plain column, not a FK → previously unindexed).
+      ensureIndex("Projects",        "idx_projects_supervisor", "supervisor_id"),
+      // Investor marketplace gate: `WHERE open_to_investors=1 AND approval_status='approved'`
+      ensureIndex("Projects",        "idx_projects_market",     "open_to_investors, approval_status"),
+      // Group feed ordering: `WHERE group_id=? ORDER BY is_pinned DESC, created_at DESC`
+      ensureIndex("Group_Posts",     "idx_gposts_feed",         "group_id, is_pinned, created_at"),
+      // Reaction breakdown (runs on every feed render): `WHERE post_id=? GROUP BY reaction`
+      // — a covering (post_id, reaction) index serves the count + GROUP BY together.
+      ensureIndex("Likes",           "idx_likes_post_reaction", "post_id, reaction"),
     ]);
 
     // course_code is the curriculum key the seed conflicts on (idempotency).
