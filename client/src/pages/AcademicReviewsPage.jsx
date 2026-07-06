@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
+import AcademicBackground from "../components/AcademicBackground";
 import "../styles/AcademicReviewsPage.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 function getToken() {
   return localStorage.getItem("token");
@@ -157,8 +159,13 @@ export default function AcademicReviewsPage() {
         if (!res.ok) throw new Error();
         const json = await res.json();
         const list = (json.data || []).filter((u) => u.role === "doctor");
-        setDoctors(list);
-        if (list.length > 0) setActiveDoctor(list[0]);
+        // A doctor only ever sees themselves in the list (privacy: they can't
+        // browse colleagues' reviews). Students/admins see the full list.
+        const visible = currentUser?.role === "doctor"
+          ? list.filter((d) => Number(d.id) === Number(currentUser.id))
+          : list;
+        setDoctors(visible);
+        if (visible.length > 0) setActiveDoctor(visible[0]);
       } catch {
         setDoctorsError("Could not load doctors. Please check your connection.");
       } finally {
@@ -176,11 +183,14 @@ export default function AcademicReviewsPage() {
       const res = await fetch(`${API_BASE}/reviews/doctor/${doctorId}`, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
+      if (res.status === 403) {
+        // Doctor tried to view someone else's reviews — show nothing
+        setReviews([]);
+        return;
+      }
       if (!res.ok) throw new Error();
       const json = await res.json();
-      const real = json.data || [];
-      // إضافة الـ fake review لو مفيش reviews حقيقية
-      setReviews(real.length > 0 ? real : [FAKE_REVIEW]);
+      setReviews(json.data || []);
     } catch {
       setReviewsError("Could not load reviews.");
     } finally {
@@ -290,7 +300,7 @@ const saveEdit = async (id) => {
       setTimeout(() => setAnonWarn(false), 3000);
       return;
     }
-    navigate(`/profile/${r.student_id}`);
+    navigate(`/profile/${r.student_username || r.student_id}`);
   };
 
   // ── Helpers ───────────────────────────────────────────────
@@ -314,6 +324,9 @@ const saveEdit = async (id) => {
   // ── Render ────────────────────────────────────────────────
   return (
     <div className="ar-page">
+      <div className="ar-navbar-wrap"><Navbar /></div>
+      <AcademicBackground />
+
       {/* Toast */}
 {toast && (
   <div className="ar-toast ar-toast-animated" style={{ background: toast.c }}>
@@ -403,7 +416,7 @@ const saveEdit = async (id) => {
               <div className="ar-main-header">
                 <div>
                   <h2 className="ar-subj-title" style={{ color: colorFor(activeDoctor.id) }}>
-                    Dr. {activeDoctor.name}
+                    {activeDoctor.name}
                   </h2>
                   <span className="ar-avg">
                     ⭐ {avg} avg · {reviews.filter(r => !r._fake).length} review{reviews.filter(r => !r._fake).length !== 1 ? "s" : ""}

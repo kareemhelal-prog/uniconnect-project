@@ -147,8 +147,15 @@
   border: 1px solid rgba(0, 229, 255, 0.2);
   border-radius: 20px;
   padding: 3px 10px;
-  width: fit-content;
+  max-width: 100%;
   margin: 0 auto;
+  overflow: hidden;
+}
+
+.hp-id-icon {
+  color: var(--cyan);
+  font-size: 11px;
+  flex-shrink: 0;
 }
 
 .hp-id-label {
@@ -156,12 +163,24 @@
   font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.05em;
+  flex-shrink: 0;
 }
 
 .hp-id-value {
   color: var(--cyan);
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hp-id-email { max-width: 150px; }
+
+.hp-id-empty {
+  color: var(--muted);
+  font-size: 10px;
+  font-style: italic;
 }
 
 .hp-online {
@@ -264,6 +283,33 @@
   }
 }
 
+/* ── Icon-only sidebar at 860px (60px column) ─── */
+@media (max-width: 860px) {
+  .hp-card {
+    width: 100%;
+    min-width: unset;
+    max-width: unset;
+    padding: 12px 6px;
+    align-items: center;
+    gap: 8px;
+  }
+  .hp-avatar-wrap { width: 40px; height: 40px; }
+  .hp-avatar { width: 40px; height: 40px; font-size: 14px; }
+  .hp-name, .hp-role, .hp-id-badge, .hp-online, .hp-stats { display: none; }
+  .hp-nav { width: 100%; }
+  .hp-nav-item {
+    justify-content: center;
+    padding: 8px 4px;
+    gap: 0;
+    min-height: 40px;
+  }
+  .hp-nav-label { display: none; }
+}
+
+@media (max-width: 640px) {
+  .hp-card { display: none; }
+}
+
 @media (max-width: 600px) {
   .hp-page {
     grid-template-columns: 1fr;
@@ -271,5 +317,6 @@
   }
   .hp-card {
     position: static;
+    display: none;
   }
 }

@@ -1,10 +1,10 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
 
 const likeController = require("../controllers/likeController");
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // like / unlike
 router.post("/", likeController.toggleLike);

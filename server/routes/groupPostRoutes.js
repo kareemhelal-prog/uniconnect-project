@@ -1,13 +1,13 @@
-const express = require("express");
+﻿const express = require("express");
 
 const router = express.Router();
 
 const groupPostController = require("../controllers/groupPostController");
 
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 // protect routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // CREATE POST
 router.post("/", groupPostController.createGroupPost);
@@ -16,3 +16,4 @@ router.post("/", groupPostController.createGroupPost);
 router.get("/:groupId", groupPostController.getGroupPosts);
 
 module.exports = router;
+

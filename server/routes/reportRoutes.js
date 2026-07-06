@@ -1,13 +1,13 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
 
 const reportController = require("../controllers/reportController");
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
-router.use(authMiddleware);
+router.use(authenticateToken);
 
-// Create Report (أي يوزر)
+// Create Report (Ø£ÙŠ ÙŠÙˆØ²Ø±)
 router.post("/", reportController.createReport);
 
 // Admin only

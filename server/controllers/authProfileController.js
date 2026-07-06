@@ -76,13 +76,18 @@ exports.updateProfile = async (req, res) => {
       userId
     ]);
 
-    await promisePool.query(`
-      INSERT INTO Profile_Studies (user_id, faculty, academic_year)
-      VALUES (?, ?, ?)
-      ON DUPLICATE KEY UPDATE
-        faculty       = COALESCE(VALUES(faculty), faculty),
-        academic_year = COALESCE(VALUES(academic_year), academic_year)
-    `, [userId, faculty || null, year || null]);
+    // Profile_Studies is the students' table — faculty is NOT NULL there, so
+    // only upsert for students. Other roles have their own profile tables and
+    // writing NULL faculty here would throw "Column 'faculty' cannot be null".
+    if (req.user.role === "student") {
+      await promisePool.query(`
+        INSERT INTO Profile_Studies (user_id, faculty, academic_year)
+        VALUES (?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+          faculty       = COALESCE(VALUES(faculty), faculty),
+          academic_year = COALESCE(VALUES(academic_year), academic_year)
+      `, [userId, faculty || "General Faculty", year || null]);
+    }
 
     if (Array.isArray(skills)) {
       await promisePool.query('DELETE FROM User_Skills WHERE user_id = ?', [userId]);
@@ -133,8 +138,8 @@ exports.changePassword = async (req, res) => {
     if (!isValid)
       return res.status(400).json({ success: false, message: 'Current password is incorrect' });
 
-    if (!newPassword || newPassword.length < 6)
-      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+    if (!newPassword || newPassword.length < 8)
+      return res.status(400).json({ success: false, message: 'Password must be at least 8 characters' });
 
     const hashed = await bcrypt.hash(newPassword, 10);
     await promisePool.query('UPDATE Users SET password = ? WHERE id = ?', [hashed, userId]);

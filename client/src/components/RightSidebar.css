@@ -18,12 +18,42 @@
   margin-bottom: 12px;
 }
 
-/* ─── Subjects ──────────────────────────── */
+/* ─── Subjects / My Courses ─────────────── */
+.subjects-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.subjects-head .section-title { margin-bottom: 12px; }
+.subjects-viewall {
+  background: none;
+  border: none;
+  color: var(--accent, #38bdf8);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0 0 12px;
+}
+.subjects-viewall:hover { text-decoration: underline; }
+.subjects-empty { font-size: 11px; color: var(--sub); padding: 6px 0 4px; }
+
 .subjects-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
 }
+
+.subject-card--skeleton {
+  height: 70px;
+  border: 1px solid var(--card-color, #1e1e3a);
+  opacity: 0.5;
+  animation: subjPulse 1.3s ease-in-out infinite;
+}
+@keyframes subjPulse { 50% { opacity: 0.22; } }
+
+.subject-icon svg { display: block; }
 
 .subject-card {
   border-radius: 8px;

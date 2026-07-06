@@ -1,10 +1,11 @@
-/* ===== Reports Management Page ===== */
+/* ===== Reports Management Page =====
+   Uses the shared app-wide tokens from theme.css directly. */
 .rm-page {
   padding: 28px 32px;
   min-height: 100vh;
-  background: #080818;
+  background: var(--bg);
   font-family: "Segoe UI", sans-serif;
-  color: #e8e8ff;
+  color: var(--text);
 }
 
 /* ── Header ── */
@@ -29,12 +30,12 @@
 .rm-title {
   font-size: 1.7rem;
   font-weight: 700;
-  color: #e8e8ff;
+  color: var(--text);
   margin: 0 0 4px;
   letter-spacing: -0.02em;
 }
 .rm-subtitle {
-  color: #555;
+  color: var(--text-muted);
   font-size: 13px;
   margin: 0;
 }
@@ -54,11 +55,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #0d0d25;
-  border: 1px solid #1e1e3a;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 14px;
-  color: #aaa;
+  color: var(--text-muted);
   font-size: 13px;
   font-family: "Segoe UI", sans-serif;
   cursor: pointer;
@@ -66,18 +67,18 @@
   transition: all 0.2s;
 }
 .rm-dropdown-btn:hover {
-  border-color: #2a2a4a;
-  color: #e8e8ff;
-  background: #10102a;
+  border-color: var(--border);
+  color: var(--text);
+  background: var(--surface-hover);
 }
 .rm-dropdown:focus-within .rm-dropdown-btn {
   border-color: rgba(0,229,255,0.4);
   box-shadow: 0 0 12px rgba(0,229,255,0.1);
 }
 .rm-dropdown-icon { font-size: 14px; }
-.rm-dropdown-label { color: #555; font-size: 12px; }
-.rm-dropdown-value { flex: 1; color: #ccc; text-align: left; }
-.rm-dropdown-arrow { color: #444; font-size: 11px; transition: transform 0.2s; }
+.rm-dropdown-label { color: var(--text-muted); font-size: 12px; }
+.rm-dropdown-value { flex: 1; color: var(--text-strong); text-align: left; }
+.rm-dropdown-arrow { color: var(--text-muted); font-size: 11px; transition: transform 0.2s; }
 .rm-dropdown-arrow.open { transform: rotate(180deg); color: #00e5ff; }
 
 .rm-dropdown-menu {
@@ -85,7 +86,7 @@
   top: calc(100% + 6px);
   left: 0;
   min-width: 100%;
-  background: #0d0d25;
+  background: var(--surface-2);
   border: 1px solid rgba(0,229,255,0.2);
   border-radius: 10px;
   overflow: hidden;
@@ -105,23 +106,23 @@
   padding: 10px 14px;
   background: none;
   border: none;
-  color: #888;
+  color: var(--text-muted);
   font-size: 13px;
   font-family: "Segoe UI", sans-serif;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s;
-  border-bottom: 1px solid #12122a;
+  border-bottom: 1px solid var(--border-soft);
 }
 .rm-dropdown-item:last-child { border-bottom: none; }
-.rm-dropdown-item:hover { background: rgba(0,229,255,0.05); color: #e8e8ff; }
+.rm-dropdown-item:hover { background: rgba(0,229,255,0.05); color: var(--text); }
 .rm-dropdown-item.active { color: #00e5ff; background: rgba(0,229,255,0.06); }
 .rm-dropdown-check { color: #00e5ff; font-size: 12px; }
 
 /* ── Table ── */
 .rm-table-wrap {
-  background: #0a0a20;
-  border: 1px solid #1a1a35;
+  background: var(--surface-solid);
+  border: 1px solid var(--border-soft);
   border-radius: 14px;
   overflow: hidden;
   margin-bottom: 16px;
@@ -133,14 +134,14 @@
   justify-content: center;
   gap: 12px;
   padding: 60px;
-  color: #444;
+  color: var(--text-muted);
   font-size: 14px;
 }
 .rm-empty span { font-size: 2.5rem; }
 .rm-spinner {
   width: 30px;
   height: 30px;
-  border: 2px solid #1e1e3a;
+  border: 2px solid var(--border);
   border-top-color: #00e5ff;
   border-radius: 50%;
   animation: rmSpin 0.8s linear infinite;
@@ -152,13 +153,13 @@
   border-collapse: collapse;
 }
 .rm-table thead tr {
-  border-bottom: 1px solid #1a1a35;
+  border-bottom: 1px solid var(--border-soft);
   background: linear-gradient(90deg, rgba(0,229,255,0.02), transparent);
 }
 .rm-table th {
   padding: 14px 16px;
   text-align: left;
-  color: #444;
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -166,7 +167,7 @@
   white-space: nowrap;
 }
 .rm-row {
-  border-bottom: 1px solid #10101e;
+  border-bottom: 1px solid var(--border-soft);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -192,14 +193,14 @@
   flex-shrink: 0;
 }
 .rm-content-title {
-  color: #d4d4f0;
+  color: var(--text-strong);
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 3px;
   white-space: nowrap;
 }
 .rm-content-preview {
-  color: #444;
+  color: var(--text-muted);
   font-size: 12px;
   max-width: 220px;
   white-space: nowrap;
@@ -242,12 +243,12 @@
   flex-shrink: 0;
   border: 2px solid rgba(168,85,247,0.3);
 }
-.rm-reporter-name    { color: #ccc; font-size: 13px; font-weight: 600; }
-.rm-reporter-username{ color: #444; font-size: 11px; margin-top: 2px; }
+.rm-reporter-name    { color: var(--text-strong); font-size: 13px; font-weight: 600; }
+.rm-reporter-username{ color: var(--text-muted); font-size: 11px; margin-top: 2px; }
 
 /* ── Date ── */
-.rm-date { color: #aaa; font-size: 13px; }
-.rm-time { color: #444; font-size: 11px; margin-top: 2px; }
+.rm-date { color: var(--text-muted); font-size: 13px; }
+.rm-time { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
 
 /* ── Status ── */
 .rm-status {
@@ -274,13 +275,13 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #444;
+  color: var(--text-muted);
   font-size: 13px;
 }
 .rm-rows-btn {
   background: none;
-  border: 1px solid #1e1e3a;
-  color: #666;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   font-size: 13px;
   padding: 5px 12px;
   border-radius: 8px;
@@ -288,7 +289,7 @@
   font-family: "Segoe UI", sans-serif;
   transition: all 0.2s;
 }
-.rm-rows-btn:hover { color: #fff; border-color: #2a2a4a; background: #0f0f24; }
+.rm-rows-btn:hover { color: var(--text); border-color: var(--border); background: var(--surface-hover); }
 .rm-rows-btn.active { color: #00e5ff; border-color: rgba(0,229,255,0.4); background: rgba(0,229,255,0.08); }
 
 .rm-page-nav {
@@ -298,8 +299,8 @@
 }
 .rm-nav-btn {
   background: none;
-  border: 1px solid #1e1e3a;
-  color: #666;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   font-size: 13px;
   padding: 6px 14px;
   border-radius: 8px;
@@ -313,9 +314,9 @@
   width: 34px;
   height: 34px;
   border-radius: 8px;
-  border: 1px solid #1e1e3a;
+  border: 1px solid var(--border);
   background: none;
-  color: #666;
+  color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
   font-family: "Segoe UI", sans-serif;
@@ -324,9 +325,9 @@
   align-items: center;
   justify-content: center;
 }
-.rm-page-btn:hover { color: #fff; border-color: #2a2a4a; background: #0f0f24; }
+.rm-page-btn:hover { color: var(--text); border-color: var(--border); background: var(--surface-hover); }
 .rm-page-btn.active { color: #00e5ff; border-color: rgba(0,229,255,0.4); background: rgba(0,229,255,0.08); box-shadow: 0 0 10px rgba(0,229,255,0.1); }
-.rm-page-dots { color: #333; font-size: 14px; padding: 0 4px; }
+.rm-page-dots { color: var(--text-muted); font-size: 14px; padding: 0 4px; }
 
 /* ── Modal Overlay ── */
 .rm-overlay {
@@ -341,7 +342,7 @@
   padding: 20px;
 }
 .rm-modal {
-  background: #0d0d25;
+  background: var(--surface-2);
   border: 1px solid rgba(0,229,255,0.15);
   border-radius: 18px;
   width: 480px;
@@ -361,7 +362,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 20px 16px;
-  border-bottom: 1px solid #1a1a35;
+  border-bottom: 1px solid var(--border-soft);
   background: linear-gradient(135deg, rgba(139,92,246,0.05), rgba(0,229,255,0.02));
 }
 .rm-modal-title-row {
@@ -380,15 +381,15 @@
   justify-content: center;
 }
 .rm-modal-title {
-  color: #e8e8ff;
+  color: var(--text);
   font-size: 1rem;
   font-weight: 700;
   margin: 0;
 }
 .rm-modal-close {
   background: none;
-  border: 1px solid #2a2a4a;
-  color: #555;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
   width: 30px;
   height: 30px;
   border-radius: 8px;
@@ -408,20 +409,20 @@
   gap: 14px;
   padding: 18px 20px 14px;
 }
-.rm-modal-reporter-name     { color: #e8e8ff; font-size: 14px; font-weight: 700; }
-.rm-modal-reporter-username { color: #555;    font-size: 12px; margin-top: 2px;  }
-.rm-modal-reporter-date     { color: #444;    font-size: 12px; margin-top: 4px;  }
+.rm-modal-reporter-name     { color: var(--text); font-size: 14px; font-weight: 700; }
+.rm-modal-reporter-username { color: var(--text-muted);    font-size: 12px; margin-top: 2px;  }
+.rm-modal-reporter-date     { color: var(--text-muted);    font-size: 12px; margin-top: 4px;  }
 
 /* Modal Content */
 .rm-modal-content-box {
   margin: 0 20px 18px;
   background: rgba(255,255,255,0.02);
-  border: 1px solid #1a1a35;
+  border: 1px solid var(--border-soft);
   border-radius: 10px;
   padding: 14px 16px;
 }
 .rm-modal-content-text {
-  color: #bbb;
+  color: var(--text-strong);
   font-size: 14px;
   line-height: 1.6;
   margin: 0;
@@ -441,13 +442,13 @@
   gap: 6px;
   padding: 12px 8px;
   border-radius: 10px;
-  border: 1px solid #1e1e3a;
+  border: 1px solid var(--border);
   background: none;
   font-size: 12px;
   font-family: "Segoe UI", sans-serif;
   cursor: pointer;
   transition: all 0.2s;
-  color: #666;
+  color: var(--text-muted);
 }
 .rm-action-icon { font-size: 1.3rem; }
 .rm-action-btn.delete  { border-color: rgba(239,68,68,0.25);  color: #f87171; background: rgba(239,68,68,0.06);  }
@@ -467,7 +468,7 @@
 .rm-dropdown-icon {
   display: flex;
   align-items: center;
-  color: #666;
+  color: var(--text-muted);
 }
 .rm-action-btn {
   min-height: 70px;
@@ -485,9 +486,9 @@
   position: fixed;
   top: 24px;
   right: 24px;
-  background: #0d0d25;
+  background: var(--surface-2);
   border: 1px solid rgba(0,229,255,0.4);
-  color: #e8e8ff;
+  color: var(--text);
   padding: 12px 20px;
   border-radius: 10px;
   z-index: 9999;

@@ -1,0 +1,122 @@
+/* ============================================================
+   Global theme tokens — dark (default) + light override.
+   Pages reference these variables so a single data-theme flip
+   on <html> recolors the whole app.
+   ============================================================ */
+
+:root,
+:root[data-theme="dark"] {
+  /* surfaces */
+  --bg:            #0a0a0f;
+  --bg-tint-1:     rgba(34, 211, 238, 0.10);
+  --bg-tint-2:     rgba(168, 85, 247, 0.10);
+  --surface:       rgba(21, 21, 31, 0.78);   /* translucent card */
+  --surface-solid: #15151f;                  /* modal / dropdown */
+  --surface-2:     #0e0e16;                   /* inset inputs */
+  --surface-hover: #24243a;
+  --border:        #24243a;
+  --border-soft:   rgba(255, 255, 255, 0.09);
+
+  /* text */
+  --text:        #e2e8f0;
+  --text-strong: #ffffff;
+  --text-muted:  #94a3b8;
+  --text-dim:    #64748b;
+
+  /* brand accents (constant across themes) */
+  --accent:      #3b82f6;
+  --accent-2:    #6366f1;
+  --accent-cyan: #22d3ee;
+  --accent-purple:#a855f7;
+  --accent-violet:#7c5cff;
+
+  --shadow-card: 0 14px 34px rgba(0, 0, 0, 0.5);
+
+  /* legacy aliases used by older pages (Home, dashboard, sidebar) */
+  --bg2: #0d0d25;
+  --bg3: #0f0f28;
+}
+
+:root[data-theme="light"] {
+  --bg:            #eef2f9;
+  --bg-tint-1:     rgba(59, 130, 246, 0.10);
+  --bg-tint-2:     rgba(168, 85, 247, 0.08);
+  --surface:       rgba(255, 255, 255, 0.9);
+  --surface-solid: #ffffff;
+  --surface-2:     #f1f5f9;
+  --surface-hover: #e8eef7;
+  --border:        #dbe3ef;
+  --border-soft:   rgba(15, 23, 42, 0.10);
+
+  --text:        #334155;
+  --text-strong: #0f172a;
+  --text-muted:  #64748b;
+  --text-dim:    #94a3b8;
+
+  --shadow-card: 0 14px 30px rgba(30, 41, 59, 0.14);
+
+  --bg2: #ffffff;
+  --bg3: #f1f5f9;
+}
+
+/* smooth the switch */
+html { transition: background-color 0.25s ease; }
+
+/* In light mode, headings that sit on light surfaces must darken
+   (their dark-theme value is #fff, which would vanish on white). */
+:root[data-theme="light"] .files-title,
+:root[data-theme="light"] .file-name,
+:root[data-theme="light"] .modal-head h2,
+:root[data-theme="light"] .dz-name,
+:root[data-theme="light"] .group-name,
+:root[data-theme="light"] .course-title,
+:root[data-theme="light"] .courses-modal-head h2,
+:root[data-theme="light"] .ar-subj-name,
+:root[data-theme="light"] .ar-review-author,
+:root[data-theme="light"] .ar-add-label,
+:root[data-theme="light"] .ar-confirm-msg {
+  color: var(--text-strong);
+}
+
+/* ============================================================
+   Global custom scrollbar — brand-gradient thumb, theme-aware.
+   Applies site-wide (theme.css is loaded on every page).
+   ============================================================ */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-purple) transparent;
+}
+
+/* WebKit (Chrome / Edge / Safari) */
+*::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  border: 3px solid transparent;          /* creates padding around the thumb */
+  background-clip: content-box;
+  background-color: var(--accent-2);
+  background-image: linear-gradient(180deg, var(--accent-cyan), var(--accent-purple));
+  transition: background-image 0.2s;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-image: linear-gradient(180deg, var(--accent-purple), #ec4899);
+}
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Thinner, subtler bars inside scrollable panels/cards */
+.scroll-slim::-webkit-scrollbar { width: 8px; height: 8px; }
+
+/* The main page scrollbar gets a faint track so it reads as a rail */
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: var(--surface-2);
+}

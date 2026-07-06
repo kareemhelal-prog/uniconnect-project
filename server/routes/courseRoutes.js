@@ -2,24 +2,38 @@ const express = require("express");
 const router = express.Router();
 
 const {
-  createCourse,
   getMyCourses,
-  joinCourse
+  getCourseById,
+  adminListCourses,
+  adminListDoctors,
+  adminCreateCourse,
+  adminUpdateCourse,
+  adminDeleteCourse,
 } = require("../controllers/courseController");
 
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
+const roleMiddleware = require("../middleware/rolemiddleware");
+
+// All course routes require a logged-in user.
+router.use(authenticateToken);
 
 // =======================
-// COURSES ROUTES
+// ADMIN — course management (declared BEFORE "/:id" so "admin" isn't
+// swallowed as an :id param)
 // =======================
+router.get("/admin",          roleMiddleware(["admin"]), adminListCourses);
+router.get("/admin/doctors",  roleMiddleware(["admin"]), adminListDoctors);
+router.post("/admin",         roleMiddleware(["admin"]), adminCreateCourse);
+router.put("/admin/:id",      roleMiddleware(["admin"]), adminUpdateCourse);
+router.delete("/admin/:id",   roleMiddleware(["admin"]), adminDeleteCourse);
 
-// Create Course (Doctor only)
-router.post("/", authMiddleware, createCourse);
+// =======================
+// STUDENT / DOCTOR — cohort-scoped access
+// =======================
+// My courses (doctor: assigned · student: own cohort)
+router.get("/my", getMyCourses);
 
-// Get My Courses
-router.get("/my", authMiddleware, getMyCourses);
-
-// Join Course (Student only)
-router.post("/:id/join", authMiddleware, joinCourse);
+// Course detail + materials (guarded per role inside the controller)
+router.get("/:id", getCourseById);
 
 module.exports = router;

@@ -1,12 +1,12 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
 
 const reviewController = require("../controllers/reviewController");
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
 
 // Protect all routes
-router.use(authMiddleware);
+router.use(authenticateToken);
 
 // Get All Reviews (Admin only)
 router.get(

@@ -1,10 +1,10 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
 
-const authMiddleware = require("../middleware/authMiddleware");
+const { authenticateToken } = require("../middleware/authMiddleware");
 const profileController = require("../controllers/profileController");
 
-router.get("/", authMiddleware, profileController.getProfile);
-router.get("/:id", authMiddleware, profileController.getUserById);
+router.get("/", authenticateToken, profileController.getProfile);
+router.get("/:id", authenticateToken, profileController.getUserById);
 
 module.exports = router;

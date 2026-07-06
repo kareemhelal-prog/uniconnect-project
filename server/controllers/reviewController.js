@@ -1,4 +1,5 @@
 const { promisePool } = require("../config/db");
+const { logEvent } = require("../utils/logEvent");
 
 // =======================
 // CREATE REVIEW
@@ -26,8 +27,8 @@ exports.createReview = async (req, res) => {
     }
 
     const [existing] = await promisePool.query(
-      SELECT * FROM Academic_Reviews
-       WHERE doctor_id = ? AND student_id = ?,
+      `SELECT * FROM Academic_Reviews
+       WHERE doctor_id = ? AND student_id = ?`,
       [doctor_id, req.user.id]
     );
 
@@ -38,11 +39,13 @@ exports.createReview = async (req, res) => {
     }
 
     const [result] = await promisePool.query(
-      INSERT INTO Academic_Reviews
+      `INSERT INTO Academic_Reviews
        (doctor_id, student_id, rating, comment, is_anonymous)
-       VALUES (?, ?, ?, ?, ?),
+       VALUES (?, ?, ?, ?, ?)`,
       [doctor_id, req.user.id, rating, comment, is_anonymous]
     );
+
+    logEvent({ actorId: req.user.id, type: "review_create", targetType: "doctor", targetId: doctor_id, summary: `Reviewed a doctor (${rating}★)` });
 
     res.status(201).json({
       message: "Review created successfully",
@@ -51,35 +54,58 @@ exports.createReview = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
 
 // =======================
-// GET REVIEWS BY DOCTOR
+// GET REVIEWS BY DOCTOR  (role-based visibility)
+// -----------------------------------------------
+// Privacy rules (enforced here, server-side):
+//   • student → sees ONLY their own review for the doctor
+//   • doctor  → sees ALL reviews written about THEMSELVES, and may not view
+//               another doctor's reviews at all
+//   • admin   → sees everything (moderation)
 // =======================
 exports.getReviewsByDoctor = async (req, res) => {
   try {
+    const doctorId = Number(req.params.doctorId);
+    const { id: userId, role } = req.user;
+
+    // A doctor can only ever look at their own reviews
+    if (role === "doctor" && doctorId !== Number(userId)) {
+      return res.status(403).json({
+        message: "Doctors can only view reviews written about themselves"
+      });
+    }
+
+    // Visibility filter: students are restricted to their own review
+    let visibility = "";
+    const params = [userId, doctorId]; // userId → is_mine, doctorId → WHERE
+    if (role === "student") {
+      visibility = "AND ar.student_id = ?";
+      params.push(userId);
+    }
 
     const [reviews] = await promisePool.query(
-      SELECT
-        Academic_Reviews.id,
-        Academic_Reviews.rating,
-        Academic_Reviews.comment,
-        Academic_Reviews.is_anonymous,
-        Academic_Reviews.created_at,
+      `SELECT
+        ar.id,
+        ar.rating,
+        ar.comment,
+        ar.is_anonymous,
+        ar.created_at,
+        ar.student_id,
+        (ar.student_id = ?) AS is_mine,
         CASE
-          WHEN Academic_Reviews.is_anonymous = TRUE
-          THEN 'Anonymous'
-          ELSE Users.name
+          WHEN ar.is_anonymous = TRUE THEN 'Anonymous'
+          ELSE u.name
         END AS student_name
-       FROM Academic_Reviews
-       JOIN Users ON Academic_Reviews.student_id = Users.id
-       WHERE Academic_Reviews.doctor_id = ?
-       ORDER BY Academic_Reviews.created_at DESC,
-      [req.params.doctorId]
+       FROM Academic_Reviews ar
+       JOIN Users u ON ar.student_id = u.id
+       WHERE ar.doctor_id = ? ${visibility}
+       ORDER BY ar.created_at DESC`,
+      params
     );
 
     res.json({
@@ -89,8 +115,7 @@ exports.getReviewsByDoctor = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -102,7 +127,7 @@ exports.getAllReviewsAdmin = async (req, res) => {
   try {
 
     const [reviews] = await promisePool.query(
-      SELECT
+      `SELECT
         ar.id,
         ar.rating,
         ar.comment,
@@ -127,7 +152,7 @@ exports.getAllReviewsAdmin = async (req, res) => {
        LEFT JOIN Doctor_Profiles dp ON dp.user_id = d.id
        JOIN Users s ON ar.student_id = s.id
        LEFT JOIN Profile_Studies ps ON ps.user_id = s.id
-       ORDER BY ar.created_at DESC
+       ORDER BY ar.created_at DESC`
     );
 
     res.json({
@@ -137,8 +162,7 @@ exports.getAllReviewsAdmin = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -150,7 +174,7 @@ exports.deleteReview = async (req, res) => {
   try {
 
     const [reviews] = await promisePool.query(
-      SELECT * FROM Academic_Reviews WHERE id = ?,
+      `SELECT * FROM Academic_Reviews WHERE id = ?`,
       [req.params.id]
     );
 
@@ -172,7 +196,7 @@ exports.deleteReview = async (req, res) => {
     }
 
     await promisePool.query(
-      DELETE FROM Academic_Reviews WHERE id = ?,
+      `DELETE FROM Academic_Reviews WHERE id = ?`,
       [req.params.id]
     );
 
@@ -182,8 +206,7 @@ exports.deleteReview = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import AcademicBackground from "../components/AcademicBackground";
 import LeftSidebar from "../components/LeftSidebar";
 import RightSidebar from "../components/RightSidebar";
 import Sidebar from "../components/Sidebar";
+import PostCard from "../components/PostCard";
 
 import ProfilePage from "./ProfilePage";
 import ProjectsPage from "./ProjectsPage";
@@ -11,7 +13,7 @@ import NotificationsPage from "./Notifications";
 
 import "../styles/Home.css";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "/api";
 
 const getToken = () => localStorage.getItem("token");
 
@@ -25,26 +27,17 @@ const authFetch = (url, options = {}) =>
     },
   });
 
-// ── حوّل بيانات البوست — يتعامل مع الشكل الجديد (name/role مباشرة) والقديم (user object) ──
+// Keep all raw fields so PostCard can use user_id, profile_picture, role, liked, nested comments
 const mapPost = (p) => ({
-  id: p.id,
+  ...p,
   author: p.name || p.user?.name || p.author_name || "Unknown",
   avatar: (p.name || p.user?.name || "U").slice(0, 2).toUpperCase(),
   avatarColor: "#a855f7",
-  role: p.role || p.user?.role || "",
   time: new Date(p.created_at).toLocaleString(),
   title: p.title || "",
   content: p.content || p.body || "",
-  likes: p.likes_count || 0,
+  likes: Number(p.likes || p.likes_count || 0),
   shares: 0,
-  comments: (p.comments || []).map((c) => ({
-    id: c.id,
-    author: c.user?.name || "Unknown",
-    avatar: (c.user?.name || "U").slice(0, 2).toUpperCase(),
-    avatarColor: "#00e5ff",
-    text: c.content || c.text || "",
-    time: new Date(c.created_at).toLocaleString(),
-  })),
 });
 
 function renderPage(page, user, setUser) {
@@ -55,149 +48,6 @@ function renderPage(page, user, setUser) {
     case "notifications":    return <NotificationsPage />;
     default:                 return null;
   }
-}
-
-// ══════════════════════════════════════════════
-// Post Card
-// ══════════════════════════════════════════════
-function PostCard({ post, onUpdate }) {
-  const [liked, setLiked]               = useState(false);
-  const [showComments, setShowComments] = useState(false);
-  const [commentText, setCommentText]   = useState("");
-  const [showShareToast, setShowShareToast] = useState(false);
-  const [loading, setLoading]           = useState(false);
-
-  const handleLike = async () => {
-    try {
-      await authFetch(`${API_BASE}/likes`, {
-        method: "POST",
-        body: JSON.stringify({ post_id: post.id }),
-      });
-      const newLiked = !liked;
-      setLiked(newLiked);
-      onUpdate({ ...post, likes: newLiked ? post.likes + 1 : post.likes - 1 });
-    } catch (err) {
-      console.error("Like error:", err);
-    }
-  };
-
-  const handleComment = async () => {
-    if (!commentText.trim()) return;
-    setLoading(true);
-    try {
-      const res = await authFetch(`${API_BASE}/comments`, {
-        method: "POST",
-        body: JSON.stringify({ post_id: post.id, content: commentText.trim() }),
-      });
-      const data = await res.json();
-      const newComment = {
-        id: data.id || Date.now(),
-        author: data.user?.name || "Me",
-        avatar: (data.user?.name || "Me").slice(0, 2).toUpperCase(),
-        avatarColor: "#a855f7",
-        text: commentText.trim(),
-        time: "Just now",
-      };
-      onUpdate({ ...post, comments: [...post.comments, newComment] });
-      setCommentText("");
-    } catch (err) {
-      console.error("Comment error:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleShare = () => {
-    setShowShareToast(true);
-    onUpdate({ ...post, shares: post.shares + 1 });
-    setTimeout(() => setShowShareToast(false), 2000);
-  };
-
-  return (
-    <div className="post-card">
-      {showShareToast && <div className="share-toast">🔗 Post shared!</div>}
-
-      <div className="post-header">
-        <div className="post-avatar-wrap" style={{ background: post.avatarColor }}>
-          {post.avatar}
-        </div>
-        <div className="post-meta-info">
-          <h4 className="post-author">{post.author}</h4>
-          <span className="post-role">{post.role}</span>
-          <span className="post-time">{post.time}</span>
-        </div>
-      </div>
-
-      <div className="post-body">
-        <h3 className="post-title">{post.title}</h3>
-        <p className="post-content">{post.content}</p>
-      </div>
-
-      <div className="post-stats-row">
-        <span className="post-stat">{post.likes} likes</span>
-        <span className="post-stat">
-          {post.comments.length} comments · {post.shares} shares
-        </span>
-      </div>
-
-      <div className="post-divider" />
-
-      <div className="post-actions">
-        <button
-          className={`action-btn like-btn ${liked ? "liked" : ""}`}
-          onClick={handleLike}
-        >
-          {liked ? "❤️" : "🤍"} Like
-        </button>
-        <button
-          className="action-btn comment-btn"
-          onClick={() => setShowComments(!showComments)}
-        >
-          💬 Comment
-        </button>
-        <button className="action-btn share-btn" onClick={handleShare}>
-          ↗ Share
-        </button>
-      </div>
-
-      {showComments && (
-        <div className="comments-section">
-          {post.comments.map((c) => (
-            <div key={c.id} className="comment-item">
-              <div className="comment-avatar" style={{ background: c.avatarColor }}>
-                {c.avatar}
-              </div>
-              <div className="comment-bubble">
-                <span className="comment-author">{c.author}</span>
-                <p className="comment-text">{c.text}</p>
-                <span className="comment-time">{c.time}</span>
-              </div>
-            </div>
-          ))}
-          <div className="comment-input-row">
-            <div className="comment-avatar" style={{ background: "#a855f7" }}>
-              Me
-            </div>
-            <input
-              className="comment-input"
-              placeholder="Write a comment..."
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleComment()}
-              disabled={loading}
-            />
-            <button
-              className="comment-send-btn"
-              onClick={handleComment}
-              disabled={loading}
-            >
-              {loading ? "..." : "Send"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ══════════════════════════════════════════════
@@ -248,6 +98,7 @@ function CreatePostModal({ onClose, onPost }) {
           <label className="modal-label">TITLE (optional)</label>
           <input
             className="modal-input"
+            dir="auto"
             placeholder="Post title..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -257,6 +108,7 @@ function CreatePostModal({ onClose, onPost }) {
           </label>
           <textarea
             className="modal-textarea"
+            dir="auto"
             placeholder="Share something with your academic community..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -301,14 +153,21 @@ const Home = () => {
       .then((r) => r.json())
       .then((data) => {
         const u = data.user || data;
+        const pic = u.profile_picture || "";
         setUser({
           id: u.id,
           name: u.name || "User",
+          email: u.email || "",
+          username: u.username || "",
           initials: (u.name || "U").slice(0, 2).toUpperCase(),
           role: u.role || "",
           dept: u.department || "",
           faculty: u.faculty || "",
           status: "online",
+          profile_picture: pic,
+          profilePic: pic.startsWith("data:") || pic.startsWith("http")
+            ? pic
+            : pic ? `/${pic.replace(/^\//, "")}` : "",
           stats: [
             { label: "Projects", value: 0 },
             { label: "Friends",  value: 0 },
@@ -350,8 +209,13 @@ const Home = () => {
       .catch(() => {});
   }, []);
 
-  const updatePost = (updated) =>
-    setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+  const updatePost = (updated) => {
+    if (updated._deleted) {
+      setPosts((prev) => prev.filter((p) => p.id !== updated.id));
+    } else {
+      setPosts((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    }
+  };
 
   const addPost = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
@@ -365,6 +229,7 @@ const Home = () => {
 
   return (
     <div className="home-page">
+      <AcademicBackground />
 
       {showToast && (
         <div className="success-toast">

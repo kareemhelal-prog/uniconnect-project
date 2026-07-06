@@ -1,4 +1,14 @@
 const { promisePool } = require("../config/db");
+const { notify } = require("../utils/notify");
+const { emitToUser } = require("../config/socket");
+
+// Helper: current follower count for a user
+async function followersCount(userId) {
+  const [[row]] = await promisePool.query(
+    "SELECT COUNT(*) AS count FROM Followers WHERE following_id = ?", [userId]
+  );
+  return row.count;
+}
 
 // =======================
 // TOGGLE FOLLOW (follow / unfollow)
@@ -32,6 +42,13 @@ exports.toggleFollow = async (req, res) => {
         "DELETE FROM Followers WHERE follower_id = ? AND following_id = ?",
         [req.user.id, following_id]
       );
+      // Real-time: update the target's follower count for anyone viewing it
+      emitToUser(following_id, "new_follower", {
+        user_id: Number(following_id),
+        followers: await followersCount(following_id),
+        actor_id: req.user.id,
+        following: false,
+      });
 
       return res.json({
         message: "Unfollowed"
@@ -44,14 +61,35 @@ exports.toggleFollow = async (req, res) => {
       [req.user.id, following_id]
     );
 
+    // Only create one follow notification per (follower, followed) — skip if one already exists
+    const [existingFollowNotif] = await promisePool.query(
+      "SELECT id FROM Notifications WHERE sender_id = ? AND user_id = ? AND type = 'follow' LIMIT 1",
+      [req.user.id, following_id]
+    );
+    if (existingFollowNotif.length === 0) {
+      await notify({
+        userId: following_id,
+        senderId: req.user.id,
+        type: "follow",
+        message: "started following you",
+      });
+    }
+
+    // Real-time: update the target's follower count for anyone viewing it
+    emitToUser(following_id, "new_follower", {
+      user_id: Number(following_id),
+      followers: await followersCount(following_id),
+      actor_id: req.user.id,
+      following: true,
+    });
+
     res.json({
       message: "Followed"
     });
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };
@@ -73,9 +111,23 @@ exports.getFollowersCount = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
+  }
+};
+
+// =======================
+// IS FOLLOWING CHECK
+// =======================
+exports.isFollowing = async (req, res) => {
+  try {
+    const [result] = await promisePool.query(
+      "SELECT id FROM Followers WHERE follower_id = ? AND following_id = ?",
+      [req.user.id, req.params.userId]
+    );
+    res.json({ isFollowing: result.length > 0 });
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -96,8 +148,7 @@ exports.getFollowingCount = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({
-      message: "Server error",
-      error: error.message
+      message: "Server error"
     });
   }
 };

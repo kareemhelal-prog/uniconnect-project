@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "../styles/NavbarDashboard.css";
 import { MdSettings } from "react-icons/md";
 import {
@@ -18,13 +19,20 @@ import {
   FiMail,
   FiActivity,
   FiBook,
+  FiUserCheck,
+  FiUserPlus,
+  FiRadio,
+  FiMessageSquare,
 } from "react-icons/fi";
 import { RiAdminLine } from "react-icons/ri";
-import { HiOutlineLink, HiOutlineSpeakerphone } from "react-icons/hi";
+import { HiOutlineSpeakerphone } from "react-icons/hi";
 import axios from "../api/axios";
 
 const ROUTES = {
   dashboard: "dashboard",
+  feed: "feed",
+  live: "live",
+  review: "review",
   users: "users",
   posts: "posts",
   reports: "reports",
@@ -32,6 +40,8 @@ const ROUTES = {
   groups: "groups",
   reviews: "reviews",
   files: "files",
+  courses: "courses",
+  groupRequests: "group-requests",
   announcements: "announcements",
   emailAlerts: "email-alerts",
   activityLogs: "activity-logs",
@@ -39,12 +49,17 @@ const ROUTES = {
 
 const MENU_ITEMS = [
   { label: "Dashboard", icon: FiHome, pageKey: ROUTES.dashboard },
+  { label: "Home Feed", icon: FiMessageSquare, pageKey: ROUTES.feed },
+  { label: "Live Monitor", icon: FiRadio, pageKey: ROUTES.live },
+  { label: "Account Review", icon: FiUserCheck, pageKey: ROUTES.review },
   { label: "Users", icon: FiUsers, pageKey: ROUTES.users },
   { label: "Posts", icon: FiFileText, pageKey: ROUTES.posts },
   { label: "Reports", icon: FiFlag, pageKey: ROUTES.reports },
   { label: "Projects", icon: FiBriefcase, pageKey: ROUTES.projects },
   { label: "Groups", icon: FiLayers, pageKey: ROUTES.groups },
+  { label: "Group Requests", icon: FiUserPlus, pageKey: ROUTES.groupRequests },
   { label: "Reviews", icon: FiStar, pageKey: ROUTES.reviews },
+  { label: "Courses", icon: FiBook, pageKey: ROUTES.courses },
   { label: "Files", icon: FiFolder, pageKey: ROUTES.files },
   { label: "Announcements", icon: HiOutlineSpeakerphone, pageKey: ROUTES.announcements },
   { label: "Email Alerts", icon: FiMail, pageKey: ROUTES.emailAlerts },
@@ -58,6 +73,7 @@ const NOTIF_ICON_MAP = {
   post: FiFileText,
   review: FiStar,
   mention: FiBell,
+  account: FiUserPlus,
 };
 
 const NOTIF_TITLE_MAP = {
@@ -67,6 +83,7 @@ const NOTIF_TITLE_MAP = {
   post: "New Post",
   review: "New Review",
   mention: "You were mentioned",
+  account: "New Account — Review",
 };
 
 function timeAgo(dateStr) {
@@ -79,6 +96,7 @@ function timeAgo(dateStr) {
 }
 
 function Navbar({ activePage, onNavigate, onLogout }) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [bellRing, setBellRing] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -89,6 +107,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
   const [notifications, setNotifications] = useState([]);
   const [loadingUser, setLoadingUser] = useState(true);
   const [loadingNotifs, setLoadingNotifs] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -117,6 +136,20 @@ function Navbar({ activePage, onNavigate, onLogout }) {
     };
     fetchNotifs();
   }, []);
+
+  // Pending-account count for the sidebar badge. Re-checked when the admin
+  // navigates (e.g. after approving/rejecting on the review page).
+  useEffect(() => {
+    let alive = true;
+    api_fetchPending();
+    async function api_fetchPending() {
+      try {
+        const res = await axios.get("/admin/pending");
+        if (alive) setPendingCount((res.data.users || []).length);
+      } catch (_) { /* non-admin or error — ignore */ }
+    }
+    return () => { alive = false; };
+  }, [activePage]);
 
   const unreadCount = notifications.filter(
     (n) => !readNotifs.includes(n.id) && !n.is_read
@@ -148,14 +181,15 @@ function Navbar({ activePage, onNavigate, onLogout }) {
     setNotifOpen(false);
   };
 
-  const handleNotifClick = async (id) => {
+  const handleNotifClick = async (id, type) => {
     try {
       await axios.patch(`/notifications/${id}/read`);
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }
     markRead(id);
-    navigateTo(null);
+    // Account-review notifications deep-link to the review page.
+    navigateTo(type === "account" ? ROUTES.review : null);
   };
 
   const handleLogoutClick = () => {
@@ -184,7 +218,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
         </button>
 
         <div className="nav-logo">
-          <HiOutlineLink className="logo-icon" />
+          <img src="/logo.png" className="logo-img" alt="UniConnect logo" />
           <span className="logo-text">UniConnect</span>
         </div>
 
@@ -227,7 +261,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
                       <div
                         key={n.id}
                         className={`notif-item ${isUnread ? "unread" : "read"}`}
-                        onClick={() => handleNotifClick(n.id)}
+                        onClick={() => handleNotifClick(n.id, n.type)}
                       >
                         <div className="notif-icon-wrap">
                           <Icon size={18} />
@@ -270,7 +304,7 @@ function Navbar({ activePage, onNavigate, onLogout }) {
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <HiOutlineLink size={18} /> UniConnect
+            <img src="/logo.png" className="sidebar-logo-img" alt="" /> UniConnect
           </div>
           <button
             className="sidebar-close"
@@ -291,6 +325,9 @@ function Navbar({ activePage, onNavigate, onLogout }) {
               >
                 <Icon size={16} className="sidebar-menu-icon" />
                 <span>{label}</span>
+                {pageKey === ROUTES.review && pendingCount > 0 && (
+                  <span className="sidebar-menu-badge">{pendingCount}</span>
+                )}
                 {isActive && <span className="sidebar-menu-indicator" />}
               </button>
             );
@@ -333,7 +370,9 @@ function Navbar({ activePage, onNavigate, onLogout }) {
                 className="profile-card-item"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigateTo(null);
+                  setProfileOpen(false);
+                  setSidebarOpen(false);
+                  navigate("/settings");
                 }}
               >
                 <MdSettings size={16} className="profile-card-icon" />

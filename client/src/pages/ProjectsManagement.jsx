@@ -4,7 +4,7 @@ import {
   Search, ChevronDown, Eye, Trash2, X,
   GitBranch as Github, Link as LinkIcon,
   Users, Calendar, DollarSign, CheckCircle2,
-  AlertTriangle, ChevronLeft, ChevronRight, Briefcase,
+  AlertTriangle, ChevronLeft, ChevronRight, Briefcase, Star,
 } from "lucide-react";
 import api from "../api/axios";
 
@@ -74,6 +74,14 @@ export default function ProjectsManagement() {
     setToast(message);
     setTimeout(() => setToast(null), 3000);
   }
+
+  const toggleFeature = async (p) => {
+    try {
+      await api.post(`/projects/${p.id}/feature`, { featured: !p.featured });
+      showToast(p.featured ? "Removed from featured" : "Featured as project of the week");
+      fetchProjects();
+    } catch { showToast("Could not update"); }
+  };
 
   const confirmDelete = async () => {
     try {
@@ -192,6 +200,9 @@ export default function ProjectsManagement() {
                       <div className="pm-actions">
                         <button onClick={() => setViewProject(p)} className="pm-btn-view">
                           <Eye size={14} /> View
+                        </button>
+                        <button onClick={() => toggleFeature(p)} className="pm-btn-view" title="Project of the week">
+                          <Star size={14} fill={p.featured ? "#fbbf24" : "none"} color={p.featured ? "#fbbf24" : "currentColor"} /> {p.featured ? "Featured" : "Feature"}
                         </button>
                         <button onClick={() => setDeleteTarget(p)} className="pm-btn-delete">
                           <Trash2 size={14} /> Delete

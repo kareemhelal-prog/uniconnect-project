@@ -1,0 +1,44 @@
+/* Reusable animated academic background.
+   Sits behind page content via z-index:-1; the page wrapper must set
+   `isolation: isolate` so the negative layer stays above its own background. */
+.academic-bg {
+  position: fixed;
+  inset: -40px;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+
+.academic-doodle {
+  position: absolute;
+  color: rgba(148, 163, 184, 0.10);
+  animation: academicDrift 22s ease-in-out infinite;
+}
+
+.academic-doodle.ad1 { top: 8%;  left: 6%;  color: rgba(59,130,246,0.10);  animation-duration: 26s; }
+.academic-doodle.ad2 { top: 16%; left: 86%; color: rgba(245,158,11,0.10);  animation-duration: 30s; animation-delay: -4s; }
+.academic-doodle.ad3 { top: 64%; left: 9%;  color: rgba(99,102,241,0.10);  animation-duration: 24s; animation-delay: -8s; }
+.academic-doodle.ad4 { top: 76%; left: 80%; color: rgba(16,185,129,0.10);  animation-duration: 28s; animation-delay: -2s; }
+.academic-doodle.ad5 { top: 40%; left: 48%; color: rgba(245,158,11,0.09);  animation-duration: 32s; animation-delay: -12s; }
+.academic-doodle.ad6 { top: 86%; left: 42%; color: rgba(148,163,184,0.09); animation-duration: 27s; animation-delay: -6s; }
+.academic-doodle.ad7 { top: 30%; left: 24%; color: rgba(59,130,246,0.08);  animation-duration: 34s; animation-delay: -10s; }
+.academic-doodle.ad8 { top: 56%; left: 90%; color: rgba(99,102,241,0.10);  animation-duration: 25s; animation-delay: -3s; }
+
+@keyframes academicDrift {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(18px, -26px) rotate(8deg); }
+  50%  { transform: translate(-14px, -44px) rotate(-6deg); }
+  75%  { transform: translate(-22px, -18px) rotate(5deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .academic-bg { transition: none; }
+  .academic-doodle { animation: none; }
+}
+
+@media (max-width: 768px) {
+  .academic-doodle { display: none; }
+}
