@@ -208,7 +208,7 @@ export default function Login() {
         <div className="uc-grid">
           <div className="uc-card uc-card-main">
             <div className="uc-card-glow" />
-            <h2 className="uc-card-title">Log In or Register</h2>
+            <h2 className="uc-card-title">Log In Now</h2>
 
             <form className="uc-form" onSubmit={handleLogin} noValidate>
               <input

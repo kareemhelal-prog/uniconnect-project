@@ -281,18 +281,9 @@
 
 .uc-card-title {
   font-size: 28px;
-  font-weight: 700;
-  color: #fff;
-  margin-bottom: 34px;
-  position: relative;
-}
-.uc-card-title::after {
-  content: "";
-  display: block;
-  width: 52px; height: 3px;
-  margin-top: 12px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #22d3ee, #a855f7);
+  font-weight: 600;
+  color: #22d3ee;
+  margin-bottom: 36px;
 }
 
 /* ── Form ── */
