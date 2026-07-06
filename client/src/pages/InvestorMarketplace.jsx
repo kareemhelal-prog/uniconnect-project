@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useGoogleLogin } from "@react-oauth/google";
 import api from "../api/axios";
 import { useSettings } from "../context/SettingsContext";
 import "../styles/InvestorMarketplace.css";
@@ -26,10 +27,11 @@ function compressImage(file) {
 const getCurrentUser = () => { try { return JSON.parse(atob(localStorage.getItem("token").split(".")[1])); } catch { return null; } };
 
 const PROJECT_TYPES = ["IoT", "Software Application", "Mechatronics", "Robotics", "AI/ML", "Embedded Systems", "Web/Mobile App", "Data Science", "Game Dev", "AR/VR", "Other"];
-const TYPE_ICON = { IoT: "📡", "Software Application": "💻", Mechatronics: "⚙️", Robotics: "🤖", "AI/ML": "🧠", "Embedded Systems": "🔌", "Web/Mobile App": "📱", "Data Science": "📊", "Game Dev": "🎮", "AR/VR": "🕶️", Other: "🚀" };
 const STAGES = { idea: "Idea", prototype: "Prototype", mvp: "MVP", launched: "Launched" };
 const STAGE_COLOR = { idea: "#f59e0b", prototype: "#38bdf8", mvp: "#a855f7", launched: "#22c55e" };
-const LOOKING = { funding: "💰 Funding", mentorship: "🎓 Mentorship", partner: "🤝 Partner" };
+const LOOKING = { funding: "Funding", mentorship: "Mentorship", partner: "Partner" };
+// First letter of the title → a clean monogram used when a project has no cover image.
+const monogram = (s) => (s || "?").trim().charAt(0).toUpperCase();
 const OFFER_BADGE = { pending: { t: "Pending", c: "#e0b23c" }, accepted: { t: "Accepted", c: "#10b981" }, declined: { t: "Declined", c: "#ef4444" } };
 const parseLooking = (s) => (s ? String(s).split(",").map((x) => x.trim()).filter(Boolean) : []);
 const imgSrc = (u) => (!u ? "" : u.startsWith("http") || u.startsWith("data:") ? u : `/${u.replace(/^\//, "")}`);
@@ -52,6 +54,20 @@ const I = {
   sun: (p) => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="4.5" /><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" /></svg>),
   moon: (p) => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>),
   globe: (p) => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18z" /></svg>),
+  lock: (p) => (<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>),
+  googleG: (p) => (<svg viewBox="0 0 18 18" width="16" height="16" {...p}><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" /><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z" /><path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332z" /><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" /></svg>),
+  layers: (p) => (<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M12 2 2 7l10 5 10-5-10-5z" /><path d="m2 17 10 5 10-5" /><path d="m2 12 10 5 10-5" /></svg>),
+  heart: (p) => (<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 1 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" /></svg>),
+  briefcase: (p) => (<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" /></svg>),
+  wallet: (p) => (<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M20 12V8H6a2 2 0 0 1 0-4h12v4" /><path d="M4 6v12a2 2 0 0 0 2 2h14v-4" /><path d="M18 12a2 2 0 0 0 0 4h4v-4z" /></svg>),
+  users: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></svg>),
+  star: (p) => (<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" {...p}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z" /></svg>),
+  code: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="m16 18 6-6-6-6M8 6l-6 6 6 6" /></svg>),
+  external: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" /></svg>),
+  play: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" {...p}><path d="M6 4l14 8-14 8z" /></svg>),
+  file: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><path d="M14 2v6h6" /></svg>),
+  mail: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 6-10 7L2 6" /></svg>),
+  phone: (p) => (<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...p}><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.6A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.4-1.2a2 2 0 0 1 2.1-.5c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z" /></svg>),
 };
 
 const Stars = ({ value }) => <span className="inv-stars">{[1, 2, 3, 4, 5].map((i) => <span key={i} className={i <= Math.round(value || 0) ? "on" : ""}>★</span>)}</span>;
@@ -111,7 +127,7 @@ function NotifBell() {
         <div className="inv-notif-panel">
           <div className="inv-notif-head"><b>Notifications</b>{unread > 0 && <button onClick={markAll}>Mark all read</button>}</div>
           <div className="inv-notif-list">
-            {items.length === 0 ? <div className="inv-notif-empty">You're all caught up 🎉</div>
+            {items.length === 0 ? <div className="inv-notif-empty">You're all caught up.</div>
               : items.slice(0, 12).map((n) => (
                 <div key={n.id} className={`inv-notif-item ${n.is_read ? "" : "unread"}`}>
                   <span className="inv-notif-av">{initials(n.sender_name)}</span>
@@ -178,7 +194,7 @@ function ProjectModal({ id, onClose, onChange, toast }) {
             {p.image_url && <img className="inv-modal-cover" src={imgSrc(p.image_url)} alt="" />}
             <div className="inv-modal-head">
               <span className="inv-stage" style={{ "--sc": STAGE_COLOR[p.status] || "#64748b" }}>{STAGES[p.status] || p.status}</span>
-              <span className="inv-cat">{TYPE_ICON[p.project_type]} {p.project_type}</span>
+              <span className="inv-cat">{p.project_type}</span>
               {p.supervisor_name && <span className="inv-endorsed"><I.verify /> Supervised by {p.supervisor_name}</span>}
               {Number(p.rating) > 0 && <Stars value={p.rating} />}
             </div>
@@ -200,13 +216,13 @@ function ProjectModal({ id, onClose, onChange, toast }) {
             {tab === "about" && (<>
               <p className="inv-modal-desc">{p.description}</p>
               <div className="inv-modal-stats">
-                {p.github_link && <a href={p.github_link} target="_blank" rel="noreferrer">🔗 Code</a>}
-                {p.demo_url && <a href={p.demo_url} target="_blank" rel="noreferrer">🌐 Demo</a>}
-                {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer">🎬 Video</a>}
-                {p.pitch_deck_url && <a href={imgSrc(p.pitch_deck_url)} target="_blank" rel="noreferrer">📑 Pitch Deck</a>}
+                {p.github_link && <a href={p.github_link} target="_blank" rel="noreferrer"><I.code /> Code</a>}
+                {p.demo_url && <a href={p.demo_url} target="_blank" rel="noreferrer"><I.external /> Demo</a>}
+                {p.video_url && <a href={p.video_url} target="_blank" rel="noreferrer"><I.play /> Video</a>}
+                {p.pitch_deck_url && <a href={imgSrc(p.pitch_deck_url)} target="_blank" rel="noreferrer"><I.file /> Pitch Deck</a>}
               </div>
               {p.files?.length > 0 && (
-                <div className="inv-block"><h4>Files</h4>{p.files.map((f) => <a key={f.id} className="inv-file" href={imgSrc(f.file_url)} target="_blank" rel="noreferrer">📎 {f.file_name}</a>)}</div>
+                <div className="inv-block"><h4>Files</h4>{p.files.map((f) => <a key={f.id} className="inv-file" href={imgSrc(f.file_url)} target="_blank" rel="noreferrer"><I.file /> {f.file_name}</a>)}</div>
               )}
               {p.members?.length > 0 && (
                 <div className="inv-block"><h4>Team</h4><div className="inv-team">{p.members.map((m) => <span key={m.id} className="inv-team-member">{m.name}</span>)}</div></div>
@@ -216,8 +232,8 @@ function ProjectModal({ id, onClose, onChange, toast }) {
               )}
               {p.my_interested && p.creator_contact && (
                 <div className="inv-contact"><h4>Contact the founder</h4>
-                  <a href={`mailto:${p.creator_contact.email}`}>✉ {p.creator_contact.email}</a>
-                  {p.creator_contact.phone_number && <a href={`tel:${p.creator_contact.phone_number}`}>📞 {p.creator_contact.phone_number}</a>}
+                  <a href={`mailto:${p.creator_contact.email}`}><I.mail /> {p.creator_contact.email}</a>
+                  {p.creator_contact.phone_number && <a href={`tel:${p.creator_contact.phone_number}`}><I.phone /> {p.creator_contact.phone_number}</a>}
                 </div>
               )}
             </>)}
@@ -262,13 +278,13 @@ function ProjectCard({ p, onOpen, onQuickSave, idx }) {
   return (
     <div className="inv-card reveal" style={{ "--d": `${Math.min(idx, 8) * 55}ms` }} onClick={() => onOpen(p.id)}>
       <div className="inv-card-cover" style={p.image_url ? { backgroundImage: `url(${imgSrc(p.image_url)})` } : undefined}>
-        {!p.image_url && <span className="inv-cover-fallback">{TYPE_ICON[p.project_type] || "🚀"}</span>}
+        {!p.image_url && <span className="inv-cover-fallback">{monogram(p.title)}</span>}
         <span className="inv-stage inv-cover-stage" style={{ "--sc": STAGE_COLOR[p.status] || "#64748b" }}>{STAGES[p.status] || p.status}</span>
         <button className={`inv-card-save ${p.my_bookmarked ? "on" : ""}`} onClick={(e) => { e.stopPropagation(); onQuickSave(p); }}><I.bookmark filled={p.my_bookmarked} /></button>
         {ob && <span className="inv-card-offer" style={{ "--oc": ob.c }}>Offer · {ob.t}</span>}
       </div>
       <div className="inv-card-body">
-        <div className="inv-card-tags"><span className="inv-cat">{TYPE_ICON[p.project_type]} {p.project_type}</span>{p.featured ? <span className="inv-chip-featured">★ Featured</span> : null}</div>
+        <div className="inv-card-tags"><span className="inv-cat">{p.project_type}</span>{p.featured ? <span className="inv-chip-featured"><I.star /> Featured</span> : null}</div>
         <h3 className="inv-card-title">{p.title}</h3>
         <div className="inv-card-by">by {p.creator_name}</div>
         {p.supervisor_name && <div className="inv-card-sup"><I.verify /> {p.supervisor_name} {Number(p.rating) > 0 && <Stars value={p.rating} />}</div>}
@@ -276,7 +292,7 @@ function ProjectCard({ p, onOpen, onQuickSave, idx }) {
         {looking.length > 0 && <div className="inv-looking sm">{looking.map((l) => <span key={l} className="inv-look-badge">{LOOKING[l] || l}</span>)}</div>}
         <FundingBar raised={p.funding_raised} goal={p.required_funding} />
         <div className="inv-card-foot">
-          <span>👥 {p.interest_count} interested</span>
+          <span className="inv-metric"><I.users /> {p.interest_count} interested</span>
           {p.my_interested ? <span className="inv-interested">you're in ✓</span> : <span className="inv-view">View →</span>}
         </div>
       </div>
@@ -289,17 +305,17 @@ function Spotlight({ p, onOpen }) {
   return (
     <div className="inv-spot reveal" onClick={() => onOpen(p.id)}>
       <div className="inv-spot-media" style={p.image_url ? { backgroundImage: `url(${imgSrc(p.image_url)})` } : undefined}>
-        {!p.image_url && <span className="inv-spot-fallback">{TYPE_ICON[p.project_type] || "🚀"}</span>}
+        {!p.image_url && <span className="inv-spot-fallback">{monogram(p.title)}</span>}
       </div>
       <div className="inv-spot-body">
-        <span className="inv-spot-kicker">★ Project of the Week</span>
+        <span className="inv-spot-kicker"><I.star /> Project of the Week</span>
         <h2 className="inv-spot-title">{p.title}</h2>
         <div className="inv-card-by">by {p.creator_name}{p.supervisor_name ? ` · Supervised by ${p.supervisor_name}` : ""}</div>
         <p className="inv-spot-desc">{p.description}</p>
         <FundingBar raised={p.funding_raised} goal={p.required_funding} />
         <div className="inv-spot-foot">
-          <span className="inv-cat">{TYPE_ICON[p.project_type]} {p.project_type}</span>
-          <span>👥 {p.interest_count} interested</span>
+          <span className="inv-cat">{p.project_type}</span>
+          <span className="inv-metric"><I.users /> {p.interest_count} interested</span>
           {Number(p.rating) > 0 && <Stars value={p.rating} />}
           <button className="inv-spot-cta" onClick={(e) => { e.stopPropagation(); onOpen(p.id); }}>Explore <I.chev style={{ transform: "rotate(-90deg)" }} /></button>
         </div>
@@ -355,9 +371,43 @@ function ProfileModal({ onClose, toast, onSaved }) {
   );
 }
 
-/* ── Settings modal (appearance + language, wired to SettingsContext) ── */
-function SettingsModal({ onClose }) {
+/* ── Settings modal (appearance, language + account: password / Google / profile) ── */
+function SettingsModal({ onClose, toast, onEditProfile }) {
   const { theme, setTheme, lang, setLang } = useSettings();
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pw, setPw] = useState({ current: "", next: "", confirm: "" });
+  const [pwBusy, setPwBusy] = useState(false);
+  const [g, setG] = useState(null);   // { linked, google_email, has_password }
+  const [gBusy, setGBusy] = useState(false);
+
+  useEffect(() => { api.get("/auth/google/status").then((r) => setG(r.data)).catch(() => setG({ linked: false, has_password: true })); }, []);
+
+  const changePw = async () => {
+    if (!pw.current) { toast("Enter your current password", "error"); return; }
+    if (pw.next.length < 8) { toast("New password must be at least 8 characters", "error"); return; }
+    if (pw.next !== pw.confirm) { toast("The two new passwords don't match", "error"); return; }
+    setPwBusy(true);
+    try { await api.put("/auth/profile/change-password", { currentPassword: pw.current, newPassword: pw.next }); toast("Password changed"); setPw({ current: "", next: "", confirm: "" }); setPwOpen(false); }
+    catch (e) { toast(e?.response?.data?.message || "Couldn't change password", "error"); } finally { setPwBusy(false); }
+  };
+
+  const linkGoogle = useGoogleLogin({
+    scope: "openid email profile",
+    onSuccess: async (tr) => {
+      if (!tr?.access_token) return;
+      setGBusy(true);
+      try { const r = await api.post("/auth/google/link", { access_token: tr.access_token }); toast("Google account linked"); setG((s) => ({ ...s, linked: true, google_email: r.data.google_email })); }
+      catch (e) { toast(e?.response?.data?.message || "Couldn't link Google", "error"); } finally { setGBusy(false); }
+    },
+    onError: () => toast("Google sign-in was cancelled", "error"),
+  });
+
+  const unlinkGoogle = async () => {
+    setGBusy(true);
+    try { await api.post("/auth/google/unlink"); toast("Google account unlinked"); setG((s) => ({ ...s, linked: false, google_email: null })); }
+    catch (e) { toast(e?.response?.data?.message || "Couldn't unlink", "error"); } finally { setGBusy(false); }
+  };
+
   return (
     <div className="inv-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="inv-modal inv-modal-sm">
@@ -379,6 +429,38 @@ function SettingsModal({ onClose }) {
             <button className={lang === "en" ? "on" : ""} onClick={() => setLang("en")}>English</button>
             <button className={lang === "ar" ? "on" : ""} onClick={() => setLang("ar")}>العربية</button>
           </div>
+        </div>
+
+        <div className="inv-set-section">Account &amp; security</div>
+
+        {/* Edit profile info */}
+        <button className="inv-set-item" onClick={() => onEditProfile?.()}>
+          <span className="inv-set-item-l"><I.user /> Edit profile info</span>
+          <I.chev style={{ transform: "rotate(-90deg)" }} />
+        </button>
+
+        {/* Change password */}
+        <button className="inv-set-item" onClick={() => setPwOpen((o) => !o)}>
+          <span className="inv-set-item-l"><I.lock /> Change password</span>
+          <I.chev className={pwOpen ? "inv-chev-up" : ""} />
+        </button>
+        {pwOpen && (
+          <div className="inv-set-panel">
+            <input className="inv-input" type="password" autoComplete="current-password" placeholder="Current password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
+            <input className="inv-input" type="password" autoComplete="new-password" placeholder="New password (min 8 characters)" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
+            <input className="inv-input" type="password" autoComplete="new-password" placeholder="Confirm new password" value={pw.confirm} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} />
+            <button className="inv-btn-interest on" disabled={pwBusy} onClick={changePw}>{pwBusy ? "Saving…" : "Update password"}</button>
+          </div>
+        )}
+
+        {/* Google account */}
+        <div className="inv-set-item inv-set-static">
+          <span className="inv-set-item-l"><I.googleG /> Google account
+            <em className={`inv-set-status ${g?.linked ? "on" : ""}`}>{g == null ? "…" : g.linked ? (g.google_email || "Connected") : "Not connected"}</em>
+          </span>
+          {g && (g.linked
+            ? <button className="inv-set-btn danger" disabled={gBusy} onClick={unlinkGoogle}>{gBusy ? "…" : "Unlink"}</button>
+            : <button className="inv-set-btn" disabled={gBusy} onClick={() => linkGoogle()}>{gBusy ? "…" : "Link"}</button>)}
         </div>
 
         <div className="inv-modal-actions"><button className="inv-btn-interest on" onClick={onClose}>Done</button></div>
@@ -455,10 +537,10 @@ export default function InvestorMarketplace() {
   const displayName = profile?.name || me?.email?.split("@")[0] || "Investor";
 
   const STAT_CARDS = [
-    { k: "available", label: "Live projects", icon: "🚀" },
-    { k: "interested", label: "Interested in", icon: "❤️" },
-    { k: "offers", label: "Offers made", icon: "🤝" },
-    { k: "saved", label: "Saved", icon: "🔖" },
+    { k: "available", label: "Live projects", icon: <I.layers /> },
+    { k: "interested", label: "Interested in", icon: <I.heart /> },
+    { k: "offers", label: "Offers made", icon: <I.briefcase /> },
+    { k: "saved", label: "Saved", icon: <I.bookmark /> },
   ];
 
   return (
@@ -470,7 +552,7 @@ export default function InvestorMarketplace() {
       <header className="inv-nav">
         <div className="inv-brand"><img src="/logo.png" alt="" className="inv-logo" /><div><span className="inv-brand-name">UniConnect</span><span className="inv-brand-sub">Investor Portal</span></div></div>
         <div className="inv-nav-right">
-          <div className="inv-nav-stat"><span className="inv-nav-stat-n"><CountUp to={stats.totalOffered} prefix="$" short /></span><span className="inv-nav-stat-l">committed</span></div>
+          <div className="inv-nav-stat"><span className="inv-nav-stat-n"><CountUp to={stats.totalOffered} short /></span><span className="inv-nav-stat-l">committed</span></div>
           <NotifBell />
           <div className="inv-nav-user">
             <button className="inv-avatar-btn" onClick={() => setMenuOpen((o) => !o)}>
@@ -481,7 +563,7 @@ export default function InvestorMarketplace() {
             {menuOpen && (<>
               <div className="inv-menu-backdrop" onClick={() => setMenuOpen(false)} />
               <div className="inv-user-menu">
-                <div className="inv-user-menu-head"><span className="inv-avatar lg">{initials(displayName)}</span><div><b>{displayName}</b><span>{me?.email}</span></div></div>
+                <div className="inv-user-menu-head"><span className="inv-avatar lg">{profile?.profile_picture ? <img src={imgSrc(profile.profile_picture)} alt="" /> : initials(displayName)}</span><div><b>{displayName}</b><span>{me?.email}</span></div></div>
                 <button onClick={() => { setMenuOpen(false); setShowProfile(true); }}><I.user /> My profile</button>
                 <button onClick={() => { setMenuOpen(false); setShowSettings(true); }}><I.settings /> Settings</button>
                 <button onClick={logout} className="danger"><I.logout /> Logout</button>
@@ -507,8 +589,8 @@ export default function InvestorMarketplace() {
             </div>
           ))}
           <div className="inv-stat inv-stat-hl">
-            <span className="inv-stat-icon">💰</span>
-            <div><span className="inv-stat-n"><CountUp to={stats.totalOffered} prefix="$" short /></span><span className="inv-stat-l">Total committed</span></div>
+            <span className="inv-stat-icon"><I.wallet /></span>
+            <div><span className="inv-stat-n"><CountUp to={stats.totalOffered} short /></span><span className="inv-stat-l">Total committed</span></div>
           </div>
         </div>
 
@@ -524,13 +606,13 @@ export default function InvestorMarketplace() {
         {/* ── Filters ── */}
         <div className="inv-filters">
           <div className="inv-search"><span><I.search /></span><input placeholder="Search projects, founders, ideas…" value={q} onChange={(e) => setQ(e.target.value)} />{q && <button className="inv-search-clear" onClick={() => setQ("")}><I.close width="14" height="14" /></button>}</div>
-          <select value={sort} onChange={(e) => setSort(e.target.value)}><option value="trending">🔥 Trending</option><option value="new">🆕 Newest</option><option value="funding">💰 Most funded</option></select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)}><option value="trending">Trending</option><option value="new">Newest</option><option value="funding">Most funded</option></select>
         </div>
 
         {/* ── Category chips ── */}
         <div className="inv-chips">
           <button className={ptype === "" ? "on" : ""} onClick={() => setPtype("")}>All</button>
-          {PROJECT_TYPES.map((t) => <button key={t} className={ptype === t ? "on" : ""} onClick={() => setPtype(ptype === t ? "" : t)}>{TYPE_ICON[t]} {t}</button>)}
+          {PROJECT_TYPES.map((t) => <button key={t} className={ptype === t ? "on" : ""} onClick={() => setPtype(ptype === t ? "" : t)}>{t}</button>)}
         </div>
 
         {/* ── Featured spotlight (discover only) ── */}
@@ -540,7 +622,7 @@ export default function InvestorMarketplace() {
         {loading ? <div className="inv-empty"><div className="inv-spinner" /></div>
           : displayed.length === 0 ? (
             <div className="inv-empty">
-              <span className="inv-empty-icon">{tab === "saved" ? "🔖" : tab === "offers" ? "🤝" : tab === "interested" ? "❤️" : "🚀"}</span>
+              <span className="inv-empty-icon">{tab === "saved" ? <I.bookmark /> : tab === "offers" ? <I.briefcase /> : tab === "interested" ? <I.heart /> : <I.layers />}</span>
               {tab === "saved" ? "No saved projects yet — tap the bookmark on any card."
                 : tab === "offers" ? "You haven't made any offers yet."
                 : tab === "interested" ? "You haven't shown interest yet — explore the marketplace."
@@ -551,7 +633,7 @@ export default function InvestorMarketplace() {
 
       {openId && <ProjectModal id={openId} onClose={() => setOpenId(null)} onChange={fetchAll} toast={toast} />}
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} toast={toast} onSaved={loadProfile} />}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} toast={toast} onEditProfile={() => { setShowSettings(false); setShowProfile(true); }} />}
     </div>
   );
 }
