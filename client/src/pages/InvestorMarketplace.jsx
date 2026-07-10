@@ -564,7 +564,6 @@ export default function InvestorMarketplace() {
               <div className="inv-menu-backdrop" onClick={() => setMenuOpen(false)} />
               <div className="inv-user-menu">
                 <div className="inv-user-menu-head"><span className="inv-avatar lg">{profile?.profile_picture ? <img src={imgSrc(profile.profile_picture)} alt="" /> : initials(displayName)}</span><div><b>{displayName}</b><span>{me?.email}</span></div></div>
-                <button onClick={() => { setMenuOpen(false); setShowProfile(true); }}><I.user /> My profile</button>
                 <button onClick={() => { setMenuOpen(false); setShowSettings(true); }}><I.settings /> Settings</button>
                 <button onClick={logout} className="danger"><I.logout /> Logout</button>
               </div>

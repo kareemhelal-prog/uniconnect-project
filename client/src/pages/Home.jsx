@@ -168,11 +168,6 @@ const Home = () => {
           profilePic: pic.startsWith("data:") || pic.startsWith("http")
             ? pic
             : pic ? `/${pic.replace(/^\//, "")}` : "",
-          stats: [
-            { label: "Projects", value: 0 },
-            { label: "Friends",  value: 0 },
-            { label: "Groups",   value: 0 },
-          ],
         });
       })
       .catch((err) => console.error("Fetch user error:", err))
@@ -261,17 +256,6 @@ const Home = () => {
                 onClick={() => setShowCreatePost(true)}
               >
                 + Create Post
-              </button>
-            </div>
-
-            <div className="write-here-bar">
-              <button
-                className="write-here-btn"
-                disabled
-                title="Coming soon — Groups feature"
-              >
-                <span className="write-here-icon">✏️</span>
-                اكتب هنا... (متاح بعد إضافة Groups)
               </button>
             </div>
 

@@ -193,11 +193,6 @@ const HomeDoctor = () => {
           profilePic: pic.startsWith("data:") || pic.startsWith("http")
             ? pic
             : pic ? `/${pic.replace(/^\//, "")}` : "",
-          stats: [
-            { label: "Projects", value: 0 },
-            { label: "Students", value: 0 },
-            { label: "Groups",   value: 0 },
-          ],
         });
       })
       .catch((err) => console.error("Fetch user error:", err))

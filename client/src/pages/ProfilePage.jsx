@@ -423,9 +423,6 @@ export default function ProfilePage() {
                   >
                     {following ? "✓ Following" : "+ Follow"}
                   </button>
-                  <button className="pp-btn-invite" onClick={handleInvite}>
-                    {inviteCopied ? "✓ Copied!" : <><Ico.users width="15" height="15" /> Invite Friends</>}
-                  </button>
                   <button className="pp-btn-share" onClick={handleShare}>
                     {shareCopied ? "✓ Copied!" : <><Ico.share /> Share</>}
                   </button>

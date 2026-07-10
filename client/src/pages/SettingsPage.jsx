@@ -65,27 +65,6 @@ const SettingsPage = () => {
           </div>
         </section>
 
-        {/* Language */}
-        <section className="settings-card">
-          <h2 className="settings-card-title">{t("language")}</h2>
-          <div className="settings-row">
-            <span className="settings-label">{t("language")}</span>
-            <div className="seg-toggle">
-              <button
-                className={`seg-btn ${lang === "en" ? "active" : ""}`}
-                onClick={() => setLang("en")}
-              >
-                English
-              </button>
-              <button
-                className={`seg-btn ${lang === "ar" ? "active" : ""}`}
-                onClick={() => setLang("ar")}
-              >
-                العربية
-              </button>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );

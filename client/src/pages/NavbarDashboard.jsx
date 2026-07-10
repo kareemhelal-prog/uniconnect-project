@@ -30,7 +30,6 @@ import axios from "../api/axios";
 
 const ROUTES = {
   dashboard: "dashboard",
-  feed: "feed",
   live: "live",
   review: "review",
   users: "users",
@@ -49,7 +48,6 @@ const ROUTES = {
 
 const MENU_ITEMS = [
   { label: "Dashboard", icon: FiHome, pageKey: ROUTES.dashboard },
-  { label: "Home Feed", icon: FiMessageSquare, pageKey: ROUTES.feed },
   { label: "Live Monitor", icon: FiRadio, pageKey: ROUTES.live },
   { label: "Account Review", icon: FiUserCheck, pageKey: ROUTES.review },
   { label: "Users", icon: FiUsers, pageKey: ROUTES.users },
@@ -377,18 +375,6 @@ function Navbar({ activePage, onNavigate, onLogout }) {
               >
                 <MdSettings size={16} className="profile-card-icon" />
                 <span>Settings</span>
-                <FiChevronRight size={14} className="profile-card-arrow" />
-              </button>
-
-              <button
-                className="profile-card-item"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigateTo(null);
-                }}
-              >
-                <FiRefreshCw size={16} className="profile-card-icon" />
-                <span>Switch Account</span>
                 <FiChevronRight size={14} className="profile-card-arrow" />
               </button>
 
