@@ -6,13 +6,20 @@
 
 import { io } from "socket.io-client";
 
+// Socket.io connects to the backend ORIGIN (not the /api path). In development
+// VITE_API_URL is empty → "/" (Vite proxies /socket.io to the local backend).
+// In production, VITE_API_URL is like https://backend.up.railway.app/api, so we
+// strip the trailing /api to get the backend origin the socket connects to.
+const API_URL = import.meta.env.VITE_API_URL || "";
+const SOCKET_URL = API_URL ? API_URL.replace(/\/api\/?$/, "") : "/";
+
 let socket = null;
 
 export function getSocket() {
   const token = localStorage.getItem("token");
 
   if (!socket) {
-    socket = io("/", {
+    socket = io(SOCKET_URL, {
       auth: { token },
       autoConnect: true,
       transports: ["websocket", "polling"],
