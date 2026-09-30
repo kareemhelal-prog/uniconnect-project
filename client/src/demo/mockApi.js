@@ -39,9 +39,11 @@ const fail = (status, message, extra = {}) => { throw new HttpError(status, { me
 
 const b64 = (o) => btoa(JSON.stringify(o)).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
 const makeToken = (u) => `${b64({ alg: 'none', typ: 'JWT' })}.${b64({ id: u.id, email: u.email, role: u.role, exp: Math.floor(Date.now() / 1000) + 7 * 86400 })}.demo`
-function tokenUserId() {
+function tokenUserId(auth) {
   try {
-    const t = localStorage.getItem('token'); if (!t) return null
+    let t = auth ? String(auth).replace(/^Bearer\s+/i, '') : null
+    if (!t || t === 'null' || t === 'undefined') t = localStorage.getItem('token')
+    if (!t) return null
     const p = JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
     return p.id
   } catch { return null }
@@ -383,7 +385,9 @@ export async function handle(config) {
   path = path.replace(/\/+$/, '') || '/'
   const q = { ...Object.fromEntries(u.searchParams.entries()), ...(config.params || {}) }
   const b = toBody(config.data)
-  const uid = tokenUserId()
+  const h = config.headers || {}
+  const auth = h.Authorization || h.authorization || (typeof h.get === 'function' ? h.get('Authorization') : null)
+  const uid = tokenUserId(auth)
   const respond = (status, data) => {
     const response = { data, status, statusText: String(status), headers: {}, config, request: {} }
     if (status >= 400) throw new AxiosError(data?.message || `Request failed with status code ${status}`, status >= 500 ? 'ERR_BAD_RESPONSE' : 'ERR_BAD_REQUEST', config, {}, response)
@@ -409,5 +413,27 @@ export async function handle(config) {
     if (e instanceof AxiosError) throw e
     console.error('[demo] handler error', method, path, e)
     return respond(500, { message: 'Demo handler error' })
+  }
+}
+
+// ───────── fetch() support ─────────
+// Pages that call fetch('/api/...') directly (not axios) are answered here too.
+export async function fetchApi(input, init = {}) {
+  const url = typeof input === 'string' ? input : input.url
+  const method = init.method || (typeof input !== 'string' && input.method) || 'GET'
+  const headers = {}
+  const src = init.headers || (typeof input !== 'string' && input.headers) || {}
+  if (typeof src.forEach === 'function' && !Array.isArray(src)) src.forEach((v, k) => { headers[k] = v })
+  else Object.assign(headers, Array.isArray(src) ? Object.fromEntries(src) : src)
+  let body = init.body
+  if (body === undefined && typeof input !== 'string' && typeof input.text === 'function' && !['GET', 'HEAD'].includes(String(method).toUpperCase())) body = await input.clone().text()
+  const cfg = { method, url, headers, data: body }
+  const json = (status, data) => new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
+  try {
+    const r = await handle(cfg)
+    return json(r.status, r.data)
+  } catch (e) {
+    if (e && e.response) return json(e.response.status, e.response.data)
+    return json(500, { message: 'Demo error' })
   }
 }
