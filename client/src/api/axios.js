@@ -1,9 +1,10 @@
 import axios from 'axios'
 
-// VITE_DEMO=true (set on Vercel) → no backend: requests are answered from
-// src/demo/demo-data.json by src/demo/mockApi.js. Locally leave it unset and
-// the real backend (via the Vite proxy) is used exactly as before.
-const DEMO = import.meta.env.VITE_DEMO === 'true'
+// Demo mode = production build WITHOUT VITE_API_URL (i.e. Vercel with no backend):
+// requests are answered from src/demo/demo-data.json by src/demo/mockApi.js.
+// Locally (npm run dev) the real backend is used exactly as before.
+// To use a real backend on Vercel later, just set VITE_API_URL.
+const DEMO = import.meta.env.PROD && !import.meta.env.VITE_API_URL
 
 // In development VITE_API_URL is empty → baseURL is '/api', which Vite proxies
 // to the local backend. In production (Vercel) set VITE_API_URL to the deployed

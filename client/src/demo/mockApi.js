@@ -3,6 +3,8 @@
 import { AxiosError } from 'axios'
 import seed from './demo-data.json'
 
+// The ONE account that can log in. Change here if you want a different one.
+export const DEMO_USER = { username: '2420924', password: 'demo1234' }
 const KEY = 'uc_demo_db_v1'
 let db
 function load() {
@@ -131,23 +133,12 @@ const A = '/auth'
 R('POST', A, '/login', ({ b }) => {
   const id = String(b.identifier || b.email || '').trim().toLowerCase()
   if (!id || !b.password) fail(400, 'Academic ID / email and password are required')
-  const u = db.users.find((x) => String(x.email).toLowerCase() === id || String(x.username).toLowerCase() === id)
-  if (!u || u.password !== b.password) fail(401, 'Invalid credentials', { code: 'invalid_credentials' })
+  const u = db.users.find((x) => x.username === DEMO_USER.username)
+  const isDemo = id === DEMO_USER.username.toLowerCase() || id === String(u.email).toLowerCase()
+  if (!u || !isDemo || b.password !== DEMO_USER.password) fail(401, `Demo mode: log in with username ${DEMO_USER.username} and password ${DEMO_USER.password}`, { code: 'invalid_credentials' })
   return { message: 'Login successful', token: makeToken(u), user: authUser(u) }
 }, true)
-R('POST', A, '/register', ({ b }) => {
-  const email = String(b.email || '').trim().toLowerCase()
-  const username = String(b.username || b.academic_id || email.split('@')[0] || 'user').toLowerCase().replace(/[^a-z0-9._]/g, '') || 'user'
-  if (email && db.users.some((x) => String(x.email).toLowerCase() === email)) fail(409, 'Email already registered')
-  let uname = username, i = 1; while (db.users.some((x) => x.username === uname)) uname = username + i++
-  const u = { id: nextId('users'), username: uname, name: b.name || b.fullName || uname, email: email || `${uname}@demo.uniconnect`, password: b.password || 'demo1234',
-    role: ['student', 'doctor', 'investor'].includes(b.role) ? b.role : 'student', phone_number: null, profile_picture: null, bio: null,
-    ui_theme: null, is_active: 1, created_at: now(), updated_at: now(), account_status: 'approved', needs_profile: 0, is_onboarded: 0, last_seen: now() }
-  db.users.push(u)
-  if (b.academic_year || b.faculty || b.major) db.profile_studies.push({ id: nextId('profile_studies'), user_id: u.id, faculty: b.faculty || null, major: b.major || null, academic_year: b.academic_year || null, graduation_year: null, created_at: now(), track: b.track || null, academic_id: null })
-  save()
-  return [201, { status: 'approved', token: makeToken(u), user: authUser(u) }]
-}, true)
+R('POST', A, '/register', () => fail(403, `Registration is disabled in the demo. Log in with username ${DEMO_USER.username} and password ${DEMO_USER.password}`), true)
 R('POST', A, '/complete-registration', ({ me, b }) => { Object.assign(me, { is_onboarded: me.is_onboarded }); save(); return { status: 'approved', token: makeToken(me), user: authUser(me) } })
 R('POST', A, '/onboarding-complete', ({ me }) => { me.is_onboarded = 1; save(); return { success: true } })
 R('POST', A, '/google', () => fail(400, 'Google sign-in is disabled in the demo. Use a demo account.'), true)
