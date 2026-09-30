@@ -29,6 +29,7 @@ import Files from './pages/Files'
 import CoursesPage from './pages/CoursesPage'
 import SettingsPage from './pages/SettingsPage'
 import LandingPage from './pages/LandingPage'
+import DemoBanner from './components/DemoBanner'
 
 // Decode the stored JWT and reject it if missing/malformed/expired. Returns the
 // token payload ({ id, email, role, exp }) or null.
@@ -150,6 +151,8 @@ function App() {
   return (
     <BrowserRouter>
       <TitleManager />
+      <DemoBanner />
+
       <Routes>
         {/* Public Routes */}
         <Route path="/"                  element={<LandingPage />} />
@@ -213,6 +216,7 @@ function App() {
         {/* 404 */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      
     </BrowserRouter>
   )
 }

@@ -3,11 +3,21 @@
 import { AxiosError } from 'axios'
 import seed from './demo-data.json'
 
-// The ONE account that can log in. Change here if you want a different one.
-export const DEMO_USER = { username: '2420928', password: 'demo1234' }
-const KEY = 'uc_demo_db_v1'
+// Demo accounts that can log in (one per role). All share the same password.
+export const DEMO_PASSWORD = 'demo1234'
+export const DEMO_USERS = [
+  { username: '2420928', role: 'student' },
+  { username: '2420924', role: 'investor' },
+  { username: 'dr_osama', role: 'doctor' },
+  { username: 'admin', role: 'admin' },
+]
+// kept for backward compatibility with any existing import of DEMO_USER
+export const DEMO_USER = { username: DEMO_USERS[0].username, password: DEMO_PASSWORD }
+const demoHint = () => DEMO_USERS.map((d) => `${d.username} (${d.role})`).join(' / ') + ` — password ${DEMO_PASSWORD}`
+const KEY = 'uc_demo_db_v2' // bumped so browsers that cached the old seed pick up the new usernames
 let db
 function load() {
+  try { localStorage.removeItem('uc_demo_db_v1') } catch { /* ignore */ }
   try { const s = localStorage.getItem(KEY); if (s) { db = JSON.parse(s); return } } catch { /* ignore */ }
   db = JSON.parse(JSON.stringify(seed))
 }
@@ -135,12 +145,11 @@ const A = '/auth'
 R('POST', A, '/login', ({ b }) => {
   const id = String(b.identifier || b.email || '').trim().toLowerCase()
   if (!id || !b.password) fail(400, 'Academic ID / email and password are required')
-  const u = db.users.find((x) => x.username === DEMO_USER.username)
-  const isDemo = id === DEMO_USER.username.toLowerCase() || id === String(u.email).toLowerCase()
-  if (!u || !isDemo || b.password !== DEMO_USER.password) fail(401, `Demo mode: log in with username ${DEMO_USER.username} and password ${DEMO_USER.password}`, { code: 'invalid_credentials' })
+  const u = db.users.find((x) => DEMO_USERS.some((d) => d.username === x.username) && (String(x.username).toLowerCase() === id || String(x.email).toLowerCase() === id))
+  if (!u || b.password !== DEMO_PASSWORD) fail(401, `Demo mode: log in with ${demoHint()}`, { code: 'invalid_credentials' })
   return { message: 'Login successful', token: makeToken(u), user: authUser(u) }
 }, true)
-R('POST', A, '/register', () => fail(403, `Registration is disabled in the demo. Log in with username ${DEMO_USER.username} and password ${DEMO_USER.password}`), true)
+R('POST', A, '/register', () => fail(403, `Registration is disabled in the demo. Log in with ${demoHint()}`), true)
 R('POST', A, '/complete-registration', ({ me, b }) => { Object.assign(me, { is_onboarded: me.is_onboarded }); save(); return { status: 'approved', token: makeToken(me), user: authUser(me) } })
 R('POST', A, '/onboarding-complete', ({ me }) => { me.is_onboarded = 1; save(); return { success: true } })
 R('POST', A, '/google', () => fail(400, 'Google sign-in is disabled in the demo. Use a demo account.'), true)
