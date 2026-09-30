@@ -4,7 +4,7 @@ import { AxiosError } from 'axios'
 import seed from './demo-data.json'
 
 // The ONE account that can log in. Change here if you want a different one.
-export const DEMO_USER = { username: '2420924', password: 'demo1234' }
+export const DEMO_USER = { username: '2420928', password: 'demo1234' }
 const KEY = 'uc_demo_db_v1'
 let db
 function load() {
